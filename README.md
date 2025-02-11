@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zero Movie - Next.js Project
 
-## Getting Started
+## Giới thiệu
 
-First, run the development server:
+Đây là dự án **Zero Movie** được xây dựng bằng **Next.js** với **TypeScript** và **Tailwind CSS**. Dưới đây là cấu trúc thư mục và giải thích về từng phần trong dự án.
+
+## Cấu trúc thư mục
+
+```
+chickensoup269-zero_movie/
+├── README.md
+├── eslint.config.mjs
+├── next.config.ts
+├── package.json
+├── postcss.config.mjs
+├── tailwind.config.ts
+├── tsconfig.json
+├── public/
+└── src/
+    └── app/
+        ├── globals.css
+        ├── layout.tsx
+        └── page.tsx
+```
+
+### 1. Root Directory (Thư mục gốc)
+
+- **README.md**: Tài liệu hướng dẫn và mô tả dự án.
+- **eslint.config.mjs**: Cấu hình ESLint để kiểm tra và format mã nguồn.
+- **next.config.ts**: Cấu hình chung của Next.js, ví dụ như tối ưu hóa hình ảnh, biến môi trường, v.v.
+- **package.json**: Chứa thông tin về dự án và danh sách dependencies.
+- **postcss.config.mjs**: Cấu hình PostCSS, thường dùng kết hợp với Tailwind CSS.
+- **tailwind.config.ts**: Cấu hình Tailwind CSS để tùy chỉnh giao diện.
+- **tsconfig.json**: Cấu hình TypeScript cho dự án.
+
+### 2. Thư mục `public/`
+
+- Chứa các tệp tĩnh như hình ảnh, favicon, và các tệp cần thiết cho frontend.
+
+### 3. Thư mục `src/app/`
+
+Đây là nơi chứa mã nguồn chính của ứng dụng Next.js theo **App Router (Next.js 13 trở lên)**.
+
+- **globals.css**: File CSS chứa các kiểu dáng toàn cục cho ứng dụng.
+- **layout.tsx**: Component chứa bố cục chính của ứng dụng, được sử dụng cho tất cả các trang.
+- **page.tsx**: Trang chính của ứng dụng (tương đương với `index.tsx` trong phiên bản trước của Next.js).
+
+## Hướng dẫn cài đặt và chạy dự án
+
+### 1. Cài đặt dependencies
+
+Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
+
+```bash
+npm install
+```
+
+### 2. Chạy dự án
+
+Khởi chạy server phát triển bằng lệnh:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sau đó, truy cập `http://localhost:3000` để xem ứng dụng.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Build dự án
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Để build dự án cho môi trường production, chạy lệnh:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Kết luận
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+=> đây là phần sẽ nói về dự án này sẽ cập nhật sau
