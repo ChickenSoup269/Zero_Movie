@@ -73,6 +73,10 @@ Sau đó, truy cập `http://localhost:3000` để xem ứng dụng.
 npm run build
 ```
 
+### 44. Check dữ liệu tại đây
+
+https://gitingest.com/ChickenSoup269/Zero_Movie
+
 ## Kết luận
 
 => đây là phần sẽ nói về dự án này sẽ cập nhật sau
