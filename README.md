@@ -7,20 +7,21 @@
 ## Cấu trúc thư mục
 
 ```
-chickensoup269-zero_movie/
-├── README.md
-├── eslint.config.mjs
-├── next.config.ts
-├── package.json
-├── postcss.config.mjs
-├── tailwind.config.ts
-├── tsconfig.json
-├── public/
-└── src/
-    └── app/
-        ├── globals.css
-        ├── layout.tsx
-        └── page.tsx
+/zero-movies
+├── /src
+│   ├── /app               # (Next.js App Router)
+│   │   ├── page.tsx       # Trang chính (Home Page)
+│   │   ├── layout.tsx     # Layout chung cho ứng dụng
+│   │   ├── /dashboard     # Một route con (ví dụ: /dashboard)
+│   │   ├── /api           # Route API (backend)
+│   │   │   ├── route.ts   # API Handler
+│   │   ├── /components    # Các component dùng chung
+│   ├── /lib               # Code logic (fetch data, helper functions)
+│   ├── /services          # Gọi API bên ngoài hoặc database
+├── /public                # File tĩnh (hình ảnh, favicon, v.v.)
+├── next.config.js         # Cấu hình Next.js
+├── package.json           # Dependencies
+
 ```
 
 ### 1. Root Directory (Thư mục gốc)
