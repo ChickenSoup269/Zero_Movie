@@ -12,7 +12,7 @@ export default function Navbar() {
       {/* Logo */}
       <div className="text-2xl font-bold tracking-wide">
         <Link href="/">
-          <span className="cursor-pointer">🎬 MyFlix</span>
+          <span className="cursor-pointer">Zero Movies</span>
         </Link>
       </div>
 
