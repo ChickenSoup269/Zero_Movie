@@ -6,7 +6,6 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       {/* Navbar cho User */}
       <Navbar />
-
       {/* Nội dung chính */}
       <main className="flex-1 p-6">{children}</main>
     </div>
