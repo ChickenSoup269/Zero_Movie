@@ -144,4 +144,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  body,
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
