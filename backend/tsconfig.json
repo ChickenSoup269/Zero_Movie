@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "CommonJS",
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "strict": true,
-    "esModuleInterop": true
-  }
+    "target": "ES6", // Biên dịch xuống ES6
+    "module": "CommonJS", // Sử dụng module CommonJS cho Node.js
+    "moduleResolution": "node", // Giúp TypeScript tìm module đúng cách
+    "rootDir": "./src", // Thư mục chứa mã nguồn TypeScript
+    "outDir": "./dist", // Thư mục chứa mã sau khi biên dịch
+    "strict": true, // Bật chế độ kiểm tra chặt chẽ
+    "esModuleInterop": true, // Cho phép import module ES6
+    "forceConsistentCasingInFileNames": true, // Kiểm tra lỗi khi import file sai chữ hoa/thường
+    "skipLibCheck": true, // Bỏ qua kiểm tra type của thư viện bên ngoài (tăng tốc độ)
+    "resolveJsonModule": true // Cho phép import file JSON
+  },
+  "include": ["src"], // Chỉ biên dịch các file trong src
+  "exclude": ["node_modules", "dist"] // Loại trừ thư mục không cần biên dịch
 }
