@@ -69,6 +69,8 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --primary-color: #df0707;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -149,4 +151,35 @@
     padding: 0 !important;
     margin: 0 !important;
   }
+}
+
+/* Tùy chỉnh Swiper để không giới hạn overflow */
+.swiper-wrapper,
+.swiper-slide {
+  overflow: visible !important;
+}
+
+/* Đảm bảo container của Swiper không giới hạn overflow */
+.swiper {
+  overflow: visible !important;
+}
+
+/* Tùy chỉnh scrollbar cho WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px; /* Độ rộng thanh cuộn */
+  height: 8px; /* Độ cao thanh cuộn (nếu cần) */
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-white dark:bg-black; /* Background của thanh cuộn */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-black dark:bg-white; /* Thanh trượt */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-900 dark:bg-gray-800; /* Thanh trượt khi hover */
 }
