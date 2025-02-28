@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation" // Nếu dùng Next.js
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Card,
@@ -15,9 +15,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { ArrowLeftIcon } from "@heroicons/react/24/outline"
-
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import "./login.css"
 
 const LoginPage = () => {
@@ -29,9 +40,12 @@ const LoginPage = () => {
     password: "",
     confirmPassword: "",
   })
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [otp, setOtp] = useState("")
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [openDialog, setOpenDialog] = useState(false)
 
   const handleLoginChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value })
@@ -55,6 +69,13 @@ const LoginPage = () => {
     router.back()
   }
 
+  const handleForgotPasswordSubmit = (e) => {
+    e.preventDefault()
+    console.log("Forgot password email:", forgotEmail, "OTP:", otp)
+    // Logic gửi OTP hoặc reset password ở đây
+    setOpenDialog(false) // Đóng dialog sau khi submit
+  }
+
   return (
     <div className="login-page min-h-screen flex items-center justify-center relative">
       {/* Button quay lại */}
@@ -66,7 +87,7 @@ const LoginPage = () => {
         <ArrowLeftIcon className="h-6 w-6" />
       </Button>
 
-      <Card className="w-full max-w-md border-black bg-white">
+      <Card className="w-full max-w-md border-black bg-white/90">
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-gray-200">
             <TabsTrigger
@@ -136,11 +157,70 @@ const LoginPage = () => {
                     </button>
                   </div>
                 </div>
-                {/* Forgot Password */}
+                {/* Forgotten Password với Dialog */}
                 <div className="text-right">
-                  <a href="#" className="text-sm text-black hover:underline">
-                    Forgotten Password?
-                  </a>
+                  <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                    <DialogTrigger asChild>
+                      <a
+                        href="#"
+                        className="text-sm text-black hover:underline"
+                      >
+                        Forgotten Password?
+                      </a>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] bg-white border-black">
+                      <DialogHeader>
+                        <DialogTitle className="text-black">
+                          Reset Password
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form
+                        onSubmit={handleForgotPasswordSubmit}
+                        className="space-y-4"
+                      >
+                        <div className="space-y-2">
+                          <Label htmlFor="forgotEmail" className="text-black">
+                            Email
+                          </Label>
+                          <Input
+                            id="forgotEmail"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={forgotEmail}
+                            onChange={(e) => setForgotEmail(e.target.value)}
+                            required
+                            className="border-black text-black bg-white placeholder-gray-400"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="otp" className="text-black">
+                            OTP
+                          </Label>
+                          <InputOTP
+                            id="otp"
+                            maxLength={6}
+                            value={otp}
+                            onChange={(value) => setOtp(value)}
+                          >
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                        <Button
+                          type="submit"
+                          className="w-full bg-black text-white hover:bg-gray-800"
+                        >
+                          Submit
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
               <CardFooter>
@@ -254,7 +334,6 @@ const LoginPage = () => {
                     </button>
                   </div>
                 </div>
-                {/* Checkbox ở góc phải */}
                 <div className="flex items-center justify-end space-x-2">
                   <Checkbox id="terms" className="border-black" />
                   <Label htmlFor="terms" className="text-sm text-black">
