@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
-import * as movieService from "../services/movie.service";
-import { IMovie } from "../models/movies/Movie";
+import * as movieService from "../../services/movies/movie.service";
+import { IMovie } from "../../models/movies/Movie";
 
 // Lấy danh sách tất cả phim
-export const getMovies = async (req: Request, res: Response): Promise<void> => {
+export const getAllMovies = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const movies = await movieService.getAllMovies();
     res.status(200).json(movies);
