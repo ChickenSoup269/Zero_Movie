@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import UserAccount from "../models/authentication/UserAccount";
+import UserAccount from "../../models/users/UserAccount";
 
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET || "your-very-secure-secret-key";

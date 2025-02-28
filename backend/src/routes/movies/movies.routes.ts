@@ -1,15 +1,15 @@
 import express from "express";
 import {
-  getMovies,
+  getAllMovies,
   getMovieById,
   createMovie,
   updateMovie,
   deleteMovie,
-} from "../controllers/movie.controller";
+} from "../../controllers/movies/movie.controller";
 
 const router = express.Router();
 
-router.get("/", getMovies);
+router.get("/", getAllMovies);
 router.get("/:id", getMovieById);
 router.post("/", createMovie);
 router.put("/:id", updateMovie);

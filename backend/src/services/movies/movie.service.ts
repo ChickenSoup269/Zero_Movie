@@ -1,5 +1,5 @@
 import axios from "axios";
-import Movie, { IMovie } from "../models/movies/Movie";
+import Movie, { IMovie } from "../../models/movies/Movie";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -22,10 +22,28 @@ export const getAllMovies = async (): Promise<IMovie[]> => {
         page: 1,
       },
     });
-    const tmdbMovies = response.data.results as IMovie[];
+    const tmdbMovies = response.data.results as Partial<IMovie>[];
 
-    await Movie.insertMany(tmdbMovies);
-    return tmdbMovies;
+    // Điều chỉnh dữ liệu để khớp với IMovie
+    const moviesToSave = tmdbMovies.map((movie: Partial<IMovie>) => {
+      const adjustedMovie: IMovie = {
+        ...movie,
+        id: Number(movie.id || 0),
+        adult: movie.adult || false,
+        budget: movie.budget || 0,
+        revenue: movie.revenue || 0,
+        runtime: movie.runtime || 0,
+        vote_average: movie.vote_average || 0,
+        vote_count: movie.vote_count || 0,
+        // Thêm các trường khác nếu cần (ví dụ: title, overview, v.v.)
+        title: movie.title || "No title",
+        overview: movie.overview || "",
+      } as IMovie;
+      return adjustedMovie;
+    });
+
+    await Movie.insertMany(moviesToSave);
+    return moviesToSave as IMovie[];
   } catch (error) {
     throw new Error(`Lỗi khi fetch phim từ TMDB: ${(error as Error).message}`);
   }
@@ -33,7 +51,7 @@ export const getAllMovies = async (): Promise<IMovie[]> => {
 
 // Lấy phim theo ID
 export const getMovieById = async (id: string): Promise<IMovie> => {
-  const numericId = Number(id) || id; // Xử lý cả số và chuỗi
+  const numericId = Number(id) || id;
   const existingMovie = await Movie.findOne({ id: numericId });
   if (existingMovie) {
     return existingMovie;
@@ -46,9 +64,23 @@ export const getMovieById = async (id: string): Promise<IMovie> => {
         language: "vi-VN",
       },
     });
-    const movieData = response.data as IMovie;
+    const movieData = response.data as Partial<IMovie>;
 
-    const newMovie = new Movie(movieData);
+    // Điều chỉnh dữ liệu để khớp với IMovie
+    const adjustedMovieData: IMovie = {
+      ...movieData,
+      id: Number(movieData.id || 0),
+      adult: movieData.adult || false,
+      budget: movieData.budget || 0,
+      revenue: movieData.revenue || 0,
+      runtime: movieData.runtime || 0,
+      vote_average: movieData.vote_average || 0,
+      vote_count: movieData.vote_count || 0,
+      title: movieData.title || "No title",
+      overview: movieData.overview || "",
+    } as IMovie;
+
+    const newMovie = new Movie(adjustedMovieData);
     await newMovie.save();
     return newMovie;
   } catch (error) {
@@ -60,6 +92,9 @@ export const getMovieById = async (id: string): Promise<IMovie> => {
 
 // Tạo phim mới (từ dữ liệu người dùng nhập)
 export const createMovie = async (movieData: IMovie): Promise<IMovie> => {
+  if (!movieData.id || !movieData.title) {
+    throw new Error("ID và title là bắt buộc");
+  }
   const newMovie = new Movie(movieData);
   return await newMovie.save();
 };
@@ -72,7 +107,7 @@ export const updateMovie = async (
   const numericId = Number(id) || id;
   const updatedMovie = await Movie.findOneAndUpdate(
     { id: numericId },
-    { ...updateData },
+    { ...updateData, id: numericId }, // Bảo vệ id không bị ghi đè
     { new: true, runValidators: true }
   );
   if (!updatedMovie) {

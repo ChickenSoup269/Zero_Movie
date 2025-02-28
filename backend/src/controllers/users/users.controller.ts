@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import {
   getUserProfileService,
   updateUserProfileService,
-} from "../services/users.service";
+} from "../../services/users/users.service";
 
 // Lấy thông tin người dùng
 export const getUserProfileController = async (

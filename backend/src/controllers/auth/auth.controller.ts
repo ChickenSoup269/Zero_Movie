@@ -3,7 +3,7 @@ import {
   registerService,
   loginService,
   logoutService,
-} from "../services/auth.service";
+} from "../../services/auth/auth.service";
 
 // Đăng ký
 export const registerController = async (

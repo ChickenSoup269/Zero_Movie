@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import UserAccount from "../models/authentication/UserAccount";
-import Session from "../models/authentication/Session";
+import UserAccount from "../../models/users/UserAccount";
+import Session from "../../models/auth/Session";
 
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
