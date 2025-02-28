@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation, Pagination, Autoplay } from "swiper/modules"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import AboutUs from "@/components/about-us"
 
 // Import CSS của Swiper
 import "swiper/css"
@@ -26,6 +27,8 @@ export default function Home() {
       description:
         "In a bet to prove whether ghosts or aliens exist, two high schoolers uncover paranormal threats, gain superpowers, and maybe even fall in love?",
       starring: "Starring: Shion Wakayama, Natsuki Hanae, Nana Mizuki",
+      status: "nowShowing",
+      releaseDate: "March 15, 2025",
     },
     {
       id: 2,
@@ -40,6 +43,7 @@ export default function Home() {
       description:
         "A young man merges with a devil to become a powerful devil hunter.",
       starring: "Starring: Kikunosuke Toya, Tomori Kusunoki",
+      status: "nowShowing",
     },
     {
       id: 3,
@@ -54,6 +58,7 @@ export default function Home() {
       description:
         "A retired hitman tries to live a peaceful life while hiding his past.",
       starring: "Starring: Tomokazu Sugita, Rie Takahashi",
+      status: "upcoming",
     },
     {
       id: 4,
@@ -68,6 +73,7 @@ export default function Home() {
       description:
         "A young boy becomes a demon slayer to save his sister, who turned into a demon.",
       starring: "Starring: Natsuki Hanae, Akari Kito",
+      status: "upcoming",
     },
     {
       id: 5,
@@ -81,6 +87,7 @@ export default function Home() {
       description:
         "Humans fight against giant humanoid Titans to reclaim their world.",
       starring: "Starring: Yuki Kaji, Yui Ishikawa",
+      status: "nowShowing",
     },
     {
       id: 6,
@@ -94,6 +101,21 @@ export default function Home() {
       description:
         "A boy without powers aims to become the greatest hero in a world of superhumans.",
       starring: "Starring: Daiki Yamashita, Kenta Miyake",
+      status: "nowShowing",
+    },
+    {
+      id: 7,
+      title: "My Hero Academia",
+      year: "2016",
+      age: "13+",
+      genre: "Anime",
+      imageFull: "/images/myheroacademia-full.jpg",
+      poster:
+        "https://occ-0-58-325.1.nflxso.net/dnm/api/v6/mAcAr9TxZIVbINe88xb3Teg5_OA/AAAABcAxTxtIpvtWKtxnwtHqoHgpl0YLi185G1nPwmF5gO_wkE8ccvq_8k5WyT30Vun95kL8VkhrFquP_5KAYiLQ-gjG12doH5yunF_I.webp?r=1cb",
+      description:
+        "A boy without powers aims to become the greatest hero in a world of superhumans.",
+      starring: "Starring: Daiki Yamashita, Kenta Miyake",
+      status: "nowShowing",
     },
   ]
 
@@ -101,6 +123,7 @@ export default function Home() {
   const [swiper, setSwiper] = useState<any>(null) // State để lưu Swiper instance
   const [activeIndex, setActiveIndex] = useState(0) // Index của slide hiện tại
   const [isHovered, setIsHovered] = useState(false) // State để theo dõi hover
+  const [activeTab, setActiveTab] = useState("nowShowing")
 
   // Hàm xử lý khi nhấn poster để chuyển slide
   const handlePosterClick = (index: number) => {
@@ -348,6 +371,111 @@ export default function Home() {
               </svg>
             </div>
           </div>
+        </div>
+        {/* Phần thân mới thêm vào */}
+        <div className="container mx-auto px-4 py-12">
+          {/* Hai button ở giữa */}
+          <div className="flex justify-center gap-6 mb-12">
+            <Button
+              variant="outline"
+              className={`px-10 py-5 text-lg font-semibold ${
+                activeTab === "nowShowing"
+                  ? "bg-[#DF0707] text-white border-[#DF0707] hover:text-[#DF0707] dark:hover:bg-white"
+                  : "text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+              } transition-all duration-300`}
+              onClick={() => setActiveTab("nowShowing")}
+            >
+              Now Showing
+            </Button>
+            <Button
+              variant="outline"
+              className={`px-10 py-5 text-lg font-semibold ${
+                activeTab === "upcoming"
+                  ? "bg-[#DF0707] text-white border-[#DF0707] hover:text-[#DF0707] dark:hover:bg-white"
+                  : "text-black dark:text-black dark:bg-white hover:bg-black hover:text-white dark:hover:bg-[#0e1116]  dark:hover:text-white"
+              } transition-all duration-300`}
+              onClick={() => setActiveTab("upcoming")}
+            >
+              Upcoming
+            </Button>
+          </div>
+
+          {/* Phần hiển thị movies */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-">
+            {activeTab === "nowShowing"
+              ? movies
+                  .filter((movie) => movie.status === "nowShowing")
+                  .map((movie) => (
+                    <div
+                      key={movie.id}
+                      className="group relative rounded-lg overflow-hidden shadow-lg transform transition-all duration-300 hover:scale-105"
+                    >
+                      <Image
+                        src={movie.poster}
+                        alt={movie.title}
+                        width={300}
+                        height={450}
+                        style={{ objectFit: "cover" }}
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <h3 className="text-white text-xl font-semibold mb-2">
+                          {movie.title}
+                        </h3>
+                        <p className="text-white text-sm mb-2">
+                          {movie.year} | {movie.genre}
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="w-full bg-[#DF0707] text-white border-[#DF0707] hover:bg-white hover:text-[#DF0707]"
+                          onClick={() => handleBookNow(movie)}
+                        >
+                          Book Now
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full dark:text-white border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black mt-2"
+                          onClick={() => handleViewDetails(movie)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+              : movies
+                  .filter((movie) => movie.status === "upcoming")
+                  .map((movie) => (
+                    <div
+                      key={movie.id}
+                      className="group relative rounded-lg overflow-hidden shadow-lg transform transition-all duration-300 hover:scale-105"
+                    >
+                      <Image
+                        src={movie.poster}
+                        alt={movie.title}
+                        width={300}
+                        height={450}
+                        style={{ objectFit: "cover" }}
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <h3 className="text-white text-xl font-semibold mb-2">
+                          {movie.title}
+                        </h3>
+                        <p className="text-white text-sm mb-2">
+                          {movie.releaseDate}
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="w-full dark:text-white border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                          onClick={() => handleViewDetails(movie)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+          </div>
+        </div>
+        <div className="pb-12">
+          <AboutUs />
         </div>
       </div>
     </div>
