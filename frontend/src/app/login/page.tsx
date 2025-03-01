@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState } from "react"
@@ -47,20 +48,20 @@ const LoginPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
 
-  const handleLoginChange = (e) => {
+  const handleLoginChange = (e: { target: { name: any; value: any } }) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value })
   }
 
-  const handleRegisterChange = (e) => {
+  const handleRegisterChange = (e: { target: { name: any; value: any } }) => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value })
   }
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault()
     console.log("Login data:", loginData)
   }
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault()
     console.log("Register data:", registerData)
   }
@@ -69,7 +70,7 @@ const LoginPage = () => {
     router.back()
   }
 
-  const handleForgotPasswordSubmit = (e) => {
+  const handleForgotPasswordSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault()
     console.log("Forgot password email:", forgotEmail, "OTP:", otp)
     // Logic gửi OTP hoặc reset password ở đây
