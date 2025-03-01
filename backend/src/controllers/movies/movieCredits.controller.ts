@@ -1,4 +1,3 @@
-// src/controllers/movies/movieCredits.controller.ts
 import { Request, Response } from "express";
 import { getMovieCredits } from "../../services/movies/movieCredits.service";
 import { IMovieCredits } from "../../models/movies/MovieCredits";
