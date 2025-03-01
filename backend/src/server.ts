@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import movieRoutes from "./routes/movies/movies.routes";
 import authRoutes from "./routes/auth/auth.routes";
 import usersRoutes from "./routes/users/users.routes";
-import movieDetailsRoutes from "./routes/movies/movieDetails.routes";
 import movieCreditsRoutes from "./routes/movies/movieCredits.routes";
 
 dotenv.config();
@@ -22,7 +21,6 @@ mongoose
 app.use("/api/movies", movieRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
-app.use("/api/movies", movieDetailsRoutes);
 app.use("/api/movies", movieCreditsRoutes);
 
 // PORT
