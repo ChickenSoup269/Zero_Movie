@@ -8,7 +8,9 @@ export default function UserLayout({ children }: { children: ReactNode }) {
       {/* Navbar cho User */}
       <Navbar />
       {/* Nội dung chính */}
-      <main className="flex-1 p-6 bg-[#0e1116] dark:bg-black">{children}</main>
+      <main className="flex-1 p-6 bg-slate-50 dark:bg-[#0e1116]">
+        {children}
+      </main>
       <Footer />
     </div>
   )

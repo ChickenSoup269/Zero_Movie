@@ -122,16 +122,72 @@ const SearchPage = () => {
     { value: "animation", label: "Animation" },
   ]
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: { preventDefault: () => void }) => {
     e.preventDefault()
     console.log("Search Query:", searchQuery, "Genre:", selectedGenre)
   }
 
-  const handleBookNow = (movie) => {
+  const handleBookNow = (
+    movie:
+      | {
+          id: number
+          title: string
+          year: string
+          age: string
+          genre: string
+          imageFull: string
+          poster: string
+          description: string
+          starring: string
+          status: string
+          releaseDate: string
+        }
+      | {
+          id: number
+          title: string
+          year: string
+          age: string
+          genre: string
+          imageFull: string
+          poster: string
+          description: string
+          starring: string
+          status: string
+          releaseDate?: undefined
+        }
+  ) => {
     console.log("Booking:", movie.title)
   }
 
-  const handleViewDetails = (movie) => {
+  const handleViewDetails = (
+    movie:
+      | {
+          id: number
+          title: string
+          year: string
+          age: string
+          genre: string
+          imageFull: string
+          poster: string
+          description: string
+          starring: string
+          status: string
+          releaseDate: string
+        }
+      | {
+          id: number
+          title: string
+          year: string
+          age: string
+          genre: string
+          imageFull: string
+          poster: string
+          description: string
+          starring: string
+          status: string
+          releaseDate?: undefined
+        }
+  ) => {
     console.log("Viewing details:", movie.title)
   }
 
