@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Switch } from "@/components/ui/switch"
+// import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu" // Import từ @shadcn/ui
+import CustomSwitch from "@/components/switch-theme"
 
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false)
@@ -36,7 +37,15 @@ export default function Navbar() {
 
   // Toggle dark mode
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode)
+    document.documentElement.classList.add("dark") // Mặc định bật dark mode khi trang load
+  }, [])
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
   }, [darkMode])
 
   // Đổi ngôn ngữ
@@ -47,10 +56,10 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-4 left-8 right-8 p-4 flex items-center justify-between z-50 transition-colors duration-300 rounded-2xl ${
+      className={`fixed left-8 right-8 z-50 flex items-center justify-between transition-all duration-300 rounded-md ${
         isScrolled
-          ? "bg-black/90 backdrop-blur-lg text-white shadow-lg"
-          : "bg-white/80 dark:bg-black/80 text-black dark:text-white shadow-md"
+          ? "top-0 bg-white/90 backdrop-blur-lg text-black shadow-lg pt-2 pb-4 px-5"
+          : "top-1 dark:bg-black/80 text-white dark:text-white  p-4"
       }`}
     >
       {/* Logo */}
@@ -71,7 +80,7 @@ export default function Navbar() {
             className={`hover:text-gray-300 transition-colors duration-300 px-2 py-1 ${
               pathname === item.href
                 ? isScrolled
-                  ? "bg-white text-[#DF0707] font-bold rounded-b-lg -mt-2 pt-3"
+                  ? "bg-[#DF0707] text-white font-bold rounded-b-lg -mt-2 pt-3"
                   : "bg-[#DF0707] text-white font-bold rounded-b-lg -mt-2 pt-3"
                 : ""
             }`}
@@ -102,7 +111,7 @@ export default function Navbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+        <CustomSwitch checked={darkMode} onCheckedChange={setDarkMode} />
         <Button>
           <Link href="/login" className="hover:text-gray-300 transition">
             Sign in
