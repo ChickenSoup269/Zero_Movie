@@ -14,10 +14,10 @@ import {
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [language, setLanguage] = useState("en") // Mặc định là tiếng anh
+  const [language, setLanguage] = useState("en") // Mặc định là tiếng Anh
   const pathname = usePathname()
 
-  // Danh sách các mục menu
+  // Danh sách menu
   const navItems = [
     { href: "/", label: "HOME" },
     { href: "/movies", label: "MOVIES" },
@@ -39,19 +39,18 @@ export default function Navbar() {
     document.documentElement.classList.toggle("dark", darkMode)
   }, [darkMode])
 
-  // Hàm xử lý thay đổi ngôn ngữ (bạn có thể mở rộng sau)
+  // Đổi ngôn ngữ
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang)
-    // Thêm logic để cập nhật ngôn ngữ cho toàn bộ ứng dụng (ví dụ: dùng i18n)
     console.log(`Switched to ${lang}`)
   }
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full p-4 flex items-center justify-between z-50 transition-colors duration-300 ${
+      className={`fixed top-4 left-8 right-8 p-4 flex items-center justify-between z-50 transition-colors duration-300 rounded-2xl ${
         isScrolled
-          ? "bg-black/80 backdrop-blur-md text-white"
-          : "bg-transparent text-black dark:text-white"
+          ? "bg-black/90 backdrop-blur-lg text-white shadow-lg"
+          : "bg-white/80 dark:bg-black/80 text-black dark:text-white shadow-md"
       }`}
     >
       {/* Logo */}
@@ -89,7 +88,7 @@ export default function Navbar() {
             <Button
               variant="outline"
               size="sm"
-              className=" text-black dark:text-white"
+              className="text-black dark:text-white"
             >
               {language === "vi" ? "Tiếng Việt" : "English"}
             </Button>
