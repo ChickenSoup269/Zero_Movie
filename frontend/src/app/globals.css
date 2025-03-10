@@ -152,10 +152,6 @@
 }
 
 /* Tùy chỉnh Swiper để không giới hạn overflow */
-.swiper-wrapper,
-.swiper-slide {
-  overflow: visible !important;
-}
 
 /* Đảm bảo container của Swiper không giới hạn overflow */
 .swiper {
