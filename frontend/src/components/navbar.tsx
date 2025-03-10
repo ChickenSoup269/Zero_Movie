@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu" // Import từ @shadcn/ui
 import CustomSwitch from "@/components/switch-theme"
+import Image from "next/image"
 
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false)
@@ -63,11 +64,15 @@ export default function Navbar() {
       }`}
     >
       {/* Logo */}
-      <div className="text-2xl font-bold tracking-wide">
+      <div className="flex items-center">
         <Link href="/">
-          <span className="cursor-pointer transition-colors duration-300">
-            Zero Movies
-          </span>
+          <Image
+            src="/logo.png"
+            alt="Zero Movies Logo"
+            width={isScrolled ? 100 : 150} // Nhỏ lại khi scroll
+            height={isScrolled ? 30 : 50}
+            className="cursor-pointer transition-transform duration-300 hover:scale-105"
+          />
         </Link>
       </div>
 
