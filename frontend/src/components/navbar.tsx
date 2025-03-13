@@ -1,22 +1,18 @@
 "use client"
 import { useState, useEffect } from "react"
-import Link from "next/link"
+
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
 import CustomSwitch from "@/components/switch-theme"
-import Image from "next/image"
 import SearchBar from "@/components/search-navbar"
+import LanguageSelector from "@/components/language-selector"
+import Link from "next/link"
+import Image from "next/image"
 
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [language, setLanguage] = useState("en")
 
   const pathname = usePathname()
 
@@ -46,17 +42,12 @@ export default function Navbar() {
     }
   }, [darkMode])
 
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    console.log(`Switched to ${lang}`)
-  }
-
   return (
     <nav
       className={`fixed left-8 right-8 z-50 flex items-center justify-between transition-all duration-300 rounded-md ${
         isScrolled
-          ? "top-0 bg-white dark:bg-transparent backdrop-blur-lg text-black dark:text-white shadow-lg pt-2 pb-4 px-5"
-          : "top-100 text-white dark:text-white p-4"
+          ? " top-0 bg-white/10 dark:bg-transparent backdrop-blur-lg text-white shadow-lg pt-2 pb-4 px-5"
+          : "top-1  text-white dark:text-white p-4"
       }`}
     >
       {/* Logo và Menu được gộp gần nhau */}
@@ -67,8 +58,8 @@ export default function Navbar() {
           <Image
             src="/logo.png"
             alt="Zero Movies Logo"
-            width={isScrolled ? 100 : 150}
-            height={isScrolled ? 50 : 50}
+            width={isScrolled ? 80 : 100}
+            height={isScrolled ? 50 : 80}
             className="cursor-pointer transition-transform duration-300 hover:scale-105"
           />
         </Link>
@@ -83,8 +74,8 @@ export default function Navbar() {
               className={`hover:text-gray-300 capitalize transition-colors duration-300 px-2 py-1 ${
                 pathname === item.href
                   ? isScrolled
-                    ? "bg-[#4aa3eb] text-white font-bold rounded-b-lg -mt-2 pt-3"
-                    : "bg-[#4aa3eb] text-white font-bold rounded-b-lg -mt-2 pt-3"
+                    ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-3 pt-3"
+                    : "bg-[#4599e3] text-white font-bold rounded-lg "
                   : ""
               }`}
             >
@@ -97,31 +88,12 @@ export default function Navbar() {
       <div className="flex items-center space-x-4">
         {/* Search button và animated textbox */}
         <SearchBar />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-black dark:text-white"
-            >
-              {language === "vi" ? "Tiếng Việt" : "English"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => handleLanguageChange("vi")}>
-              Tiếng Việt
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleLanguageChange("en")}>
-              English
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Sử dụng ngôn ngữ dropdown*/}
+        <LanguageSelector />
+        {/* Switch sáng tối */}
         <CustomSwitch checked={darkMode} onCheckedChange={setDarkMode} />
-        <Button className="bg-[#4aa3eb] ">
-          <Link href="/login" className="hover:text-gray-300 transition">
-            Sign in
-          </Link>
+        <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
+          <Link href="/login">Sign in</Link>
         </Button>
       </div>
     </nav>
