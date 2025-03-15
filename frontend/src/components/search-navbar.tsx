@@ -1,69 +1,184 @@
 "use client"
-import { useState } from "react"
-import { Search, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
+import SearchPopup from "@/components/search-popup"
+
+// Định nghĩa kiểu cho một phim
+interface Movie {
+  title: string
+  description: string
+  image: string
+  poster: string
+  duration: string
+  genre: string
+  releaseYear: number
+}
 
 export default function SearchBar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchText, setSearchText] = useState("")
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false)
+  const [searchText, setSearchText] = useState<string>("")
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("")
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  // Dữ liệu phim từ slides (với các thuộc tính giả định)
+  const slides: Movie[] = [
+    {
+      title: "Monsters, Inc.",
+      description:
+        "Animated film that explores the world of Monstropolis, where monsters generate their city's power by scaring children at night.",
+      image: "/images/monster's.jpg",
+      poster: "/images/04_monsters_stroke.jpg",
+      duration: "92 min",
+      genre: "Animation, Family",
+      releaseYear: 2001,
+    },
+    // {
+    //   title: "The Good Dinosaur",
+    //   description:
+    //     "A heartwarming tale of a young dinosaur and his human friend on an epic journey.",
+    //   image: "/good-dinosaur-bg.jpg",
+    //   poster: "/good-dinosaur-poster.jpg",
+    //   duration: "93 min",
+    //   genre: "Animation, Adventure",
+    //   releaseYear: 2015,
+    // },
+    // {
+    //   title: "Aladdin",
+    //   description:
+    //     "A magical adventure with a street-smart thief and a magical genie.",
+    //   image: "/aladdin-bg.jpg",
+    //   poster: "/aladdin-poster.jpg",
+    //   duration: "90 min",
+    //   genre: "Animation, Fantasy",
+    //   releaseYear: 1992,
+    // },
+  ]
+
+  // Lọc phim dựa trên từ khóa tìm kiếm
+  const filteredMovies: Movie[] = slides.filter((movie) =>
+    movie.title.toLowerCase().includes(debouncedSearchText.toLowerCase())
+  )
 
   // Animation variants cho search box
   const searchVariants = {
     closed: {
-      width: "1px",
-      opacity: 0,
+      width: "40px",
+      opacity: 1,
       transition: { duration: 0.3 },
     },
     open: {
-      width: "250px",
+      width: "300px",
       opacity: 1,
       transition: { duration: 0.3 },
     },
   }
 
+  // Debounce search text
+  useEffect(() => {
+    if (isSearchOpen && searchText) {
+      // Chỉ debounce khi có text
+      setIsLoading(true)
+      const timer = setTimeout(() => {
+        setDebouncedSearchText(searchText)
+        setIsLoading(false)
+      }, 1000) // Chờ 1 giây trước khi hiển thị kết quả
+      return () => clearTimeout(timer)
+    } else {
+      setIsLoading(false) // Đảm bảo isLoading là false khi mở nhưng chưa nhập
+    }
+  }, [searchText, isSearchOpen])
+
   // Hàm xóa text
   const clearSearch = () => {
     setSearchText("")
+    setDebouncedSearchText("")
+  }
+
+  // Hàm toggle search
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen)
+    if (!isSearchOpen) {
+      setSearchText("")
+      setDebouncedSearchText("")
+    }
   }
 
   return (
     <div className="flex items-center relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsSearchOpen(!isSearchOpen)}
-      >
-        <Search className="h-5 w-5" />
-      </Button>
       <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            variants={searchVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            className="relative"
+        <motion.div
+          variants={searchVariants}
+          initial="closed"
+          animate={isSearchOpen ? "open" : "closed"}
+          exit="closed"
+          className="relative"
+        >
+          <div
+            className="ml-2 bg-transparent shadow-lg backdrop-blur-sm rounded-md"
+            style={{
+              backgroundImage: "url('/path-to-your-pattern.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
           >
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="ml-2 p-1 pr-8 bg-transparent border-b focus:outline-none text-black dark:text-white w-full"
-            />
-            {searchText && (
+            <div className="flex items-center">
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
-                onClick={clearSearch}
+                onClick={toggleSearch}
+                className="h-8 w-8 hover:bg-gray-500"
               >
-                <X className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+                <Search className="h-4 w-4 text-white" />
               </Button>
-            )}
-          </motion.div>
-        )}
+
+              {/* Đường phân cách */}
+              <div className="h-4 w-px bg-white/50 mx-2"></div>
+
+              {isSearchOpen && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="w-full ml-1 bg-transparent border-none shadow-lg focus:outline-none text-white pr-12"
+                  />
+                  <div className="relative">
+                    {isLoading && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 p-0 flex items-center justify-center text-white"
+                        disabled
+                      >
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      </Button>
+                    )}
+                    {searchText && !isLoading && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 p-0 hover:bg-gray-500 flex items-center justify-center"
+                        onClick={clearSearch}
+                      >
+                        <X className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Sử dụng component SearchPopup */}
+          <SearchPopup
+            filteredMovies={filteredMovies}
+            isSearchOpen={isSearchOpen}
+            debouncedSearchText={debouncedSearchText}
+          />
+        </motion.div>
       </AnimatePresence>
     </div>
   )
