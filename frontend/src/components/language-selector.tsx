@@ -27,7 +27,7 @@ export default function LanguageSelector() {
     <DropdownMenu onOpenChange={(open) => setIsOpen(open)}>
       <DropdownMenuTrigger asChild>
         <div className="flex items-center space-x-1 cursor-pointer">
-          <span className=" font-light text-sm text-white dark:text-white hover:text-gray-300 transition-colors duration-300">
+          <span className="font-light text-sm text-white dark:text-white hover:text-gray-300 transition-colors duration-300">
             {language === "vi" ? "Tiếng Việt" : "English"}
           </span>
           <motion.svg

@@ -1,5 +1,4 @@
-// components/FullImageSlider.js
-"use client" // Thêm directive vì component này dùng hook
+"use client" // Chạy phía client vì dùng hook
 
 import { useState } from "react"
 import Image from "next/image"
@@ -9,32 +8,112 @@ import "swiper/css"
 import "swiper/css/navigation"
 
 const FullImageSlider = () => {
-  // Dữ liệu mẫu cho các slide (có thể thay bằng API hoặc dữ liệu thực tế)
   const slides = [
     {
       title: "Monsters, Inc.",
-      description:
-        "Animated film that explores the world of Monstropolis, where monsters generate their city's power by scaring children at night.",
+      description: "Monsters generate power by scaring kids in Monstropolis.",
       image: "/images/monster's.jpg",
       poster: "/images/04_monsters_stroke.jpg",
+      duration: "92 min",
+      genre: "Animation, Family, Comedy",
+      releaseYear: 2001,
     },
-    // {
-    //   title: "The Good Dinosaur",
-    //   description:
-    //     "A heartwarming tale of a young dinosaur and his human friend on an epic journey.",
-    //   image: "/good-dinosaur-bg.jpg",
-    //   poster: "/good-dinosaur-poster.jpg",
-    // },
-    // {
-    //   title: "Aladdin",
-    //   description:
-    //     "A magical adventure with a street-smart thief and a magical genie.",
-    //   image: "/aladdin-bg.jpg",
-    //   poster: "/aladdin-poster.jpg",
-    // },
+    {
+      title: "The Good Dinosaur",
+      description:
+        "A young dinosaur and his human friend embark on an adventure.",
+      image: "/images/the-good-dinosaur.jpg",
+      poster: "/images/16_dino.jpg",
+      duration: "93 min",
+      genre: "Animation, Adventure, Family",
+      releaseYear: 2015,
+    },
+    {
+      title: "Up",
+      description:
+        "An old man flies his house with balloons to Paradise Falls.",
+      image: "/images/up.jpg",
+      poster: "/images/10_up.jpg",
+      duration: "96 min",
+      genre: "Animation, Adventure, Comedy",
+      releaseYear: 2009,
+    },
+    {
+      title: "Coco",
+      description: "A boy explores the Land of the Dead to find his roots.",
+      image: "/images/coco.jpg",
+      poster: "/images/19_coco.jpg",
+      duration: "105 min",
+      genre: "Animation, Family, Fantasy",
+      releaseYear: 2017,
+    },
+    {
+      title: "Luca",
+      description: "A sea monster boy enjoys a summer on the Italian Riviera.",
+      image: "/images/luca.jpg",
+      poster: "/images/23_luca.jpg",
+      duration: "95 min",
+      genre: "Animation, Adventure, Comedy",
+      releaseYear: 2021,
+    },
+    {
+      title: "Cars 3",
+      description: "Lightning McQueen races against a new generation.",
+      image: "/images/car-3.jpg",
+      poster: "/images/18_cars3.jpg",
+      duration: "102 min",
+      genre: "Animation, Adventure, Comedy",
+      releaseYear: 2017,
+    },
+    {
+      title: "Finding Dory",
+      description: "Dory searches for her parents with Nemo and Marlin.",
+      image: "/images/finding-dory.jpg",
+      poster: "/images/17_dory.jpg",
+      duration: "97 min",
+      genre: "Animation, Adventure, Comedy",
+      releaseYear: 2016,
+    },
+    {
+      title: "WALL-E",
+      description: "A robot’s journey shapes humanity’s future.",
+      image: "/images/wall-e.jpg",
+      poster: "/images/09_walle.jpg",
+      duration: "98 min",
+      genre: "Animation, Adventure, Sci-Fi",
+      releaseYear: 2008,
+    },
+    {
+      title: "Elio",
+      description: "A boy connects with aliens as Earth’s ambassador.",
+      image: "/images/elio-2024.jpg",
+      poster: "/images/ELIO_Teaser.jpg",
+      duration: "N/A",
+      genre: "Animation, Adventure, Sci-Fi",
+      releaseYear: 2025,
+    },
+    {
+      title: "Toy Story 4",
+      description: "Woody and friends go on a road trip with Forky.",
+      image: "/images/toy-story-4.jpg",
+      poster: "/images/21_ts4.jpg",
+      duration: "100 min",
+      genre: "Animation, Adventure, Comedy",
+      releaseYear: 2019,
+    },
   ]
 
   const [activeSlide, setActiveSlide] = useState(0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [swiperInstance, setSwiperInstance] = useState<any>(null) // Lưu instance của Swiper
+
+  // Hàm xử lý khi nhấp vào poster
+  const handlePosterClick = (index: number) => {
+    if (swiperInstance) {
+      swiperInstance.slideTo(index)
+      setActiveSlide(index)
+    }
+  }
 
   return (
     <div className="relative w-full h-[100vh] overflow-hidden">
@@ -47,11 +126,12 @@ const FullImageSlider = () => {
           nextEl: ".slider-next",
         }}
         autoplay={{
-          delay: 5000, // Tự động chuyển slide sau 5 giây
+          delay: 5000,
           disableOnInteraction: false,
         }}
         onSlideChange={(swiper) => setActiveSlide(swiper.activeIndex)}
-        className="w-full h-full"
+        onSwiper={(swiper) => setSwiperInstance(swiper)}
+        className="w-full h-[100%]"
       >
         {slides.map((slide, index) => (
           <SwiperSlide key={index}>
@@ -65,7 +145,7 @@ const FullImageSlider = () => {
                 className="absolute top-0 left-0 z-0"
               />
               {/* Overlay và nội dung */}
-              <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-start p-8">
+              <div className="absolute inset-0 bg-black/20 z-10 flex items-center justify-start p-8">
                 <div>
                   <h1 className="text-4xl font-bold mb-4 text-white">
                     {slide.title}
@@ -75,77 +155,69 @@ const FullImageSlider = () => {
                   </p>
                   <div className="space-x-4">
                     <button className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200">
-                      Watch Now
+                      Book Now
                     </button>
                     <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                      Details
+                      View Detail
                     </button>
                   </div>
                 </div>
-              </div>
-              {/* Poster nhỏ ở góc trái dưới */}
-              <div className="absolute bottom-4 left-8 z-20">
-                <Image
-                  src={slide.poster}
-                  alt={slide.title}
-                  width={150}
-                  height={225}
-                  className="rounded-lg shadow-lg"
-                />
               </div>
             </div>
           </SwiperSlide>
         ))}
       </Swiper>
 
-      {/* Nút điều hướng */}
-      <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-20">
-        <div className="slider-prev text-white bg-black/30 rounded-full p-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
+      {/* Swiper cho danh sách poster */}
+      <div className="absolute bottom-0 w-full h-[30%] z-40 overflow-hidden">
+        <div className="relative w-full px-4">
+          <Swiper
+            modules={[Navigation]}
+            spaceBetween={20}
+            slidesPerView={8}
+            navigation={{
+              prevEl: ".poster-prev",
+              nextEl: ".poster-next",
+            }}
+            onSlideChange={(swiper) => setActiveSlide(swiper.activeIndex)}
+            onSwiper={(swiper) => {
+              // Đảm bảo đồng bộ với Swiper chính
+              if (swiperInstance) {
+                swiper.slideTo(activeSlide)
+              }
+            }}
+            className="w-full h-full"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 19.5 8.25 12l7.5-7.5"
-            />
-          </svg>
-        </div>
-      </div>
-      <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
-        <div className="slider-next text-white bg-black/30 rounded-full p-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m8.25 4.5 7.5 7.5-7.5 7.5"
-            />
-          </svg>
-        </div>
-      </div>
+            {slides.map((slide, index) => (
+              <SwiperSlide key={index}>
+                <div
+                  className={`cursor-pointer transition-transform duration-300 ${
+                    activeSlide === index
+                      ? "scale-110 border-2 border-white"
+                      : ""
+                  }`}
+                  onClick={() => handlePosterClick(index)}
+                >
+                  <Image
+                    src={slide.poster}
+                    alt={slide.title}
+                    width={220}
+                    height={150}
+                    className="rounded-lg shadow-lg"
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
 
-      {/* Dots indicator (tùy chọn) */}
-      <div className="absolute bottom-4 right-8 z-20 flex space-x-2">
-        {slides.map((_, index) => (
-          <span
-            key={index}
-            className={`w-3 h-3 rounded-full ${
-              activeSlide === index ? "bg-white" : "bg-gray-500"
-            }`}
-          />
-        ))}
+          {/* Nút điều hướng cho poster */}
+          <button className="poster-prev absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-full hover:bg-gray-800">
+            ❮
+          </button>
+          <button className="poster-next absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-full hover:bg-gray-800">
+            ❯
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -34,26 +34,16 @@ export default function SearchBar() {
       genre: "Animation, Family",
       releaseYear: 2001,
     },
-    // {
-    //   title: "The Good Dinosaur",
-    //   description:
-    //     "A heartwarming tale of a young dinosaur and his human friend on an epic journey.",
-    //   image: "/good-dinosaur-bg.jpg",
-    //   poster: "/good-dinosaur-poster.jpg",
-    //   duration: "93 min",
-    //   genre: "Animation, Adventure",
-    //   releaseYear: 2015,
-    // },
-    // {
-    //   title: "Aladdin",
-    //   description:
-    //     "A magical adventure with a street-smart thief and a magical genie.",
-    //   image: "/aladdin-bg.jpg",
-    //   poster: "/aladdin-poster.jpg",
-    //   duration: "90 min",
-    //   genre: "Animation, Fantasy",
-    //   releaseYear: 1992,
-    // },
+    {
+      title: "The Good Dinosaur",
+      description:
+        "A heartwarming tale of a young dinosaur and his human friend on an epic journey.",
+      image: "/images/the-good-dinosaur.jpg",
+      poster: "/images/16_dino.jpg",
+      duration: "93 min",
+      genre: "Animation, Adventure",
+      releaseYear: 2015,
+    },
   ]
 
   // Lọc phim dựa trên từ khóa tìm kiếm
@@ -116,7 +106,7 @@ export default function SearchBar() {
           className="relative"
         >
           <div
-            className="ml-2 bg-transparent shadow-lg backdrop-blur-sm rounded-md"
+            className="ml-2 bg-transparent shadow-xl border backdrop-blur-lg rounded-md"
             style={{
               backgroundImage: "url('/path-to-your-pattern.png')",
               backgroundSize: "cover",
@@ -143,7 +133,7 @@ export default function SearchBar() {
                     placeholder="Search..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="w-full ml-1 bg-transparent border-none shadow-lg focus:outline-none text-white pr-12"
+                    className="w-full ml-1 bg-transparent border-none focus:outline-none text-white pr-12"
                   />
                   <div className="relative">
                     {isLoading && (
