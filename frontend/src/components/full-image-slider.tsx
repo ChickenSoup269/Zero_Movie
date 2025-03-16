@@ -116,7 +116,7 @@ const FullImageSlider = () => {
   }
 
   return (
-    <div className="relative w-full h-[100vh] overflow-hidden">
+    <div className="relative w-full h-[100vh] z-10">
       <Swiper
         modules={[Navigation, Autoplay]}
         spaceBetween={0}
@@ -169,7 +169,7 @@ const FullImageSlider = () => {
       </Swiper>
 
       {/* Swiper cho danh sách poster */}
-      <div className="absolute bottom-0 w-full h-[30%] z-40 overflow-hidden">
+      <div className="absolute bottom-0 w-full h-[20%] z-40">
         <div className="relative w-full px-4">
           <Swiper
             modules={[Navigation]}
@@ -201,7 +201,7 @@ const FullImageSlider = () => {
                   <Image
                     src={slide.poster}
                     alt={slide.title}
-                    width={220}
+                    width={180}
                     height={150}
                     className="rounded-lg shadow-lg"
                   />

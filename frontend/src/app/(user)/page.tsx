@@ -530,6 +530,14 @@ export default function Home() {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* SLide ảnh full componeent */}
       <FullImageSlider />
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
+      <h1>ădadawd</h1>
     </div>
   )
 }

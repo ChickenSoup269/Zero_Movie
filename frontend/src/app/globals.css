@@ -156,7 +156,9 @@
     margin: 0 !important;
   }
 }
-
+.swiper-wrapper {
+  overflow: visible;
+}
 /* 3 */
 @layer utilities {
   .roboto-custom {
