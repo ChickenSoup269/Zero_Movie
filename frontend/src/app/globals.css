@@ -136,7 +136,6 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -144,6 +143,12 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-roboto), sans-serif;
+    /* Ẩn thanh cuộn */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  ::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
   }
   body,
   main {
@@ -152,29 +157,7 @@
   }
 }
 
-/* Đảm bảo container của Swiper không giới hạn overflow */
-.swiper {
-  overflow: visible !important;
-}
-
-/* Tùy chỉnh scrollbar cho WebKit (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  width: 8px; /* Độ rộng thanh cuộn */
-  height: 8px; /* Độ cao thanh cuộn (nếu cần) */
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-white dark:bg-black; /* Background của thanh cuộn */
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-black dark:bg-white; /* Thanh trượt */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-900 dark:bg-gray-800; /* Thanh trượt khi hover */
-}
-
+/* 3 */
 @layer utilities {
   .roboto-custom {
     font-family: var(--font-roboto), sans-serif;

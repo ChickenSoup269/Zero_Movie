@@ -93,13 +93,14 @@ export default function Navbar() {
             </Link>
           ))}
         </div>
+
         {/* Nút hamburger cho mobile */}
         <div className="md:hidden">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 hover:bg-gray-500"
           >
             {isMobileMenuOpen ? (
               <CloseIcon className="h-6 w-6 text-white" />
@@ -130,7 +131,7 @@ export default function Navbar() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed top-16 left-0 w-full bg-white/90 dark:bg-gray-800 shadow-lg rounded-b-md z-40 p-4"
+            className="fixed top-16 left-0 w-full bg-white/90 dark:bg-gray-800  shadow-lg rounded-b-md z-40 p-4"
           >
             <div className="flex flex-col space-y-4 text-lg text-black dark:text-white">
               {navItems.map((item) => (

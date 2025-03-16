@@ -528,8 +528,8 @@ import FullImageSlider from "@/components/full-image-slider"
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* SLide ảnh full componeent */}
       <FullImageSlider />
-      {/* Các phần khác như slider poster có thể thêm ở đây */}
     </div>
   )
 }

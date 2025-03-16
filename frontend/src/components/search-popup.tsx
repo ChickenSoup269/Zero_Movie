@@ -47,12 +47,12 @@ const SearchPopup = ({
           initial="hidden"
           animate="visible"
           exit="hidden"
-          className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-gray-800 shadow-lg rounded-md z-10 max-h-60 overflow-y-auto"
+          className="absolute top-full left-0 mt-2 w-full bg-white/50 dark:bg-gray-700 shadow-lg rounded-lg z-10 max-h-60 overflow-y-auto"
         >
           {filteredMovies.map((movie) => (
             <div
               key={movie.title}
-              className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center p-2 hover:bg-gray-500 hover:cursor-pointer transition-colors"
             >
               {/* Poster */}
               <Image
