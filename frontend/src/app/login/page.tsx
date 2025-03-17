@@ -97,7 +97,7 @@ const LoginPage = () => {
         className="absolute top-4 left-4 p-2 text-black hover:bg-gray-200"
         onClick={handleBack}
       >
-        <ArrowLeftIcon className="h-6 w-6" />
+        <ArrowLeftIcon className="h-6 w-6" /> Go Back
       </Button>
 
       <Card className="w-full max-w-md border-black bg-white/90">
