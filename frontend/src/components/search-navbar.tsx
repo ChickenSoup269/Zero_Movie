@@ -106,7 +106,7 @@ export default function SearchBar() {
           className="relative"
         >
           <div
-            className="ml-2 bg-transparent shadow-xl border backdrop-blur-lg rounded-md"
+            className="ml-2 bg-transparent shadow-xl border border-white backdrop-blur-lg rounded-md"
             style={{
               backgroundImage: "url('/path-to-your-pattern.png')",
               backgroundSize: "cover",

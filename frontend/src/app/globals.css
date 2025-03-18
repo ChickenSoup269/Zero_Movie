@@ -156,9 +156,7 @@
     margin: 0 !important;
   }
 }
-.swiper-wrapper {
-  overflow: visible;
-}
+
 /* 3 */
 @layer utilities {
   .roboto-custom {
@@ -171,5 +169,14 @@
     font-family: var(--font-roboto), sans-serif;
     font-weight: 400;
     font-style: italic;
+  }
+
+  /* áp dụng cho swiper cắt mất góc poster slide */
+  .poster-swiper-container .swiper {
+    overflow: visible !important;
+  }
+
+  .poster-swiper-container .swiper-slide {
+    overflow: visible !important;
   }
 }

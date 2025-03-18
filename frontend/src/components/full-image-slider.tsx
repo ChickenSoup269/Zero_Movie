@@ -116,7 +116,7 @@ const FullImageSlider = () => {
   }
 
   return (
-    <div className="relative w-full h-[100vh] z-10">
+    <div className="relative w-full h-[90vh] z-10">
       <Swiper
         modules={[Navigation, Autoplay]}
         spaceBetween={0}
@@ -136,7 +136,6 @@ const FullImageSlider = () => {
         {slides.map((slide, index) => (
           <SwiperSlide key={index}>
             <div className="relative w-full h-full">
-              {/* Hình nền full-width */}
               <Image
                 src={slide.image}
                 alt={slide.title}
@@ -144,7 +143,7 @@ const FullImageSlider = () => {
                 objectFit="cover"
                 className="absolute top-0 left-0 z-0"
               />
-              {/* Overlay và nội dung */}
+
               <div className="absolute inset-0 bg-black/20 z-10 flex items-center justify-start p-8">
                 <div>
                   <h1 className="text-4xl font-bold mb-4 text-white">
@@ -169,19 +168,25 @@ const FullImageSlider = () => {
       </Swiper>
 
       {/* Swiper cho danh sách poster */}
-      <div className="absolute bottom-0 w-full h-[20%] z-40">
-        <div className="relative w-full px-4">
+      <div className="absolute bottom-0 w-full h-[25%] z-40">
+        <div className="relative w-full px-2 poster-swiper-container">
           <Swiper
             modules={[Navigation]}
-            spaceBetween={20}
+            spaceBetween={30}
             slidesPerView={8}
+            breakpoints={{
+              320: { slidesPerView: 3 },
+              640: { slidesPerView: 4 },
+              768: { slidesPerView: 5 },
+              1024: { slidesPerView: 6 },
+              1280: { slidesPerView: 8 },
+            }}
             navigation={{
               prevEl: ".poster-prev",
               nextEl: ".poster-next",
             }}
             onSlideChange={(swiper) => setActiveSlide(swiper.activeIndex)}
             onSwiper={(swiper) => {
-              // Đảm bảo đồng bộ với Swiper chính
               if (swiperInstance) {
                 swiper.slideTo(activeSlide)
               }
@@ -190,32 +195,62 @@ const FullImageSlider = () => {
           >
             {slides.map((slide, index) => (
               <SwiperSlide key={index}>
-                <div
-                  className={`cursor-pointer transition-transform duration-300 ${
-                    activeSlide === index
-                      ? "scale-110 border-2 border-white"
-                      : ""
-                  }`}
-                  onClick={() => handlePosterClick(index)}
-                >
-                  <Image
-                    src={slide.poster}
-                    alt={slide.title}
-                    width={180}
-                    height={150}
-                    className="rounded-lg shadow-lg"
-                  />
+                <div className="relative">
+                  {/* Poster gốc */}
+                  <div
+                    className={`cursor-pointer transition-transform duration-300 ${
+                      activeSlide === index
+                        ? "scale-110 shadow-[0_0_0_3px_rgba(255,255,255,0.9)] transform-origin-center z-25 bg-gray-800/50 p-2 rounded-lg"
+                        : ""
+                    }`}
+                    onClick={() => handlePosterClick(index)}
+                  >
+                    <Image
+                      src={slide.poster}
+                      alt={slide.title}
+                      width={150}
+                      height={200}
+                      className="rounded-lg shadow-lg"
+                      objectFit="contain"
+                    />
+                  </div>
                 </div>
               </SwiperSlide>
             ))}
           </Swiper>
 
           {/* Nút điều hướng cho poster */}
-          <button className="poster-prev absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-full hover:bg-gray-800">
-            ❮
+          <button className="poster-prev h-20 absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-sm hover:bg-gray-800 hover:cursor-pointer">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="size-8" // Tăng kích thước SVG
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 19.5 8.25 12l7.5-7.5"
+              />
+            </svg>
           </button>
-          <button className="poster-next absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-full hover:bg-gray-800">
-            ❯
+          <button className="poster-next h-20 absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-gray-800/70 text-white p-2 rounded-sm hover:bg-gray-800 hover:cursor-pointer">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="size-8" // Tăng kích thước SVG
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m8.25 4.5 7.5 7.5-7.5 7.5"
+              />
+            </svg>
           </button>
         </div>
       </div>
