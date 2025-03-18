@@ -203,26 +203,78 @@
       transparent 100%
     );
     z-index: 1;  */
-}
+  .custom-overlay::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      #181818 0%,
+      hsla(0, 0%, 9%, 0.98) 20%,
+      hsla(0, 0%, 9%, 0.95) 40%,
+      hsla(0, 0%, 9%, 0.9) 50%,
+      hsla(0, 0%, 9%, 0.8) 60%,
+      hsla(0, 0%, 9%, 0.6) 70%,
+      hsla(0, 0%, 9%, 0.3) 80%,
+      hsla(0, 0%, 9%, 0.1) 90%,
+      transparent 100%
+    );
+    z-index: 1;
+  }
+  /* poster */
+  .b-game-card {
+    position: relative;
+    z-index: 1;
+    width: 150px;
+    height: 200px;
+    perspective: 1000px;
+    transition: transform 0.35s ease-in-out;
+    overflow: hidden;
+    border-radius: 8px;
+  }
 
-.custom-overlay::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    to right,
-    #181818 0%,
-    hsla(0, 0%, 9%, 0.98) 20%,
-    hsla(0, 0%, 9%, 0.95) 40%,
-    hsla(0, 0%, 9%, 0.9) 50%,
-    hsla(0, 0%, 9%, 0.8) 60%,
-    hsla(0, 0%, 9%, 0.6) 70%,
-    hsla(0, 0%, 9%, 0.3) 80%,
-    hsla(0, 0%, 9%, 0.1) 90%,
-    transparent 100%
-  );
-  z-index: 1;
+  .b-game-card__cover {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.35s ease-in-out, box-shadow 0.35s ease-in-out;
+    transform-origin: top center;
+    background-size: cover;
+    transform: skewX(0.001deg);
+  }
+
+  /* Hover Effect */
+  .b-game-card:hover .b-game-card__cover {
+    transform: rotateX(7deg) translateY(-6px) scale(1.05);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Hiệu ứng bóng sáng */
+  .b-game-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    background: linear-gradient(
+      226deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.4) 35%,
+      rgba(255, 255, 255, 0.2) 42%,
+      rgba(255, 255, 255, 0) 60%
+    );
+    transform: translateY(-20%);
+    transition: transform 0.65s cubic-bezier(0.18, 0.9, 0.58, 1);
+    pointer-events: none; /* 🎯 Cho phép click xuyên qua */
+  }
+
+  .b-game-card:hover::after {
+    transform: translateY(0%);
+  }
 }

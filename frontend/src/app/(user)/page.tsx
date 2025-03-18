@@ -1,4 +1,4 @@
-import FullImageSlider from "@/components/full-image-slider"
+import FullImageSlider from "@/components/ui-home/full-image-slider"
 
 export default function Home() {
   const slides = [

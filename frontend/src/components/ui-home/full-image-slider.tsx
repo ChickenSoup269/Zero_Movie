@@ -86,7 +86,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
         }}
         onSlideChange={(swiper) => setActiveSlide(swiper.activeIndex)}
         onSwiper={(swiper) => setSwiperInstance(swiper)}
-        className="relative w-full h-[100%] "
+        className="relative w-full h-[100%]"
       >
         {slides.map((slide, index) => (
           <SwiperSlide key={index}>
@@ -171,7 +171,10 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
             className="w-full h-full relative"
           >
             {slides.map((slide, index) => (
-              <SwiperSlide key={index} className="relative overflow-hidden">
+              <SwiperSlide
+                key={index}
+                className="relative overflow-hidden b-game-card"
+              >
                 {/* Layer image blur */}
                 <div className="absolute inset-0">
                   <Image
@@ -191,14 +194,14 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                 </div>
 
                 {/* Layer image gốc với animation */}
-                <div className="relative">
+                <div className="relative ">
                   <motion.div
                     variants={posterVariants} // Sử dụng variants đã cập nhật
                     initial="inactive"
                     animate={activeSlide === index ? "active" : "inactive"}
                     className={`cursor-pointer ${
                       activeSlide === index
-                        ? "shadow-[0_0_0_3px_rgba(255,255,255,0.9)] p-2 rounded-sm"
+                        ? "shadow-[0_0_0_3px_rgba(255,255,255,0.9)] p-2 rounded-sm "
                         : ""
                     }`}
                     onClick={() => handlePosterClick(index)}
@@ -208,7 +211,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                       alt={slide.title}
                       width={150}
                       height={200}
-                      className="rounded-lg shadow-lg"
+                      className="rounded-lg shadow-lg b-game-card__cover"
                       objectFit="contain"
                     />
                   </motion.div>
@@ -216,6 +219,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
               </SwiperSlide>
             ))}
           </Swiper>
+
           {/* Nút điều hướng */}
           <button className="poster-prev h-20 absolute left-2 top-1/2 -translate-y-1/2 z-50 bg-gray-800/70 text-white p-2 rounded-sm hover:bg-gray-800 hover:cursor-pointer">
             <svg

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import SearchPopup from "@/components/search-popup"
+import SearchPopup from "@/components/ui-navbar/search-popup"
 
 // Định nghĩa kiểu cho một phim
 interface Movie {

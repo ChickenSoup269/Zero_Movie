@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import CustomSwitch from "@/components/switch-theme"
-import SearchBar from "@/components/search-navbar"
-import LanguageSelector from "@/components/language-selector"
+import CustomSwitch from "@/components/ui-navbar/switch-theme"
+import SearchBar from "@/components/ui-navbar/search-navbar"
+import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion" // Thêm framer-motion cho animation
