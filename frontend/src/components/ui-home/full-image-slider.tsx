@@ -1,3 +1,4 @@
+// components/FullImageSlider.js
 "use client" // Chạy phía client vì dùng hook
 
 import { useState } from "react"
@@ -7,6 +8,7 @@ import { Navigation, Autoplay } from "swiper/modules"
 import { motion, AnimatePresence } from "framer-motion"
 import "swiper/css"
 import "swiper/css/navigation"
+import PosterSlider from "./poster-slider"
 
 interface Slide {
   image: string
@@ -56,22 +58,8 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
     },
   }
 
-  // Variants cho poster
-  const posterVariants = {
-    active: {
-      scale: 1.2, // tăng scale
-      zIndex: 25,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
-    inactive: {
-      scale: 1, // Trở về kích thước ban đầu
-      zIndex: 0,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
-  }
-
   return (
-    <div className=" relative w-full h-[90vh] z-10">
+    <div className="relative w-full h-[90vh] z-10">
       <Swiper
         modules={[Navigation, Autoplay]}
         spaceBetween={0}
@@ -144,117 +132,13 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
         ))}
       </Swiper>
 
-      {/* Swiper cho danh sách poster */}
-      <div className="absolute bottom-0 px-4 w-full h-[25%] z-40">
-        <div className="relative w-full px-2 poster-swiper-container">
-          <Swiper
-            modules={[Navigation, Autoplay]}
-            spaceBetween={30}
-            slidesPerView={8}
-            breakpoints={{
-              320: { slidesPerView: 3 },
-              640: { slidesPerView: 4 },
-              768: { slidesPerView: 5 },
-              1024: { slidesPerView: 6 },
-              1280: { slidesPerView: 8 },
-            }}
-            navigation={{
-              prevEl: ".poster-prev",
-              nextEl: ".poster-next",
-            }}
-            // Loại bỏ onSlideChange để tránh tự động cập nhật activeSlide khi kéo
-            onSwiper={(swiper) => {
-              if (swiperInstance) {
-                swiper.slideTo(activeSlide)
-              }
-            }}
-            className="w-full h-full relative"
-          >
-            {slides.map((slide, index) => (
-              <SwiperSlide
-                key={index}
-                className="relative overflow-hidden b-game-card"
-              >
-                {/* Layer image blur */}
-                <div className="absolute inset-0">
-                  <Image
-                    src={slide.poster}
-                    alt={`${slide.title}-blur`}
-                    width={150}
-                    height={200}
-                    className="rounded-lg shadow-lg"
-                    objectFit="contain"
-                    style={{
-                      filter: "blur(8px)",
-                      opacity: 0.8,
-                      zIndex: -1,
-                      pointerEvents: "none",
-                    }}
-                  />
-                </div>
-
-                {/* Layer image gốc với animation */}
-                <div className="relative ">
-                  <motion.div
-                    variants={posterVariants} // Sử dụng variants đã cập nhật
-                    initial="inactive"
-                    animate={activeSlide === index ? "active" : "inactive"}
-                    className={`cursor-pointer ${
-                      activeSlide === index
-                        ? "shadow-[0_0_0_3px_rgba(255,255,255,0.9)] p-2 rounded-sm "
-                        : ""
-                    }`}
-                    onClick={() => handlePosterClick(index)}
-                  >
-                    <Image
-                      src={slide.poster}
-                      alt={slide.title}
-                      width={150}
-                      height={200}
-                      className="rounded-lg shadow-lg b-game-card__cover"
-                      objectFit="contain"
-                    />
-                  </motion.div>
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {/* Nút điều hướng */}
-          <button className="poster-prev h-20 absolute left-2 top-1/2 -translate-y-1/2 z-50 bg-gray-800/70 text-white p-2 rounded-sm hover:bg-gray-800 hover:cursor-pointer">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-8"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 19.5 8.25 12l7.5-7.5"
-              />
-            </svg>
-          </button>
-          <button className="poster-next h-20 absolute right-2 top-1/2 -translate-y-1/2 z-50 bg-gray-800/70 text-white p-2 rounded-sm hover:bg-gray-800 hover:cursor-pointer">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-8"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m8.25 4.5 7.5 7.5-7.5 7.5"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+      {/* Sử dụng component PosterSlider */}
+      <PosterSlider
+        slides={slides}
+        activeSlide={activeSlide}
+        handlePosterClick={handlePosterClick}
+        swiperInstance={swiperInstance}
+      />
     </div>
   )
 }
