@@ -99,6 +99,16 @@ export default function Home() {
     <div className="min-h-screen  text-white">
       {/* SLide ảnh full componeent */}
       <FullImageSlider slides={slides} />
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
+      <h1>lamo</h1>
     </div>
   )
 }
