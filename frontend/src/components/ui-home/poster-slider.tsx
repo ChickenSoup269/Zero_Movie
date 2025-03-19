@@ -32,14 +32,18 @@ const PosterSlider = ({
   // Variants cho poster
   const posterVariants = {
     active: {
-      scale: 1.2, // Tăng scale khi active
+      scale: 1.3, // Giữ scale như trước
+      y: -20,
       zIndex: 25,
-      transition: { duration: 0.3, ease: "easeInOut" },
+
+      transition: { duration: 0.35, ease: "easeInOut" },
     },
     inactive: {
       scale: 1,
+      y: 0, // Trở về vị trí ban đầu
       zIndex: 0,
-      transition: { duration: 0.3, ease: "easeInOut" },
+
+      transition: { duration: 0.35, ease: "easeInOut" },
     },
   }
 
@@ -98,9 +102,7 @@ const PosterSlider = ({
                   initial="inactive"
                   animate={activeSlide === index ? "active" : "inactive"}
                   className={`cursor-pointer ${
-                    activeSlide === index
-                      ? "shadow-[0_0_0_3px_rgba(255,255,255,0.9)] p-2 rounded-sm"
-                      : ""
+                    activeSlide === index ? "p-2 rounded-sm" : ""
                   }`}
                   onClick={() => handlePosterClick(index)}
                 >
