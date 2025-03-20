@@ -110,17 +110,17 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     className="absolute inset-0 z-50 flex items-center justify-start p-8"
                   >
                     <div className=" bg-opacity-60 p-6 rounded-lg max-w-lg pb-20">
+                      {/* Title */}
+                      <h1 className="text-6xl font-bold mb-4 text-white">
+                        {slide.title}
+                      </h1>
+
                       {/* Release Year | Age Rating | Genre */}
                       <div className="text-sm text-white mb-2">
                         <span className="font-bold">{slide.releaseYear}</span> |{" "}
                         <span className="font-bold">{slide.ageRating}</span> |{" "}
                         <span className="font-bold">{slide.genre}</span>
                       </div>
-
-                      {/* Title */}
-                      <h1 className="text-4xl font-bold mb-4 text-white">
-                        {slide.title}
-                      </h1>
 
                       {/* Description (chỉ lấy câu đầu tiên) */}
                       <p className="text-lg mb-4 text-gray-200 leading-relaxed">
@@ -133,7 +133,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                           Book Now
                         </button>
                         <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                          View Details
+                          View Details{" "}
                         </button>
                       </div>
 
