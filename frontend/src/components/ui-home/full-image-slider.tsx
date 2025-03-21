@@ -77,7 +77,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
         spaceBetween={0}
         slidesPerView={1}
         navigation={{ prevEl: ".slider-prev", nextEl: ".slider-next" }}
-        autoplay={{ delay: 10000, disableOnInteraction: false }}
+        autoplay={{ delay: 20000, disableOnInteraction: false }}
         onSlideChange={(swiper) => setActiveSlide(swiper.activeIndex)}
         onSwiper={(swiper) => setSwiperInstance(swiper)}
         className="relative w-full h-[100%]"

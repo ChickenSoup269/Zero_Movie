@@ -1,7 +1,6 @@
-// components/Movies.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -15,6 +14,7 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
+  status: "nowShowing" | "upcoming"
 }
 
 interface MoviesProps {
@@ -27,15 +27,12 @@ const Movies = ({ slides }: MoviesProps) => {
   )
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const moviesContainerRef = useRef<HTMLDivElement>(null)
 
-  const currentYear = 2025
   const nowShowingMovies = slides.filter(
-    (slide) => slide.releaseYear <= currentYear
+    (slide) => slide.status === "nowShowing"
   )
-  const upcomingMovies = slides.filter(
-    (slide) => slide.releaseYear > currentYear
-  )
-
+  const upcomingMovies = slides.filter((slide) => slide.status === "upcoming")
   const displayedMovies =
     selectedTab === "nowShowing" ? nowShowingMovies : upcomingMovies
 
@@ -45,67 +42,57 @@ const Movies = ({ slides }: MoviesProps) => {
   const endIndex = startIndex + moviesPerPage
   const currentMovies = displayedMovies.slice(startIndex, endIndex)
 
-  // Variants cho animation chuyển tab
+  useEffect(() => {
+    if (moviesContainerRef.current) {
+      moviesContainerRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [currentPage])
+
+  // Variants cho animation của movie card
   const movieVariants = {
     hidden: { opacity: 0, x: -30 },
     visible: {
       opacity: 1,
       x: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.4, 0, 0.2, 1],
-      },
+      transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
     },
     exit: {
       opacity: 0,
       x: 30,
-      transition: {
-        duration: 0.8,
-        ease: [0.4, 0, 0.2, 1],
-      },
+      transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
     },
   }
 
-  // Variants cho animation overlay khi hover
-  const overlayVariants = {
-    hidden: {
-      opacity: 0,
-      y: "100%",
-      transition: {
-        duration: 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      },
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: [0.4, 0, 0.2, 1],
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  // Variants cho các phần tử con trong overlay
-  const textVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: [0.4, 0, 0.2, 1],
-      },
-    },
-  }
-
-  // Variants cho hiệu ứng scale khi hover
+  // Variants cho hiệu ứng scale của poster
   const scaleVariants = {
     initial: { scale: 1 },
     hover: {
       scale: 1.05,
       transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+    },
+  }
+
+  // Variants cho chi tiết phim (trượt lên mượt mà)
+  const detailsVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.25, 0.1, 0.25, 1],
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  // Variants cho từng phần tử con trong chi tiết
+  const childVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] },
     },
   }
 
@@ -129,7 +116,6 @@ const Movies = ({ slides }: MoviesProps) => {
 
   return (
     <div className="container mx-auto px-44 py-8 pt-44">
-      {" "}
       <div className="flex justify-center mb-8">
         <button
           onClick={() => {
@@ -160,121 +146,114 @@ const Movies = ({ slides }: MoviesProps) => {
           Upcoming
         </button>
       </div>
-      {/* Danh sách phim với animation */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${selectedTab}-${currentPage}`}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3"
-        >
-          {currentMovies.length > 0 ? (
-            currentMovies.map((movie, index) => (
-              <motion.div
-                key={index}
-                variants={movieVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                className="relative rounded-lg overflow-hidden shadow-lg w-[200px] h-[300px] mx-auto"
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              >
-                {/* Poster phim */}
+
+      <div ref={moviesContainerRef} className="relative">
+        {/* Thêm "See more" ở góc phải của grid */}
+        <div className="absolute top-[-30px] right-4 z-10">
+          <a href="#" className="text-white text-sm font-light hover:underline">
+            See more
+          </a>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${selectedTab}-${currentPage}`}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+          >
+            {currentMovies.length > 0 ? (
+              currentMovies.map((movie, index) => (
                 <motion.div
-                  variants={scaleVariants}
-                  initial="initial"
-                  whileHover="hover"
-                  className="relative w-full h-full"
+                  key={index}
+                  variants={movieVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="relative rounded-lg overflow-hidden shadow-lg w-[200px] mx-auto"
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                 >
+                  {/* Poster trơn ban đầu */}
                   <motion.div
-                    animate={{
-                      filter:
-                        hoveredIndex !== null && hoveredIndex !== index
-                          ? "grayscale(100%) brightness(50%)"
-                          : "grayscale(0%) brightness(100%)",
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0"
+                    variants={scaleVariants}
+                    initial="initial"
+                    whileHover="hover"
+                    className="relative w-full h-[300px]"
                   >
                     <Image
                       src={movie.poster}
                       alt={movie.title}
                       layout="fill"
-                      objectFit="contain"
+                      objectFit="cover"
                     />
                   </motion.div>
 
-                  {/* Overlay thông tin phim, hiển thị khi hover */}
+                  {/* Chi tiết phim xuất hiện khi hover */}
                   <AnimatePresence>
                     {hoveredIndex === index && (
                       <motion.div
-                        variants={overlayVariants}
+                        variants={detailsVariants}
                         initial="hidden"
                         animate="visible"
                         exit="hidden"
-                        className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4"
+                        className="absolute bottom-0 left-0 right-0 p-2 bg-gray-800 text-white"
                       >
-                        {/* Textbox thông tin phim */}
-                        <motion.div className="bg-gray-800 bg-opacity-90 rounded-lg p-4 w-full max-w-[90%] border border-gray-600">
-                          <motion.h3
-                            variants={textVariants}
-                            className="text-lg font-semibold mb-2 text-white"
-                          >
-                            {movie.title}
-                          </motion.h3>
-                          <motion.p
-                            variants={textVariants}
-                            className="text-xs text-gray-300 mb-1"
-                          >
-                            <span className="font-semibold">Genre:</span>{" "}
-                            {movie.genre}
-                          </motion.p>
-                          <motion.p
-                            variants={textVariants}
-                            className="text-xs text-gray-300 mb-1"
-                          >
-                            <span className="font-semibold">Release Year:</span>{" "}
-                            {movie.releaseYear}
-                          </motion.p>
-                          <motion.p
-                            variants={textVariants}
-                            className="text-xs text-gray-300 mb-3"
-                          >
-                            <span className="font-semibold">Age Rating:</span>{" "}
-                            {movie.ageRating}
-                          </motion.p>
-                          {/* Nút View Details */}
-                          <motion.button
-                            variants={textVariants}
-                            onClick={() => handleViewDetails(movie)}
-                            className="w-full py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
-                          >
-                            View Details
-                          </motion.button>
-                        </motion.div>
+                        <motion.h3
+                          variants={childVariants}
+                          className="text-sm font-semibold text-center mb-1"
+                        >
+                          {movie.title}
+                        </motion.h3>
+                        <motion.p
+                          variants={childVariants}
+                          className="text-xs mb-1"
+                        >
+                          <span className="font-semibold">Genre:</span>{" "}
+                          {movie.genre}
+                        </motion.p>
+                        <motion.p
+                          variants={childVariants}
+                          className="text-xs mb-1"
+                        >
+                          <span className="font-semibold">Release Year:</span>{" "}
+                          {movie.releaseYear}
+                        </motion.p>
+                        <motion.p
+                          variants={childVariants}
+                          className="text-xs mb-2"
+                        >
+                          <span className="font-semibold">Age Rating:</span>{" "}
+                          {movie.ageRating}
+                        </motion.p>
+                        <motion.button
+                          variants={childVariants}
+                          onClick={() => handleViewDetails(movie)}
+                          className="w-full py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
+                        >
+                          View Details
+                        </motion.button>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.div>
-              </motion.div>
-            ))
-          ) : (
-            <motion.p
-              key="no-movies"
-              variants={movieVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="text-center text-gray-400 col-span-full"
-            >
-              No movies available in this category.
-            </motion.p>
-          )}
-        </motion.div>
-      </AnimatePresence>
-      {/* Nút phân trang */}
+              ))
+            ) : (
+              <motion.p
+                key="no-movies"
+                variants={movieVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="text-center text-gray-400 col-span-full"
+              >
+                No movies available in this category.
+              </motion.p>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
       {totalPages > 1 && (
         <div className="flex justify-center mt-8 space-x-4">
           <button
