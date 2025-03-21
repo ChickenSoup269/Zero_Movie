@@ -190,15 +190,21 @@ const Movies = ({ slides }: MoviesProps) => {
 
       <div
         ref={moviesContainerRef}
-        className="relative w-[54rem] flex justify-center align-center mx-auto"
+        className="relative w-full max-w-[54rem] mx-auto flex justify-center items-center"
       >
+        {/* Thêm "See more" ở góc phải của grid */}
+        <div className="absolute top-[-20px] right-0 z-10">
+          <a href="#" className="text-white text-sm font-light hover:underline">
+            See more
+          </a>
+        </div>
         <AnimatePresence mode="wait">
           <motion.div
             key={`${selectedTab}-${currentPage}`}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"
           >
             {currentMovies.length > 0 ? (
               currentMovies.map((movie, index) => (
