@@ -15,6 +15,8 @@ interface Slide {
   ageRating: string
   starring: string
   status: "nowShowing" | "upcoming"
+  director: string
+  rating: number
 }
 
 interface MoviesProps {
@@ -96,6 +98,15 @@ const Movies = ({ slides }: MoviesProps) => {
     },
   }
 
+  // Variants cho hiệu ứng blur của poster
+  const blurVariants = {
+    initial: { filter: "blur(0px)" },
+    hover: {
+      filter: "blur(4px)",
+      transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+    },
+  }
+
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1)
@@ -114,8 +125,38 @@ const Movies = ({ slides }: MoviesProps) => {
     console.log(`View details for: ${movie.title}`)
   }
 
+  // Hàm để cắt mô tả đến dấu chấm đầu tiên
+  const getShortDescription = (description: string) => {
+    const firstPeriodIndex = description.indexOf(".")
+    if (firstPeriodIndex !== -1) {
+      return description.substring(0, firstPeriodIndex + 1)
+    }
+    return description
+  }
+
+  // Hàm để tạo ngôi sao rating
+  const renderStars = (rating: number) => {
+    const stars = []
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <svg
+          key={i}
+          className={`w-4 h-4 inline-block ${
+            i <= rating ? "text-yellow-400" : "text-gray-400"
+          }`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      )
+    }
+    return stars
+  }
+
   return (
-    <div className="container mx-auto px-44 py-8 pt-44">
+    <div className="container mx-auto px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 pt-44 sm:pt-32 md:pt-40 lg:pt-48 xl:pt-40">
       <div className="flex justify-center mb-8">
         <button
           onClick={() => {
@@ -147,20 +188,17 @@ const Movies = ({ slides }: MoviesProps) => {
         </button>
       </div>
 
-      <div ref={moviesContainerRef} className="relative">
-        {/* Thêm "See more" ở góc phải của grid */}
-        <div className="absolute top-[-30px] right-4 z-10">
-          <a href="#" className="text-white text-sm font-light hover:underline">
-            See more
-          </a>
-        </div>
+      <div
+        ref={moviesContainerRef}
+        className="relative w-[54rem] flex justify-center align-center mx-auto"
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={`${selectedTab}-${currentPage}`}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4"
           >
             {currentMovies.length > 0 ? (
               currentMovies.map((movie, index) => (
@@ -170,7 +208,7 @@ const Movies = ({ slides }: MoviesProps) => {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="relative rounded-lg overflow-hidden shadow-lg w-[200px] mx-auto"
+                  className="relative rounded-lg overflow-hidden shadow-lg w-[200px] max-w-[200px] min-w-[200px] mx-auto"
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
@@ -179,14 +217,21 @@ const Movies = ({ slides }: MoviesProps) => {
                     variants={scaleVariants}
                     initial="initial"
                     whileHover="hover"
-                    className="relative w-full h-[300px]"
+                    className="relative w-full h-[300px] max-h-[300px] min-h-[300px]"
                   >
-                    <Image
-                      src={movie.poster}
-                      alt={movie.title}
-                      layout="fill"
-                      objectFit="cover"
-                    />
+                    <motion.div
+                      variants={blurVariants}
+                      initial="initial"
+                      animate={hoveredIndex === index ? "hover" : "initial"}
+                      className="relative w-full h-full"
+                    >
+                      <Image
+                        src={movie.poster}
+                        alt={movie.title}
+                        layout="fill"
+                        objectFit="cover"
+                      />
+                    </motion.div>
                   </motion.div>
 
                   {/* Chi tiết phim xuất hiện khi hover */}
@@ -197,7 +242,7 @@ const Movies = ({ slides }: MoviesProps) => {
                         initial="hidden"
                         animate="visible"
                         exit="hidden"
-                        className="absolute bottom-0 left-0 right-0 p-2 bg-gray-800 text-white"
+                        className="absolute bottom-0 left-0 right-0 top-0 p-2 bg-gray-800 bg-opacity-50 text-white flex flex-col justify-center items-center"
                       >
                         <motion.h3
                           variants={childVariants}
@@ -209,27 +254,38 @@ const Movies = ({ slides }: MoviesProps) => {
                           variants={childVariants}
                           className="text-xs mb-1"
                         >
-                          <span className="font-semibold">Genre:</span>{" "}
-                          {movie.genre}
+                          Directed by {movie.director}
                         </motion.p>
+                        <motion.div
+                          variants={childVariants}
+                          className="flex items-center mb-1"
+                        >
+                          {renderStars(movie.rating)}
+                          <span className="ml-1 text-xs">{movie.rating}/5</span>
+                        </motion.div>
+                        <motion.div
+                          variants={childVariants}
+                          className="flex flex-wrap gap-1 mb-1 justify-center"
+                        >
+                          {movie.genre.split(", ").map((genre, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 text-xs bg-white text-black rounded cursor-default"
+                            >
+                              {genre}
+                            </span>
+                          ))}
+                        </motion.div>
                         <motion.p
                           variants={childVariants}
-                          className="text-xs mb-1"
+                          className="text-xs mb-2 text-center"
                         >
-                          <span className="font-semibold">Release Year:</span>{" "}
-                          {movie.releaseYear}
-                        </motion.p>
-                        <motion.p
-                          variants={childVariants}
-                          className="text-xs mb-2"
-                        >
-                          <span className="font-semibold">Age Rating:</span>{" "}
-                          {movie.ageRating}
+                          {getShortDescription(movie.description)}
                         </motion.p>
                         <motion.button
                           variants={childVariants}
                           onClick={() => handleViewDetails(movie)}
-                          className="w-full py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
+                          className="w-full max-w-[150px] py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
                         >
                           View Details
                         </motion.button>
