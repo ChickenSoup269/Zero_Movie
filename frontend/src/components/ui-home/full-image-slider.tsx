@@ -71,7 +71,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   }
 
   return (
-    <div className="relative w-full h-[90vh] z-10">
+    <div className="relative w-full h-[90vh] z-10 max-w-[2620px] mx-auto">
       <Swiper
         modules={[Navigation, Autoplay]}
         spaceBetween={0}

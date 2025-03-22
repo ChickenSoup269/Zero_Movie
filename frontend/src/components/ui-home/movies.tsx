@@ -3,8 +3,10 @@
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
 
 interface Slide {
+  id: number
   image: string
   title: string
   description: string
@@ -30,6 +32,7 @@ const Movies = ({ slides }: MoviesProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const moviesContainerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   const nowShowingMovies = slides.filter(
     (slide) => slide.status === "nowShowing"
@@ -44,7 +47,6 @@ const Movies = ({ slides }: MoviesProps) => {
   const endIndex = startIndex + moviesPerPage
   const currentMovies = displayedMovies.slice(startIndex, endIndex)
 
-  // Variants cho animation của movie card
   const movieVariants = {
     hidden: { opacity: 0, x: -30 },
     visible: {
@@ -59,7 +61,6 @@ const Movies = ({ slides }: MoviesProps) => {
     },
   }
 
-  // Variants cho hiệu ứng scale của poster
   const scaleVariants = {
     initial: { scale: 1 },
     hover: {
@@ -68,7 +69,6 @@ const Movies = ({ slides }: MoviesProps) => {
     },
   }
 
-  // Variants cho chi tiết phim (trượt lên mượt mà)
   const detailsVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: {
@@ -82,7 +82,6 @@ const Movies = ({ slides }: MoviesProps) => {
     },
   }
 
-  // Variants cho từng phần tử con trong chi tiết
   const childVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: {
@@ -92,7 +91,6 @@ const Movies = ({ slides }: MoviesProps) => {
     },
   }
 
-  // Variants cho hiệu ứng blur của poster
   const blurVariants = {
     initial: { filter: "blur(0px)" },
     hover: {
@@ -116,10 +114,9 @@ const Movies = ({ slides }: MoviesProps) => {
   }
 
   const handleViewDetails = (movie: Slide) => {
-    console.log(`View details for: ${movie.title}`)
+    router.push(`details-movies/${movie.id}`)
   }
 
-  // Hàm để cắt mô tả đến dấu chấm đầu tiên
   const getShortDescription = (description: string) => {
     const firstPeriodIndex = description.indexOf(".")
     if (firstPeriodIndex !== -1) {
@@ -128,16 +125,18 @@ const Movies = ({ slides }: MoviesProps) => {
     return description
   }
 
-  // Hàm để tạo ngôi sao rating
+  // Hàm để tạo ngôi sao rating (chỉ hiển thị 5 ngôi sao)
   const renderStars = (rating: number) => {
+    const maxStars = 5 // Giảm từ 10 xuống 5 ngôi sao
+    const scaledRating = (rating / 10) * maxStars // Quy đổi rating từ thang 10 sang thang 5
     const stars = []
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= maxStars; i++) {
       stars.push(
         <svg
           key={i}
-          className={`w-4 h-4 inline-block ${
-            i <= rating ? "text-yellow-400" : "text-gray-400"
-          }`}
+          className={`w-3 h-3 inline-block ${
+            i <= scaledRating ? "text-yellow-400" : "text-gray-400"
+          }`} // Giảm kích thước từ w-4 h-4 xuống w-3 h-3
           fill="currentColor"
           viewBox="0 0 20 20"
           xmlns="http://www.w3.org/2000/svg"
@@ -186,7 +185,6 @@ const Movies = ({ slides }: MoviesProps) => {
         ref={moviesContainerRef}
         className="relative w-full max-w-[54rem] mx-auto flex justify-center items-center"
       >
-        {/* Thêm "See more" ở góc phải của grid */}
         <div className="absolute top-[-20px] right-0 z-10">
           <a href="#" className="text-white text-sm font-light hover:underline">
             See more
@@ -212,7 +210,6 @@ const Movies = ({ slides }: MoviesProps) => {
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  {/* Poster trơn ban đầu */}
                   <motion.div
                     variants={scaleVariants}
                     initial="initial"
@@ -234,7 +231,6 @@ const Movies = ({ slides }: MoviesProps) => {
                     </motion.div>
                   </motion.div>
 
-                  {/* Chi tiết phim xuất hiện khi hover */}
                   <AnimatePresence>
                     {hoveredIndex === index && (
                       <motion.div
@@ -258,10 +254,12 @@ const Movies = ({ slides }: MoviesProps) => {
                         </motion.p>
                         <motion.div
                           variants={childVariants}
-                          className="flex items-center mb-1"
+                          className="flex items-center mb-1 gap-1"
                         >
                           {renderStars(movie.rating)}
-                          <span className="ml-1 text-xs">{movie.rating}/5</span>
+                          <span className="text-xs">
+                            {movie.rating.toFixed(1)}/10
+                          </span>
                         </motion.div>
                         <motion.div
                           variants={childVariants}
