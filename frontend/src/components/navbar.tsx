@@ -7,10 +7,9 @@ import SearchBar from "@/components/ui-navbar/search-navbar"
 import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
 import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion" // Thêm framer-motion cho animation
-import { Menu, X as CloseIcon } from "lucide-react" // Thêm icon cho hamburger menu
+import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X as CloseIcon } from "lucide-react"
 
-// Định nghĩa kiểu cho item menu
 interface NavItem {
   href: string
   label: string
@@ -19,7 +18,7 @@ interface NavItem {
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false) // State cho menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const pathname = usePathname()
 
@@ -52,7 +51,15 @@ export default function Navbar() {
   // Animation variants cho menu mobile
   const mobileMenuVariants = {
     hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+        when: "beforeChildren",
+        staggerChildren: 0.1,
+      },
+    },
     exit: { opacity: 0, y: -20, transition: { duration: 0.2 } },
   }
 
@@ -60,11 +67,10 @@ export default function Navbar() {
     <nav
       className={`fixed left-4 right-4 z-50 flex items-center justify-between transition-all duration-300 rounded-md ${
         isScrolled
-          ? "top-0 bg-white/10 dark:bg-transparent backdrop-blur-lg text-white shadow-lg pt-2 pb-4 px-5"
+          ? "top-0 bg-white/10 dark:bg-transparent backdrop-blur-lg text-white shadow-lg pt-1 pb-4 px-5"
           : "top-1 text-white dark:text-white p-4"
       }`}
     >
-      {/* Logo và Menu được gộp gần nhau */}
       <div className="flex items-center space-x-6">
         <Link href="/">
           <Image
@@ -75,22 +81,28 @@ export default function Navbar() {
             className="cursor-pointer transition-transform duration-300 hover:scale-105"
           />
         </Link>
+
         {/* Menu cho desktop */}
         <div className="hidden md:flex space-x-6 text-md">
           {navItems.map((item) => (
-            <Link
+            <motion.div
               key={item.href}
-              href={item.href}
-              className={`hover:text-gray-300 capitalize transition-colors duration-300 px-2 py-1 ${
-                pathname === item.href
-                  ? isScrolled
-                    ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-3 pt-3"
-                    : "bg-[#4599e3] text-white font-bold rounded-lg"
-                  : ""
-              }`}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
             >
-              {item.label}
-            </Link>
+              <Link
+                href={item.href}
+                className={`hover:[text-shadow:_0_2px_4px_rgb(255_255_255_/_0.8)] capitalize transition-colors duration-300 px-2 py-1 ${
+                  pathname === item.href
+                    ? isScrolled
+                      ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-3 pt-3"
+                      : "bg-[#4599e3] text-white font-bold rounded-lg"
+                    : ""
+                }`}
+              >
+                {item.label}
+              </Link>
+            </motion.div>
           ))}
         </div>
 
@@ -112,11 +124,8 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Search button và animated textbox */}
         <SearchBar />
-        {/* Sử dụng ngôn ngữ dropdown */}
         <LanguageSelector />
-        {/* Switch sáng tối */}
         <CustomSwitch checked={darkMode} onCheckedChange={setDarkMode} />
         <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
           <Link href="/login">Sign in</Link>
