@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -43,12 +43,6 @@ const Movies = ({ slides }: MoviesProps) => {
   const startIndex = (currentPage - 1) * moviesPerPage
   const endIndex = startIndex + moviesPerPage
   const currentMovies = displayedMovies.slice(startIndex, endIndex)
-
-  useEffect(() => {
-    if (moviesContainerRef.current) {
-      moviesContainerRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [currentPage])
 
   // Variants cho animation của movie card
   const movieVariants = {
@@ -156,7 +150,7 @@ const Movies = ({ slides }: MoviesProps) => {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 pt-44 sm:pt-32 md:pt-40 lg:pt-48 xl:pt-40">
+    <div className="container mx-auto px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 pt-44 sm:pt-32 md:pt-40 lg:pt-48 xl:pt-44">
       <div className="flex justify-center mb-8">
         <button
           onClick={() => {

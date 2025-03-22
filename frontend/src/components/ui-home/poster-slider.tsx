@@ -48,7 +48,7 @@ const PosterSlider = ({
   }
 
   return (
-    <div className="absolute bottom-0 px-4 w-full h-[18%] z-40">
+    <div className="absolute bottom-0 px-4 w-full h-[18%] z-40 max-w-[1920px] mx-auto">
       <div className="relative w-full px-2 poster-swiper-container">
         <Swiper
           modules={[Navigation, Autoplay]}
