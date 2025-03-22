@@ -127,9 +127,11 @@ export default function Navbar() {
         <SearchBar />
         <LanguageSelector />
         <CustomSwitch checked={darkMode} onCheckedChange={setDarkMode} />
-        <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
-          <Link href="/login">Sign in</Link>
-        </Button>
+        <Link href="/login">
+          <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
+            Sign in
+          </Button>
+        </Link>
       </div>
 
       {/* Menu mobile (dropdown) */}

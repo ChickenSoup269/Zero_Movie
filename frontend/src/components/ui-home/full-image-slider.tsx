@@ -1,4 +1,3 @@
-// components/FullImageSlider.js
 "use client"
 
 import { useState } from "react"
@@ -42,11 +41,12 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   const getFirstSentence = (description: string) => {
     const firstPeriodIndex = description.indexOf(".")
     if (firstPeriodIndex !== -1) {
-      return description.substring(0, firstPeriodIndex + 1) // Lấy đến dấu chấm
+      return description.substring(0, firstPeriodIndex + 1)
     }
-    return description // Nếu không có dấu chấm, trả về toàn bộ mô tả
+    return description
   }
 
+  // Animation variants cho hình ảnh
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -61,12 +61,26 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
     },
   }
 
-  const textVariants = {
+  // Animation variants cho container text
+  const textContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2, // Thời gian delay giữa các phần tử con
+        delayChildren: 0.3, // Delay trước khi bắt đầu animation của các con
+      },
+    },
+    exit: { opacity: 0 },
+  }
+
+  // Animation variants cho từng phần tử con
+  const textItemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, delay: 0.2, ease: "easeInOut" },
+      transition: { duration: 0.4, ease: "easeInOut" },
     },
   }
 
@@ -106,42 +120,57 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     />
                   </motion.div>
                   <motion.div
-                    variants={textVariants}
+                    variants={textContainerVariants}
                     className="absolute inset-0 z-50 flex items-center justify-start p-8"
                   >
-                    <div className=" bg-opacity-60 p-6 rounded-lg max-w-lg pb-20">
+                    <div className="bg-opacity-60 p-6 rounded-lg max-w-lg pb-20">
                       {/* Title */}
-                      <h1 className="text-6xl font-bold mb-4 text-white">
+                      <motion.h1
+                        variants={textItemVariants}
+                        className="text-6xl font-bold mb-4 text-white"
+                      >
                         {slide.title}
-                      </h1>
+                      </motion.h1>
 
                       {/* Release Year | Age Rating | Genre */}
-                      <div className="text-sm text-white mb-2">
+                      <motion.div
+                        variants={textItemVariants}
+                        className="text-sm text-white mb-2"
+                      >
                         <span className="font-bold">{slide.releaseYear}</span> |{" "}
                         <span className="font-bold">{slide.ageRating}</span> |{" "}
                         <span className="font-bold">{slide.genre}</span>
-                      </div>
+                      </motion.div>
 
-                      {/* Description (chỉ lấy câu đầu tiên) */}
-                      <p className="text-lg mb-4 text-gray-200 leading-relaxed">
+                      {/* Description */}
+                      <motion.p
+                        variants={textItemVariants}
+                        className="text-lg mb-4 text-gray-200 leading-relaxed"
+                      >
                         {getFirstSentence(slide.description)}
-                      </p>
+                      </motion.p>
 
                       {/* Buttons */}
-                      <div className="flex space-x-4 mb-4">
+                      <motion.div
+                        variants={textItemVariants}
+                        className="flex space-x-4 mb-4"
+                      >
                         <button className="bg-[#4599e3] text-white px-4 py-2 rounded-lg font-semibold">
                           Book Now
                         </button>
                         <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                          View Details{" "}
+                          View Details
                         </button>
-                      </div>
+                      </motion.div>
 
                       {/* Starring */}
-                      <div className="text-sm text-gray-300 border-t border-gray-500 pt-2">
+                      <motion.div
+                        variants={textItemVariants}
+                        className="text-sm text-gray-300 border-t border-gray-500 pt-2"
+                      >
                         <span className="font-semibold">Starring:</span>{" "}
                         {slide.starring}
-                      </div>
+                      </motion.div>
                     </div>
                   </motion.div>
                 </motion.div>
