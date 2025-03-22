@@ -67,7 +67,7 @@ export default function Navbar() {
     <nav
       className={`fixed left-4 right-4 z-50 flex items-center justify-between transition-all duration-300 rounded-md ${
         isScrolled
-          ? "top-0 bg-white/10 dark:bg-transparent backdrop-blur-lg text-white shadow-lg pt-1 pb-4 px-5"
+          ? "top-0 bg-white/10 dark:bg-transparent backdrop-blur-lg text-white shadow-lg pt-2 pb-4 px-5"
           : "top-1 text-white dark:text-white p-4"
       }`}
     >
@@ -95,7 +95,7 @@ export default function Navbar() {
                 className={`hover:[text-shadow:_0_2px_4px_rgb(255_255_255_/_0.8)] capitalize transition-colors duration-300 px-2 py-1 ${
                   pathname === item.href
                     ? isScrolled
-                      ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-3 pt-3"
+                      ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-2 pt-5 pb-2 "
                       : "bg-[#4599e3] text-white font-bold rounded-lg"
                     : ""
                 }`}
