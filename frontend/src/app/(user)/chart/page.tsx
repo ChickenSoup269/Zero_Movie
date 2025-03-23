@@ -3,7 +3,7 @@ import SeatSelection from "@/components/seat-selection"
 export default function SeatSelectionPage() {
   return (
     <div className="seatSealect">
-      <SeatSelection />
+      <SeatSelection params={Promise.resolve({ id: "some-id" })} />
     </div>
   )
 }

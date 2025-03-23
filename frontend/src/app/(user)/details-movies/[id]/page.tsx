@@ -7,6 +7,7 @@ import { moviesData } from "@/data/moviesData"
 import { theatersData } from "@/data/theatersData"
 import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import SeatSelection from "@/components/seat-selection-cinema"
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>
@@ -181,7 +182,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, transparent 0%, transparent 0%, #0e1116 45%)",
+              "linear-gradient(to bottom, transparent 0%, transparent 0%, #0e1116 30%)",
           }}
         />
       </motion.div>
@@ -389,6 +390,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               </div>
             </motion.div>
           </motion.div>
+          {/* phần chọn ghế */}
+          <SeatSelection />
         </div>
       </motion.div>
 
