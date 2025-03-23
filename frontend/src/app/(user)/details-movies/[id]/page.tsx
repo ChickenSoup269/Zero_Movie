@@ -33,6 +33,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const genres = movie.genre.split(", ")
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false)
 
   const openTheaterPopup = (theater: Theater) => {
     setSelectedTheater(theater)
@@ -41,6 +42,17 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const closeTheaterPopup = () => {
     setSelectedTheater(null)
   }
+
+  const openTrailerPopup = () => {
+    setIsTrailerOpen(true)
+  }
+
+  const closeTrailerPopup = () => {
+    setIsTrailerOpen(false)
+  }
+
+  // Kiểm tra xem có popup nào đang mở không
+  const isAnyPopupOpen = selectedTheater !== null || isTrailerOpen
 
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
@@ -69,11 +81,10 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   }
 
-  // Animation variants cho background overlay (chậm hơn)
   const overlayVariants = {
     hidden: {
       opacity: 0,
-      transition: { duration: 0.5, ease: "easeInOut" }, // Chậm hơn: 0.5s
+      transition: { duration: 0.5, ease: "easeInOut" },
     },
     visible: {
       opacity: 1,
@@ -81,13 +92,12 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     },
   }
 
-  // Animation variants cho nội dung popup (nhanh hơn một chút)
   const popupContentVariants = {
     hidden: {
       opacity: 0,
       scale: 0.95,
       y: 20,
-      transition: { duration: 0.3, ease: "easeInOut" }, // Nhanh hơn: 0.3s
+      transition: { duration: 0.3, ease: "easeInOut" },
     },
     visible: {
       opacity: 1,
@@ -97,21 +107,19 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     },
   }
 
-  // Animation variants cho hiệu ứng hover của rạp phim
   const theaterHoverVariants = {
     rest: {
       scale: 1,
-      backgroundColor: "rgba(55, 65, 81, 0)", // bg-gray-700 với opacity 0
+      backgroundColor: "rgba(55, 65, 81, 0)",
       transition: { duration: 0.2, ease: "easeInOut" },
     },
     hover: {
       scale: 1.02,
-      backgroundColor: "rgba(55, 65, 81, 1)", // bg-gray-700
+      backgroundColor: "rgba(55, 65, 81, 1)",
       transition: { duration: 0.2, ease: "easeInOut" },
     },
   }
 
-  // Animation variants cho hiệu ứng hover của button
   const buttonHoverVariants = {
     rest: {
       scale: 1,
@@ -125,8 +133,38 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     },
   }
 
+  const glowVariants = {
+    glow: {
+      boxShadow: [
+        "0 0 20px 5px rgba(255, 0, 0, 0.5)",
+        "0 0 20px 5px rgba(0, 255, 0, 0.5)",
+        "0 0 20px 5px rgba(0, 0, 255, 0.5)",
+        "0 0 20px 5px rgba(255, 0, 255, 0.5)",
+        "0 0 20px 5px rgba(255, 0, 0, 0.5)",
+      ],
+      transition: {
+        duration: 5,
+        repeat: Infinity,
+        ease: "linear",
+      },
+    },
+  }
+
+  // Animation variants cho background blur
+  const backgroundVariants = {
+    normal: {
+      filter: "blur(0px)",
+      transition: { duration: 0.5, ease: "easeInOut" },
+    },
+    blurred: {
+      filter: "blur(8px)",
+      transition: { duration: 0.5, ease: "easeInOut" },
+    },
+  }
+
   return (
     <div className="relative min-h-screen text-white flex flex-col">
+      {/* Background và nội dung chính với hiệu ứng blur */}
       <motion.div
         className="absolute inset-0 z-0"
         variants={imageVariants}
@@ -148,7 +186,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         />
       </motion.div>
 
-      <div className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20">
+      <motion.div
+        className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20"
+        variants={backgroundVariants}
+        animate={isAnyPopupOpen ? "blurred" : "normal"} // Áp dụng blur khi popup mở
+      >
         <div className="container mx-auto px-4 pb-10">
           <motion.div
             className="flex flex-col md:flex-row gap-6 items-start"
@@ -267,10 +309,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               >
                 <motion.button
                   className="px-6 py-2 text-white rounded-md flex items-center gap-2"
-                  style={{ backgroundColor: "#4599e3" }} // Đổi màu button sang #4078bd
+                  style={{ backgroundColor: "#4599e3" }}
                   whileHover="hover"
                   initial="rest"
                   variants={buttonHoverVariants}
+                  onClick={openTrailerPopup}
                 >
                   Watch Trailer
                   <svg
@@ -347,8 +390,9 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             </motion.div>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
+      {/* Popup cho rạp phim */}
       <AnimatePresence>
         {selectedTheater && (
           <motion.div
@@ -413,7 +457,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 <div className="flex gap-4 mt-4">
                   <motion.button
                     className="px-6 py-2 text-white rounded-full"
-                    style={{ backgroundColor: "#4078bd" }} // Đổi màu button sang #4078bd
+                    style={{ backgroundColor: "#4078bd" }}
                     whileHover="hover"
                     initial="rest"
                     variants={buttonHoverVariants}
@@ -421,6 +465,85 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     View on Map
                   </motion.button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Popup cho trailer */}
+      <AnimatePresence>
+        {isTrailerOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <motion.div
+              className=" rounded-lg p-6 w-full max-w-2xl relative"
+              variants={popupContentVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+            >
+              <button
+                onClick={closeTrailerPopup}
+                className="absolute top-[-10] right-[-10] text-gray-300 hover:text-white z-10"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <div className="w-full relative">
+                {/* Video chính */}
+                <div
+                  className="relative z-10"
+                  style={{ paddingBottom: "56.25%" }}
+                >
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+                {/* Video nhân bản với hiệu ứng blur và loang màu */}
+                <motion.div
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{
+                    paddingBottom: "56.25%",
+                    filter: "blur(20px)",
+                    opacity: 0.7,
+                  }}
+                  variants={glowVariants}
+                  animate="glow"
+                >
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    title="YouTube video player (blurred)"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  ></iframe>
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>
