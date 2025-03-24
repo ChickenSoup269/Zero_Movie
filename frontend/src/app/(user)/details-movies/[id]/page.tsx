@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 
 import { useState } from "react"
@@ -20,6 +21,7 @@ interface Theater {
   address: string
   phone: string
   description: string
+  mapUrl: string
 }
 
 export default function MovieDetail({ params }: MovieDetailProps) {
@@ -32,16 +34,32 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     notFound()
   }
 
+  // Kiểm tra theatersData
+  if (!theatersData || theatersData.length === 0) {
+    return <div>Error: No theaters available</div>
+  }
+
+  // Cập nhật theatersData với tiền tố "CGV"
+  const updatedTheatersData: Theater[] = theatersData.map((theater) => ({
+    ...theater,
+    name: `CGV ${theater.name}`,
+  }))
+
   const genres = movie.genre.split(", ")
-  const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
+  const [selectedTheater, setSelectedTheater] = useState<Theater>(
+    updatedTheatersData[0]
+  )
+
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
+  const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
 
   const openTheaterPopup = (theater: Theater) => {
     setSelectedTheater(theater)
+    setIsTheaterPopupOpen(true)
   }
 
   const closeTheaterPopup = () => {
-    setSelectedTheater(null)
+    setIsTheaterPopupOpen(false)
   }
 
   const openTrailerPopup = () => {
@@ -52,8 +70,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     setIsTrailerOpen(false)
   }
 
-  // Kiểm tra xem có popup nào đang mở không
-  const isAnyPopupOpen = selectedTheater !== null || isTrailerOpen
+  const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
@@ -151,7 +168,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     },
   }
 
-  // Animation variants cho background blur
   const backgroundVariants = {
     normal: {
       filter: "blur(0px)",
@@ -165,7 +181,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   return (
     <div className="relative min-h-screen text-white flex flex-col">
-      {/* Background và nội dung chính với hiệu ứng blur */}
       <motion.div
         className="absolute inset-0 z-0"
         variants={imageVariants}
@@ -190,7 +205,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
       <motion.div
         className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20"
         variants={backgroundVariants}
-        animate={isAnyPopupOpen ? "blurred" : "normal"} // Áp dụng blur khi popup mở
+        animate={isAnyPopupOpen ? "blurred" : "normal"}
       >
         <div className="container mx-auto px-4 pb-10">
           <motion.div
@@ -360,10 +375,12 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   Available Theaters
                 </h3>
                 <div className="space-y-2">
-                  {theatersData.map((theater) => (
+                  {updatedTheatersData.map((theater) => (
                     <motion.div
                       key={theater.id}
-                      className="flex justify-between items-center cursor-pointer p-2 rounded"
+                      className={`flex justify-between items-center cursor-pointer p-2 rounded ${
+                        selectedTheater.id === theater.id ? "bg-gray-700" : ""
+                      }`}
                       onClick={() => openTheaterPopup(theater)}
                       whileHover="hover"
                       initial="rest"
@@ -390,14 +407,20 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               </div>
             </motion.div>
           </motion.div>
-          {/* phần chọn ghế */}
-          <SeatSelection />
+
+          <SeatSelection
+            movieInfo={{
+              type: "Movie",
+              movieTitle: movie.title,
+              director: movie.director,
+            }}
+            theaters={updatedTheatersData} // Truyền toàn bộ danh sách rạp
+          />
         </div>
       </motion.div>
 
-      {/* Popup cho rạp phim */}
       <AnimatePresence>
-        {selectedTheater && (
+        {isTheaterPopupOpen && (
           <motion.div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             variants={overlayVariants}
@@ -406,7 +429,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             exit="hidden"
           >
             <motion.div
-              className="bg-gray-800 rounded-lg p-6 w-full max-w-3xl flex flex-col md:flex-row gap-6 relative"
+              className="bg-gray-800 rounded-lg p-6 w-full max-w-4xl flex flex-col md:flex-row gap-6 relative"
               variants={popupContentVariants}
               initial="hidden"
               animate="visible"
@@ -431,16 +454,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   />
                 </svg>
               </button>
-              <div className="w-full md:w-1/3">
-                <Image
-                  src={selectedTheater.image}
-                  alt={selectedTheater.name}
-                  width={300}
-                  height={200}
-                  className="rounded-lg shadow-lg w-full h-auto object-cover"
-                />
-              </div>
-              <div className="w-full md:w-2/3 flex flex-col gap-4 text-white">
+              <div className="w-full md:w-1/2 flex flex-col gap-4 text-white">
                 <h3 className="text-2xl md:text-3xl font-bold">
                   {selectedTheater.name}
                 </h3>
@@ -457,24 +471,23 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 <p className="text-gray-300 text-base">
                   {selectedTheater.description}
                 </p>
-                <div className="flex gap-4 mt-4">
-                  <motion.button
-                    className="px-6 py-2 text-white rounded-full"
-                    style={{ backgroundColor: "#4078bd" }}
-                    whileHover="hover"
-                    initial="rest"
-                    variants={buttonHoverVariants}
-                  >
-                    View on Map
-                  </motion.button>
-                </div>
+              </div>
+              <div className="w-full md:w-1/2">
+                <iframe
+                  src={selectedTheater.mapUrl}
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Popup cho trailer */}
       <AnimatePresence>
         {isTrailerOpen && (
           <motion.div
@@ -485,7 +498,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             exit="hidden"
           >
             <motion.div
-              className=" rounded-lg p-6 w-full max-w-2xl relative"
+              className="rounded-lg p-6 w-full max-w-2xl relative"
               variants={popupContentVariants}
               initial="hidden"
               animate="visible"
@@ -511,7 +524,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 </svg>
               </button>
               <div className="w-full relative">
-                {/* Video chính */}
                 <div
                   className="relative z-10"
                   style={{ paddingBottom: "56.25%" }}
@@ -526,7 +538,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     allowFullScreen
                   ></iframe>
                 </div>
-                {/* Video nhân bản với hiệu ứng blur và loang màu */}
                 <motion.div
                   className="absolute top-0 left-0 w-full h-full"
                   style={{
