@@ -1,5 +1,16 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
+    "target": "ES6",
+    "module": "CommonJS",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+=======
     "target": "ES6", // Biên dịch xuống ES6
     "module": "CommonJS", // Sử dụng module CommonJS cho Node.js
     "moduleResolution": "node", // Giúp TypeScript tìm module đúng cách
@@ -13,4 +24,5 @@
   },
   "include": ["src"], // Chỉ biên dịch các file trong src
   "exclude": ["node_modules", "dist"] // Loại trừ thư mục không cần biên dịch
+>>>>>>> main
 }
