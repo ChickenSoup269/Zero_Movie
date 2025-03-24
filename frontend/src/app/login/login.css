@@ -1,0 +1,10 @@
+.login-page {
+  background-image: url("https://raw.githubusercontent.com/ChickenSoup269/SteamClone/refs/heads/master/frontend/src/assets/images/background_img_re.jpg");
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
