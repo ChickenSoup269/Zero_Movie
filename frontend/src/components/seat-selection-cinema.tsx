@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import Ticket from "./ui-details-movies/ticket" // Import component Ticket
+import Ticket from "./ui-details-movies/ticket"
 
 interface Seat {
   row: string
@@ -255,9 +255,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                   }
                 }}
                 initialFocus
-                className="bg-gray-800
-
- text-white border-gray-700"
+                className="bg-gray-800 text-white border-gray-700"
               />
             </PopoverContent>
           </Popover>
@@ -338,7 +336,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           {ticketCount >= 6 && (
             <p className="text-red-500 text-sm">Đã đạt giới hạn 6 ghế!</p>
           )}
-          {/* Sử dụng component Ticket */}
           <Ticket
             theater={selectedTheater}
             movieInfo={movieInfo}
@@ -355,14 +352,20 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         </div>
 
         <div className="w-2/3">
-          <div className="text-center text-gray-400 mb-4">
-            <div className="border-t border-gray-500 pt-2">SCREEN</div>
+          <div className="relative mb-5 text-center text-gray-400 text-xl font-bold">
+            SCREEN
+            <div className="absolute top-0 left-0 right-0 h-5 border-t-2 border-blue-400 rounded-t-[50%]"></div>
           </div>
           <div className="grid gap-2">
-            {seatsData.map((row) => (
-              <div key={row.row} className="flex items-center gap-2">
-                <span className="text-gray-400">{row.row}</span>
-                <div className="flex gap-2 flex-1 justify-center">
+            {seatsData.map((row, index) => (
+              <div
+                key={row.row}
+                className={`flex items-center gap-2 ${
+                  index === 3 ? "mb-8" : ""
+                }`}
+              >
+                <span className="text-gray-400 w-5">{row.row}</span>
+                <div className="flex gap-1 flex-1 justify-center">
                   {row.seats.map((seat) => {
                     const seatId = `${seat.row}${seat.number}`
                     const isSelected = selectedSeats.includes(seatId)
@@ -370,11 +373,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                       <button
                         key={seatId}
                         onClick={() => handleSeatClick(seat)}
-                        className={`w-8 h-8 rounded-sm transition-colors ${
+                        className={`w-8 h-8 rounded-sm transition-colors text-sm ${
                           seat.type === "sold"
                             ? "bg-gray-600 cursor-not-allowed"
                             : isSelected
-                            ? "bg-[#4599e3]"
+                            ? "bg-blue-400"
                             : "bg-gray-400"
                         }`}
                       >
@@ -383,22 +386,22 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                     )
                   })}
                 </div>
-                <span className="text-gray-400">{row.row}</span>
+                <span className="text-gray-400 w-5">{row.row}</span>
               </div>
             ))}
           </div>
-          <div className="flex justify-center gap-4 mt-4 text-sm text-gray-400">
+          <div className="flex justify-center gap-5 mt-5 text-sm text-gray-400">
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 bg-gray-400 rounded-sm"></div>
               <span>Available</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-[#4599e3] rounded-sm"></div>
-              <span>User select</span>
+              <div className="w-4 h-4 bg-blue-400 rounded-sm"></div>
+              <span>Selected</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
-              <span>Sold</span>
+              <span>Taken</span>
             </div>
           </div>
         </div>

@@ -1,0 +1,125 @@
+import { motion } from "framer-motion"
+import {
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import PasswordInput from "./password-input"
+import ForgotPasswordDialog from "./forgot-password-dialog"
+
+const tabVariantsLeft = {
+  hidden: { opacity: 0, x: -40 },
+  visible: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -40 },
+}
+
+const childVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+}
+
+interface LoginFormProps {
+  loginData: { email: string; password: string }
+  handleLoginChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handleLoginSubmit: (e: React.FormEvent) => void
+  showLoginPassword: boolean
+  setShowLoginPassword: (value: boolean) => void
+  setOpenDialog: (value: boolean) => void
+}
+
+const LoginForm = ({
+  loginData,
+  handleLoginChange,
+  handleLoginSubmit,
+  showLoginPassword,
+  setShowLoginPassword,
+  setOpenDialog,
+}: LoginFormProps) => {
+  return (
+    <motion.div
+      variants={tabVariantsLeft}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      transition={{ duration: 0.5 }}
+      layout
+    >
+      <form onSubmit={handleLoginSubmit}>
+        <motion.div variants={childVariants}>
+          <CardHeader>
+            <CardTitle className="text-black">Sign In</CardTitle>
+            <CardDescription className="text-gray-600">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+        </motion.div>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.2, // Các phần tử con xuất hiện cách nhau 0.2s
+              },
+            },
+          }}
+          initial="hidden"
+          animate="visible"
+        >
+          <CardContent className="space-y-4">
+            <motion.div variants={childVariants} className="space-y-2">
+              <Label htmlFor="email" className="text-black">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                value={loginData.email}
+                onChange={handleLoginChange}
+                required
+                className="border-black text-black bg-white placeholder-gray-400"
+              />
+            </motion.div>
+            <motion.div variants={childVariants}>
+              <PasswordInput
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                value={loginData.password}
+                onChange={handleLoginChange}
+                showPassword={showLoginPassword}
+                setShowPassword={setShowLoginPassword}
+              />
+            </motion.div>
+            <motion.div variants={childVariants} className="text-right">
+              <ForgotPasswordDialog setOpenDialog={setOpenDialog} />
+            </motion.div>
+          </CardContent>
+        </motion.div>
+        <motion.div variants={childVariants}>
+          <CardFooter>
+            <Button
+              type="submit"
+              className="w-full bg-black text-white hover:bg-gray-800"
+            >
+              Sign In
+            </Button>
+          </CardFooter>
+        </motion.div>
+      </form>
+    </motion.div>
+  )
+}
+
+export default LoginForm
