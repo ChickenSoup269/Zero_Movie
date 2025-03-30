@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { QRCodeSVG } from "qrcode.react"
+import Ticket from "./ui-details-movies/ticket" // Import component Ticket
 
 interface Seat {
   row: string
@@ -109,6 +109,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats(selectedSeats.filter((id) => id !== seatId))
     } else {
+      if (selectedSeats.length >= 6) {
+        alert("Bạn chỉ có thể chọn tối đa 6 ghế!")
+        return
+      }
       setSelectedSeats([...selectedSeats, seatId])
     }
   }
@@ -165,21 +169,8 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     setCurrentWeekStart(date)
   }
 
-  const qrCodeContent = JSON.stringify({
-    cinema: selectedTheater.name,
-    movie: movieInfo.movieTitle,
-    director: movieInfo.director,
-    name: "Thien dep trai",
-    seats: selectedSeats.join(", ") || "None",
-    time: selectedTime,
-    ticketId: ticketId || "None",
-    date: selectedDate ? format(selectedDate, "dd/MM/yyyy") : "12/07/2022",
-    room: selectedRoom,
-    type: selectedType,
-  })
-
   return (
-    <div className="mt-10 p-6  rounded-lg">
+    <div className="mt-10 p-6 rounded-lg">
       <div className="flex flex-wrap gap-4 items-center mb-6">
         <div className="flex gap-2 items-center">
           <div className="text-gray-400">Date:</div>
@@ -264,7 +255,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                   }
                 }}
                 initialFocus
-                className="bg-gray-800 text-white border-gray-700"
+                className="bg-gray-800
+
+ text-white border-gray-700"
               />
             </PopoverContent>
           </Popover>
@@ -340,64 +333,22 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         <div className="w-1/3 flex flex-col gap-4">
           <h3 className="text-xl font-bold">Select Your Seats</h3>
           <p className="text-gray-400">
-            {ticketCount} Seats: {selectedSeats.join(", ")}
+            {ticketCount} / 6 Seats: {selectedSeats.join(", ")}
           </p>
-          {/* Thêm class ticket-wrapper để tạo hiệu ứng vé */}
-          <div className="bg-white text-black flex overflow-hidden ticket-wrapper relative rounded-md">
-            {/* Bên trái: Thông tin vé */}
-            <div className="w-2/3 p-4 border-r-2 border-dotted border-black">
-              <h4 className="text-lg font-bold text-[#4599e3]">
-                {selectedTheater.name}
-              </h4>
-              <p className="text-xs text-gray-500">{selectedTheater.address}</p>
-              <div className="mt-2 flex justify-between">
-                <div>
-                  <span className="text-gray-500 text-sm">MOVIE</span>
-                  <p className="font-semibold">{movieInfo.movieTitle}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-sm">CUSTOMER</span>
-                  <p className="font-semibold">Thien dep trai</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-sm">TYPE</span>
-                  <p className="font-semibold">{movieInfo.type}</p>
-                </div>
-              </div>
-              <div className="mt-2 flex justify-between">
-                <div>
-                  <span className="text-gray-500 text-sm">SEAT</span>
-                  <p className="font-semibold">
-                    {selectedSeats.join(", ") || "None"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-sm">TIME</span>
-                  <p className="font-semibold">{selectedTime}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-sm">DATE</span>
-                  <p className="font-semibold">
-                    {selectedDate
-                      ? format(selectedDate, "dd/MM/yyyy")
-                      : "12/07/2022"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bên phải: ROOM, TICKET ID, và QR code */}
-            <div className="w-1/3 p-4 bg-[#4599e3] text-white flex flex-col items-center justify-between rounded-r-md">
-              <div className="text-center">
-                <p className="text-4xl font-bold">{selectedRoom}</p>
-                <p className="text-sm">ROOM</p>
-                <p className="text-sm mt-1">Ticket ID: {ticketId || "None"}</p>
-              </div>
-              <div className="bg-white p-1 rounded">
-                <QRCodeSVG value={qrCodeContent} size={80} />
-              </div>
-            </div>
-          </div>
+          {ticketCount >= 6 && (
+            <p className="text-red-500 text-sm">Đã đạt giới hạn 6 ghế!</p>
+          )}
+          {/* Sử dụng component Ticket */}
+          <Ticket
+            theater={selectedTheater}
+            movieInfo={movieInfo}
+            selectedSeats={selectedSeats}
+            selectedTime={selectedTime}
+            selectedDate={selectedDate}
+            ticketId={ticketId}
+            selectedRoom={selectedRoom}
+            selectedType={selectedType}
+          />
           <button className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors">
             BUY
           </button>
@@ -452,42 +403,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           </div>
         </div>
       </div>
-
-      {/* Thêm CSS cho hiệu ứng vé */}
-      <style jsx>{`
-        .ticket-wrapper {
-          position: relative;
-          overflow: visible !important;
-        }
-
-        /* Lỗ tròn bên trái */
-        .ticket-wrapper::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: -12px;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
-          background-color: #0f1116;
-          border-radius: 50%;
-          z-index: 1;
-        }
-
-        /* Lỗ tròn bên phải */
-        .ticket-wrapper::after {
-          content: "";
-          position: absolute;
-          top: 50%;
-          right: -12px;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
-          background-color: #0f1116;
-          border-radius: 50%;
-          z-index: 1;
-        }
-      `}</style>
     </div>
   )
 }
