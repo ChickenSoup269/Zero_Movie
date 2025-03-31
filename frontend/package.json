@@ -39,13 +39,15 @@
     "sonner": "^2.0.1",
     "swiper": "^11.2.4",
     "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/zxcvbn": "^4.4.5",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",

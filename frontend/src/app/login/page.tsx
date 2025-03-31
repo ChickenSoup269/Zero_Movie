@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
@@ -35,7 +35,15 @@ const LoginPage = () => {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
-  const [activeTab, setActiveTab] = useState("login") // Theo dõi tab hiện tại
+  const [activeTab, setActiveTab] = useState(() => {
+    // Khởi tạo activeTab từ localStorage nếu có, nếu không thì mặc định là "login"
+    return localStorage.getItem("activeTab") || "login"
+  })
+
+  // Lưu activeTab vào localStorage mỗi khi tab thay đổi
+  useEffect(() => {
+    localStorage.setItem("activeTab", activeTab)
+  }, [activeTab])
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value })
@@ -72,8 +80,6 @@ const LoginPage = () => {
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2 bg-gray-200">
-              {" "}
-              {/* Sửa bg-gray-2g00 thành bg-gray-200 */}
               <TabsTrigger
                 value="login"
                 className="text-black data-[state=active]:bg-white"

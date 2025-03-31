@@ -19,6 +19,7 @@ import {
 import PasswordInput from "./password-input"
 import OTPDialog from "./OTP-dialog"
 import { useState, useEffect } from "react"
+import zxcvbn from "zxcvbn" // Import zxcvbn để kiểm tra độ an toàn mật khẩu
 
 const tabVariantsRight = {
   hidden: { opacity: 0, x: 40 },
@@ -74,8 +75,10 @@ const RegisterForm = ({
     confirmPassword: false,
   })
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
+  const [showUsernameTooltip, setShowUsernameTooltip] = useState(false)
+  const [showPasswordTooltip, setShowPasswordTooltip] = useState(false)
   const [openOTPDialog, setOpenOTPDialog] = useState(false)
-  const [termsAgreed, setTermsAgreed] = useState(false) // Thêm state để quản lý checkbox
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   // Kiểm tra tính hợp lệ của các trường
   const validateForm = () => {
@@ -87,26 +90,40 @@ const RegisterForm = ({
       terms: "",
     }
 
+    // Kiểm tra email
     if (!registerData.email) {
       newErrors.email = "This field cannot be empty."
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.email)) {
       newErrors.email = "Email is invalid."
     }
 
+    // Kiểm tra username
     if (!registerData.username) {
       newErrors.username = "This field cannot be empty."
+    } else if (registerData.username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters."
     }
 
+    // Kiểm tra password
     if (!registerData.password) {
       newErrors.password = "This field cannot be empty."
+    } else {
+      const passwordStrength = zxcvbn(registerData.password)
+      if (passwordStrength.score < 3) {
+        // zxcvbn trả về score từ 0-4, score < 3 là mật khẩu yếu
+        newErrors.password =
+          "Password is too weak. Use at least 8 characters, including uppercase, lowercase, numbers, and special characters."
+      }
     }
 
+    // Kiểm tra confirmPassword
     if (!registerData.confirmPassword) {
       newErrors.confirmPassword = "This field cannot be empty."
     } else if (registerData.confirmPassword !== registerData.password) {
       newErrors.confirmPassword = "Passwords do not match."
     }
 
+    // Kiểm tra terms
     if (!termsAgreed) {
       newErrors.terms = "You must agree to the terms."
     }
@@ -149,12 +166,13 @@ const RegisterForm = ({
   const handleTermsChange = (checked: boolean) => {
     setTermsAgreed(checked)
     if (isSubmitted) {
-      validateForm() // Cập nhật lỗi ngay khi checkbox thay đổi
+      validateForm()
     }
   }
 
-  // Hiển thị Tooltip khi có lỗi email không hợp lệ
+  // Hiển thị Tooltip khi có lỗi
   useEffect(() => {
+    // Tooltip cho email
     if (
       isSubmitted &&
       errors.email &&
@@ -169,7 +187,47 @@ const RegisterForm = ({
     } else {
       setShowEmailTooltip(false)
     }
-  }, [isSubmitted, errors.email, registerData.email])
+
+    // Tooltip cho username
+    if (
+      isSubmitted &&
+      errors.username &&
+      registerData.username &&
+      errors.username !== "This field cannot be empty."
+    ) {
+      setShowUsernameTooltip(true)
+      const timer = setTimeout(() => {
+        setShowUsernameTooltip(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowUsernameTooltip(false)
+    }
+
+    // Tooltip cho password
+    if (
+      isSubmitted &&
+      errors.password &&
+      registerData.password &&
+      errors.password !== "This field cannot be empty."
+    ) {
+      setShowPasswordTooltip(true)
+      const timer = setTimeout(() => {
+        setShowPasswordTooltip(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowPasswordTooltip(false)
+    }
+  }, [
+    isSubmitted,
+    errors.email,
+    errors.username,
+    errors.password,
+    registerData.email,
+    registerData.username,
+    registerData.password,
+  ])
 
   const handleOTPSubmit = (otp: string) => {
     console.log("Registration OTP:", otp, "User Data:", registerData)
@@ -250,47 +308,79 @@ const RegisterForm = ({
                   <Label htmlFor="username" className="text-black">
                     Username
                   </Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    type="text"
-                    placeholder={
-                      isSubmitted && errors.username && !registerData.username
-                        ? errors.username
-                        : "Choose a username"
-                    }
-                    value={registerData.username}
-                    onChange={handleInputChange}
-                    onInput={handleInput}
-                    className={`border ${
-                      isSubmitted && errors.username
-                        ? "border-red-500 placeholder:text-red-500"
-                        : touched.username && registerData.username
-                        ? "border-green-500"
-                        : "border-gray-300"
-                    } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
-                  />
+                  <Tooltip open={showUsernameTooltip}>
+                    <TooltipTrigger asChild>
+                      <Input
+                        id="username"
+                        name="username"
+                        type="text"
+                        placeholder={
+                          isSubmitted &&
+                          errors.username &&
+                          !registerData.username
+                            ? errors.username
+                            : "Choose a username"
+                        }
+                        value={registerData.username}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        className={`border ${
+                          isSubmitted && errors.username
+                            ? "border-red-500 placeholder:text-red-500"
+                            : touched.username && registerData.username
+                            ? "border-green-500"
+                            : "border-gray-300"
+                        } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
+                      />
+                    </TooltipTrigger>
+                    {isSubmitted &&
+                      errors.username &&
+                      registerData.username &&
+                      errors.username !== "This field cannot be empty." && (
+                        <TooltipContent side="bottom">
+                          <p className="text-red-500 text-xs">
+                            {errors.username}
+                          </p>
+                        </TooltipContent>
+                      )}
+                  </Tooltip>
                 </motion.div>
                 <motion.div variants={childVariants}>
                   <Label htmlFor="password" className="text-black">
                     Password
                   </Label>
-                  <PasswordInput
-                    id="password"
-                    name="password"
-                    placeholder={
-                      isSubmitted && errors.password && !registerData.password
-                        ? errors.password
-                        : "Create a password"
-                    }
-                    value={registerData.password}
-                    onChange={handleInputChange}
-                    onInput={handleInput}
-                    showPassword={showRegisterPassword}
-                    setShowPassword={setShowRegisterPassword}
-                    error={isSubmitted && !!errors.password}
-                    touched={touched.password && !!registerData.password}
-                  />
+                  <Tooltip open={showPasswordTooltip}>
+                    <TooltipTrigger asChild>
+                      <PasswordInput
+                        id="password"
+                        name="password"
+                        placeholder={
+                          isSubmitted &&
+                          errors.password &&
+                          !registerData.password
+                            ? errors.password
+                            : "Create a password"
+                        }
+                        value={registerData.password}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        showPassword={showRegisterPassword}
+                        setShowPassword={setShowRegisterPassword}
+                        error={isSubmitted && !!errors.password}
+                        touched={touched.password && !!registerData.password}
+                      />
+                    </TooltipTrigger>
+                    {isSubmitted &&
+                      errors.password &&
+                      registerData.password &&
+                      errors.password !== "This field cannot be empty." && (
+                        <TooltipContent side="bottom">
+                          <p className="text-red-500 text-xs">
+                            {errors.password}
+                          </p>
+                        </TooltipContent>
+                      )}
+                  </Tooltip>
                 </motion.div>
                 <motion.div variants={childVariants}>
                   <Label htmlFor="confirmPassword" className="text-black">
@@ -325,7 +415,7 @@ const RegisterForm = ({
                     id="terms"
                     className="border-gray-300"
                     checked={termsAgreed}
-                    onCheckedChange={handleTermsChange} // Cập nhật state khi checkbox thay đổi
+                    onCheckedChange={handleTermsChange}
                   />
                   <Label htmlFor="terms" className="text-sm text-black">
                     I agree to the terms
