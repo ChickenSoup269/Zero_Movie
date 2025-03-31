@@ -103,7 +103,10 @@ const LoginForm = ({
               />
             </motion.div>
             <motion.div variants={childVariants} className="text-right">
-              <ForgotPasswordDialog setOpenDialog={setOpenDialog} />
+              <ForgotPasswordDialog
+                setOpenDialog={setOpenDialog}
+                open={false}
+              />
             </motion.div>
           </CardContent>
         </motion.div>
