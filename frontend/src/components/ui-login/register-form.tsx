@@ -19,7 +19,7 @@ import {
 import PasswordInput from "./password-input"
 import OTPDialog from "./OTP-dialog"
 import { useState, useEffect } from "react"
-import zxcvbn from "zxcvbn" // Import zxcvbn để kiểm tra độ an toàn mật khẩu
+import zxcvbn from "zxcvbn"
 
 const tabVariantsRight = {
   hidden: { opacity: 0, x: 40 },
@@ -77,10 +77,11 @@ const RegisterForm = ({
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
   const [showUsernameTooltip, setShowUsernameTooltip] = useState(false)
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false)
+  const [showConfirmPasswordTooltip, setShowConfirmPasswordTooltip] =
+    useState(false) // Thêm tooltip cho Confirm Password
   const [openOTPDialog, setOpenOTPDialog] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
 
-  // Kiểm tra tính hợp lệ của các trường
   const validateForm = () => {
     const newErrors = {
       email: "",
@@ -90,40 +91,34 @@ const RegisterForm = ({
       terms: "",
     }
 
-    // Kiểm tra email
     if (!registerData.email) {
       newErrors.email = "This field cannot be empty."
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.email)) {
       newErrors.email = "Email is invalid."
     }
 
-    // Kiểm tra username
     if (!registerData.username) {
       newErrors.username = "This field cannot be empty."
     } else if (registerData.username.length < 3) {
       newErrors.username = "Username must be at least 3 characters."
     }
 
-    // Kiểm tra password
     if (!registerData.password) {
       newErrors.password = "This field cannot be empty."
     } else {
       const passwordStrength = zxcvbn(registerData.password)
       if (passwordStrength.score < 3) {
-        // zxcvbn trả về score từ 0-4, score < 3 là mật khẩu yếu
         newErrors.password =
           "Password is too weak. Use at least 8 characters, including uppercase, lowercase, numbers, and special characters."
       }
     }
 
-    // Kiểm tra confirmPassword
     if (!registerData.confirmPassword) {
       newErrors.confirmPassword = "This field cannot be empty."
     } else if (registerData.confirmPassword !== registerData.password) {
       newErrors.confirmPassword = "Passwords do not match."
     }
 
-    // Kiểm tra terms
     if (!termsAgreed) {
       newErrors.terms = "You must agree to the terms."
     }
@@ -132,7 +127,6 @@ const RegisterForm = ({
     return !Object.values(newErrors).some((error) => error)
   }
 
-  // Xử lý khi nhấn nút Sign Up
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitted(true)
@@ -143,7 +137,6 @@ const RegisterForm = ({
     }
   }
 
-  // Xử lý khi người dùng nhập thông tin (bao gồm autofill và copy-paste)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name } = e.target
     setTouched((prev) => ({ ...prev, [name]: true }))
@@ -153,7 +146,6 @@ const RegisterForm = ({
     }
   }
 
-  // Xử lý sự kiện onInput để bắt autofill và copy-paste
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
     const { name } = e.currentTarget
     setTouched((prev) => ({ ...prev, [name]: true }))
@@ -162,7 +154,6 @@ const RegisterForm = ({
     }
   }
 
-  // Xử lý khi checkbox thay đổi
   const handleTermsChange = (checked: boolean) => {
     setTermsAgreed(checked)
     if (isSubmitted) {
@@ -170,9 +161,7 @@ const RegisterForm = ({
     }
   }
 
-  // Hiển thị Tooltip khi có lỗi
   useEffect(() => {
-    // Tooltip cho email
     if (
       isSubmitted &&
       errors.email &&
@@ -188,7 +177,6 @@ const RegisterForm = ({
       setShowEmailTooltip(false)
     }
 
-    // Tooltip cho username
     if (
       isSubmitted &&
       errors.username &&
@@ -204,7 +192,6 @@ const RegisterForm = ({
       setShowUsernameTooltip(false)
     }
 
-    // Tooltip cho password
     if (
       isSubmitted &&
       errors.password &&
@@ -219,14 +206,31 @@ const RegisterForm = ({
     } else {
       setShowPasswordTooltip(false)
     }
+
+    if (
+      isSubmitted &&
+      errors.confirmPassword &&
+      registerData.confirmPassword &&
+      errors.confirmPassword !== "This field cannot be empty."
+    ) {
+      setShowConfirmPasswordTooltip(true)
+      const timer = setTimeout(() => {
+        setShowConfirmPasswordTooltip(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowConfirmPasswordTooltip(false)
+    }
   }, [
     isSubmitted,
     errors.email,
     errors.username,
     errors.password,
+    errors.confirmPassword,
     registerData.email,
     registerData.username,
     registerData.password,
+    registerData.confirmPassword,
   ])
 
   const handleOTPSubmit = (otp: string) => {
@@ -386,26 +390,43 @@ const RegisterForm = ({
                   <Label htmlFor="confirmPassword" className="text-black">
                     Confirm Password
                   </Label>
-                  <PasswordInput
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    placeholder={
-                      isSubmitted &&
+                  <Tooltip open={showConfirmPasswordTooltip}>
+                    <TooltipTrigger asChild>
+                      <PasswordInput
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        placeholder={
+                          isSubmitted &&
+                          errors.confirmPassword &&
+                          !registerData.confirmPassword
+                            ? errors.confirmPassword
+                            : "Confirm your password"
+                        }
+                        value={registerData.confirmPassword}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        showPassword={showConfirmPassword}
+                        setShowPassword={setShowConfirmPassword}
+                        error={isSubmitted && !!errors.confirmPassword}
+                        touched={
+                          touched.confirmPassword &&
+                          !!registerData.confirmPassword
+                        }
+                        isConfirmPassword={true}
+                      />
+                    </TooltipTrigger>
+                    {isSubmitted &&
                       errors.confirmPassword &&
-                      !registerData.confirmPassword
-                        ? errors.confirmPassword
-                        : "Confirm your password"
-                    }
-                    value={registerData.confirmPassword}
-                    onChange={handleInputChange}
-                    onInput={handleInput}
-                    showPassword={showConfirmPassword}
-                    setShowPassword={setShowConfirmPassword}
-                    error={isSubmitted && !!errors.confirmPassword}
-                    touched={
-                      touched.confirmPassword && !!registerData.confirmPassword
-                    }
-                  />
+                      registerData.confirmPassword &&
+                      errors.confirmPassword !==
+                        "This field cannot be empty." && (
+                        <TooltipContent side="bottom">
+                          <p className="text-red-500 text-xs">
+                            {errors.confirmPassword}
+                          </p>
+                        </TooltipContent>
+                      )}
+                  </Tooltip>
                 </motion.div>
                 <motion.div
                   variants={childVariants}

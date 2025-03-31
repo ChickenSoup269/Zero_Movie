@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -13,11 +14,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import OTPDialog from "./OTP-dialog"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import { useState, useEffect } from "react"
 
 interface ForgotPasswordDialogProps {
-  open: boolean // Thêm prop open để kiểm soát trạng thái dialog
+  open: boolean
   setOpenDialog: (value: boolean) => void
 }
 
@@ -26,12 +31,12 @@ const ForgotPasswordDialog = ({
   setOpenDialog,
 }: ForgotPasswordDialogProps) => {
   const [forgotEmail, setForgotEmail] = useState("")
+  const [otp, setOtp] = useState("")
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [emailError, setEmailError] = useState("")
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
-  const [openOTPDialog, setOpenOTPDialog] = useState(false)
+  const [isEmailValid, setIsEmailValid] = useState(false)
 
-  // Hàm kiểm tra email hợp lệ
   const validateEmail = () => {
     if (!forgotEmail) {
       setEmailError("This field cannot be empty.")
@@ -44,23 +49,21 @@ const ForgotPasswordDialog = ({
     return true
   }
 
-  // Xử lý khi email thay đổi
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const email = e.target.value
-    setForgotEmail(email)
+    setForgotEmail(e.target.value)
     if (isSubmitted) {
-      validateEmail()
+      const isValid = validateEmail()
+      setIsEmailValid(isValid)
     }
   }
 
-  // Xử lý sự kiện onInput để bắt autofill và copy-paste
   const handleInput = () => {
     if (isSubmitted) {
-      validateEmail()
+      const isValid = validateEmail()
+      setIsEmailValid(isValid)
     }
   }
 
-  // Hiển thị Tooltip khi có lỗi email không hợp lệ
   useEffect(() => {
     if (
       isSubmitted &&
@@ -82,14 +85,19 @@ const ForgotPasswordDialog = ({
     e.preventDefault()
     setIsSubmitted(true)
     const isValid = validateEmail()
-    if (isValid) {
-      setOpenOTPDialog(true)
-    }
+    setIsEmailValid(isValid)
   }
 
-  const handleOTPSubmit = (otp: string) => {
-    console.log("Forgot password email:", forgotEmail, "OTP:", otp)
-    setOpenDialog(false)
+  const handleOTPSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (otp.length === 6) {
+      console.log("Forgot password email:", forgotEmail, "OTP:", otp)
+      setOpenDialog(false)
+      setForgotEmail("")
+      setOtp("")
+      setIsEmailValid(false)
+      setIsSubmitted(false)
+    }
   }
 
   return (
@@ -99,7 +107,12 @@ const ForgotPasswordDialog = ({
           <DialogHeader>
             <DialogTitle className="text-black">Reset Password</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+          <form
+            onSubmit={
+              isEmailValid ? handleOTPSubmit : handleForgotPasswordSubmit
+            }
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="forgotEmail" className="text-black">
                 Email
@@ -124,6 +137,7 @@ const ForgotPasswordDialog = ({
                         ? "border-green-500"
                         : "border-gray-300"
                     } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
+                    disabled={isEmailValid}
                   />
                 </TooltipTrigger>
                 {isSubmitted &&
@@ -136,27 +150,40 @@ const ForgotPasswordDialog = ({
                   )}
               </Tooltip>
             </div>
+
+            {isEmailValid && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="space-y-2"
+              >
+                <Label htmlFor="otp" className="text-black">
+                  OTP
+                </Label>
+                <InputOTP id="otp" maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </motion.div>
+            )}
+
             <Button
               type="submit"
               className="w-full bg-black text-white hover:bg-gray-800"
+              disabled={isEmailValid && otp.length !== 6}
             >
-              Submit
+              {isEmailValid ? "Verify OTP" : "Submit"}
             </Button>
           </form>
         </DialogContent>
-        <OTPDialog
-          open={openOTPDialog}
-          setOpen={setOpenOTPDialog}
-          onSubmit={handleOTPSubmit}
-          title="Verify OTP for Password Reset"
-        />
       </Dialog>
-      <OTPDialog
-        open={openOTPDialog}
-        setOpen={setOpenOTPDialog}
-        onSubmit={handleOTPSubmit}
-        title="Verify OTP for Password Reset"
-      />
     </TooltipProvider>
   )
 }

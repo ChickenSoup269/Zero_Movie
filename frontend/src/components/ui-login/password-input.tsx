@@ -1,10 +1,9 @@
 import { motion } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
-import zxcvbn from "zxcvbn" // Import zxcvbn để kiểm tra độ an toàn mật khẩu
+import zxcvbn from "zxcvbn"
 import { useState, useEffect } from "react"
 
-// Variants cho animation của biểu tượng
 const iconVariants = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: {
@@ -29,6 +28,8 @@ interface PasswordInputProps {
   setShowPassword: (value: boolean) => void
   error?: boolean
   touched?: boolean
+  isConfirmPassword?: boolean
+  disableStrengthCheck?: boolean // Thêm prop để tắt kiểm tra độ mạnh
 }
 
 const PasswordInput = ({
@@ -42,19 +43,19 @@ const PasswordInput = ({
   setShowPassword,
   error = false,
   touched = false,
+  isConfirmPassword = false,
+  disableStrengthCheck = false, // Mặc định là false
 }: PasswordInputProps) => {
   const [passwordStrength, setPasswordStrength] = useState<{
     score: number
     feedback: string[]
   }>({ score: 0, feedback: [] })
 
-  // Kiểm tra độ mạnh của mật khẩu và các tiêu chí cụ thể
   useEffect(() => {
-    if (value) {
+    if (value && !isConfirmPassword && !disableStrengthCheck) {
       const result = zxcvbn(value)
       const feedback: string[] = []
 
-      // Kiểm tra các tiêu chí cụ thể
       if (value.length < 8) {
         feedback.push("Password must be at least 8 characters.")
       }
@@ -71,7 +72,6 @@ const PasswordInput = ({
         feedback.push("Password must contain at least one special character.")
       }
 
-      // Nếu không có feedback từ các tiêu chí trên, sử dụng feedback từ zxcvbn
       if (feedback.length === 0 && result.score < 3) {
         feedback.push(
           result.feedback.warning ||
@@ -83,9 +83,8 @@ const PasswordInput = ({
     } else {
       setPasswordStrength({ score: 0, feedback: [] })
     }
-  }, [value])
+  }, [value, isConfirmPassword, disableStrengthCheck])
 
-  // Nhãn độ mạnh của mật khẩu
   const strengthLabel = ["Very Weak", "Weak", "Fair", "Good", "Strong"][
     passwordStrength.score
   ]
@@ -137,8 +136,7 @@ const PasswordInput = ({
         </button>
       </div>
 
-      {/* Hiển thị độ mạnh của mật khẩu */}
-      {value && (
+      {!isConfirmPassword && !disableStrengthCheck && value && (
         <div className="space-y-1">
           <div className="text-sm text-gray-500">
             Password Strength:{" "}
@@ -150,14 +148,12 @@ const PasswordInput = ({
               {strengthLabel}
             </span>
           </div>
-          {/* Thanh hiển thị độ mạnh */}
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full ${strengthColor}`}
               style={{ width: `${(passwordStrength.score + 1) * 20}%` }}
             />
           </div>
-          {/* Hiển thị feedback chi tiết */}
           {passwordStrength.feedback.length > 0 && (
             <ul className="text-xs text-red-500 list-disc list-inside">
               {passwordStrength.feedback.map((item, index) => (

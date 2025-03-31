@@ -33,6 +33,7 @@ interface LoginFormProps {
   handleLoginSubmit: (e: React.FormEvent) => void
   showLoginPassword: boolean
   setShowLoginPassword: (value: boolean) => void
+  openDialog: boolean
   setOpenDialog: (value: boolean) => void
 }
 
@@ -42,6 +43,7 @@ const LoginForm = ({
   handleLoginSubmit,
   showLoginPassword,
   setShowLoginPassword,
+  openDialog,
   setOpenDialog,
 }: LoginFormProps) => {
   return (
@@ -56,7 +58,9 @@ const LoginForm = ({
       <form onSubmit={handleLoginSubmit}>
         <motion.div variants={childVariants}>
           <CardHeader>
-            <CardTitle className="text-black">Sign In</CardTitle>
+            <CardTitle className="text-black text-center text-xl">
+              Sign In
+            </CardTitle>
             <CardDescription className="text-gray-600">
               Enter your credentials to access your account
             </CardDescription>
@@ -68,7 +72,7 @@ const LoginForm = ({
             visible: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.2, // Các phần tử con xuất hiện cách nhau 0.2s
+                staggerChildren: 0.2,
               },
             },
           }}
@@ -92,6 +96,9 @@ const LoginForm = ({
               />
             </motion.div>
             <motion.div variants={childVariants}>
+              <Label htmlFor="email" className="text-black">
+                Password
+              </Label>
               <PasswordInput
                 id="password"
                 name="password"
@@ -100,13 +107,20 @@ const LoginForm = ({
                 onChange={handleLoginChange}
                 showPassword={showLoginPassword}
                 setShowPassword={setShowLoginPassword}
+                disableStrengthCheck={true} // Tắt kiểm tra độ mạnh
               />
             </motion.div>
             <motion.div variants={childVariants} className="text-right">
-              <ForgotPasswordDialog
-                setOpenDialog={setOpenDialog}
-                open={false}
-              />
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setOpenDialog(true)
+                }}
+                className="text-sm text-black hover:underline"
+              >
+                Forgot Password?
+              </a>
             </motion.div>
           </CardContent>
         </motion.div>
@@ -121,6 +135,7 @@ const LoginForm = ({
           </CardFooter>
         </motion.div>
       </form>
+      <ForgotPasswordDialog open={openDialog} setOpenDialog={setOpenDialog} />
     </motion.div>
   )
 }

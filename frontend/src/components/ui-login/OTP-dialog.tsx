@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/input-otp"
 import { useState } from "react"
 
-// Variants cho animation của ô OTP
 const otpVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -41,7 +40,7 @@ const OTPDialog = ({ open, setOpen, onSubmit, title }: OTPDialogProps) => {
     e.preventDefault()
     onSubmit(otp)
     setOpen(false)
-    setOtp("") // Reset OTP sau khi submit
+    setOtp("")
   }
 
   return (
@@ -74,7 +73,7 @@ const OTPDialog = ({ open, setOpen, onSubmit, title }: OTPDialogProps) => {
           <Button
             type="submit"
             className="w-full bg-black text-white hover:bg-gray-800"
-            disabled={otp.length !== 6} // Chỉ cho phép submit khi OTP đủ 6 ký tự
+            disabled={otp.length !== 6}
           >
             Verify OTP
           </Button>
