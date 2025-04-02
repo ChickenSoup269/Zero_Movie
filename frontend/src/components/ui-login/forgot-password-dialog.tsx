@@ -23,7 +23,8 @@ import {
 import { useState, useEffect } from "react"
 import emailjs from "@emailjs/browser"
 import { EMAILJS_PUBLIC_KEY } from "@/api/key"
-import PasswordInput from "./password-input" // Import component PasswordInput
+import PasswordInput from "./password-input"
+import { useToast } from "@/hooks/use-toast" // Import useToast từ Shadcn/UI
 
 interface ForgotPasswordDialogProps {
   open: boolean
@@ -41,12 +42,13 @@ const ForgotPasswordDialog = ({
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
   const [isEmailValid, setIsEmailValid] = useState(false)
   const [generatedOtp, setGeneratedOtp] = useState("")
-  const [showResetForm, setShowResetForm] = useState(false) // State để hiển thị form reset password
+  const [showResetForm, setShowResetForm] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState("")
+  const { toast } = useToast() // Sử dụng hook useToast
 
   useEffect(() => {
     console.log("Initializing EmailJS with Public Key:", EMAILJS_PUBLIC_KEY)
@@ -150,11 +152,17 @@ const ForgotPasswordDialog = ({
     e.preventDefault()
     if (otp.length === 6 && otp === generatedOtp) {
       console.log("OTP verified successfully for email:", forgotEmail)
-      setShowResetForm(true) // Hiển thị form reset password thay vì đóng dialog
+      setShowResetForm(true)
     } else {
       console.log("Invalid OTP")
       setOtp("")
-      alert("Invalid OTP. Please try again.")
+      // Hiển thị toast khi OTP sai
+      toast({
+        title: "Error",
+        description: "Invalid OTP. Please try again.",
+        variant: "destructive", // Màu đỏ để báo lỗi
+        duration: 3000, // Hiển thị trong 3 giây
+      })
     }
   }
 
@@ -170,8 +178,16 @@ const ForgotPasswordDialog = ({
     }
     setPasswordError("")
     console.log("New password set successfully:", newPassword)
-    // Ở đây bạn có thể gọi API để cập nhật mật khẩu mới
-    setOpenDialog(false) // Đóng dialog sau khi reset thành công
+
+    // Hiển thị toast thông báo thành công
+    toast({
+      title: "Success!",
+      description: "Your password has been reset successfully.",
+      variant: "default",
+      duration: 3000,
+    })
+
+    setOpenDialog(false)
     setForgotEmail("")
     setOtp("")
     setIsEmailValid(false)
@@ -302,7 +318,7 @@ const ForgotPasswordDialog = ({
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     showPassword={showConfirmPassword}
                     setShowPassword={setShowConfirmPassword}
-                    isConfirmPassword={true} // Tắt kiểm tra độ mạnh cho confirm password
+                    isConfirmPassword={true}
                   />
                 </div>
                 {passwordError && (
