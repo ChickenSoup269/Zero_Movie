@@ -24,7 +24,8 @@ import { useState, useEffect } from "react"
 import emailjs from "@emailjs/browser"
 import { EMAILJS_PUBLIC_KEY } from "@/api/key"
 import PasswordInput from "./password-input"
-import { useToast } from "@/hooks/use-toast" // Import useToast từ Shadcn/UI
+import { SuccessToast } from "@/components/ui-notification/success-toast"
+import { ErrorToast } from "@/components/ui-notification/error-toast"
 
 interface ForgotPasswordDialogProps {
   open: boolean
@@ -48,12 +49,19 @@ const ForgotPasswordDialog = ({
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState("")
-  const { toast } = useToast() // Sử dụng hook useToast
 
-  useEffect(() => {
-    console.log("Initializing EmailJS with Public Key:", EMAILJS_PUBLIC_KEY)
-    emailjs.init(EMAILJS_PUBLIC_KEY)
-  }, [])
+  // Khởi tạo SuccessToast và ErrorToast
+  const successToast = SuccessToast({
+    title: "Success!",
+    description: "Your password has been reset successfully.",
+    duration: 3000,
+  })
+
+  const errorToast = ErrorToast({
+    title: "Error",
+    description: "Invalid OTP. Please try again.",
+    duration: 3000,
+  })
 
   const generateOTP = () => {
     const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -156,13 +164,7 @@ const ForgotPasswordDialog = ({
     } else {
       console.log("Invalid OTP")
       setOtp("")
-      // Hiển thị toast khi OTP sai
-      toast({
-        title: "Error",
-        description: "Invalid OTP. Please try again.",
-        variant: "destructive", // Màu đỏ để báo lỗi
-        duration: 3000, // Hiển thị trong 3 giây
-      })
+      errorToast.showToast() // Gọi ErrorToast khi OTP sai
     }
   }
 
@@ -179,13 +181,7 @@ const ForgotPasswordDialog = ({
     setPasswordError("")
     console.log("New password set successfully:", newPassword)
 
-    // Hiển thị toast thông báo thành công
-    toast({
-      title: "Success!",
-      description: "Your password has been reset successfully.",
-      variant: "default",
-      duration: 3000,
-    })
+    successToast.showToast() // Gọi SuccessToast khi reset thành công
 
     setOpenDialog(false)
     setForgotEmail("")

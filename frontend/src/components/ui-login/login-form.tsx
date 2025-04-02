@@ -9,9 +9,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox từ Shadcn/UI
 import PasswordInput from "./password-input"
 import ForgotPasswordDialog from "./forgot-password-dialog"
 import Image from "next/image"
+import { useState, useEffect } from "react"
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -47,6 +49,37 @@ const LoginForm = ({
   openDialog,
   setOpenDialog,
 }: LoginFormProps) => {
+  const [rememberMe, setRememberMe] = useState(false) // State cho checkbox "Remember Me"
+
+  // Load thông tin từ localStorage khi component mount
+  useEffect(() => {
+    const savedLogin = localStorage.getItem("rememberedLogin")
+    if (savedLogin) {
+      const { email, password } = JSON.parse(savedLogin)
+      handleLoginChange({
+        target: { name: "email", value: email },
+      } as React.ChangeEvent<HTMLInputElement>)
+      handleLoginChange({
+        target: { name: "password", value: password },
+      } as React.ChangeEvent<HTMLInputElement>)
+      setRememberMe(true)
+    }
+  }, [handleLoginChange])
+
+  // Xử lý submit form và lưu thông tin nếu "Remember Me" được chọn
+  const handleSubmitWithRemember = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (rememberMe) {
+      localStorage.setItem(
+        "rememberedLogin",
+        JSON.stringify({ email: loginData.email, password: loginData.password })
+      )
+    } else {
+      localStorage.removeItem("rememberedLogin")
+    }
+    handleLoginSubmit(e) // Gọi hàm submit gốc
+  }
+
   return (
     <motion.div
       variants={tabVariantsLeft}
@@ -56,23 +89,16 @@ const LoginForm = ({
       transition={{ duration: 0.5 }}
       layout
     >
-      <form onSubmit={handleLoginSubmit}>
+      <form onSubmit={handleSubmitWithRemember}>
         <motion.div variants={childVariants}>
           <CardHeader>
-            {/* <Image
-                          src="/logo.png" // Đường dẫn đến hình ảnh trong thư mục public
-                          alt="Sign In Illustration"
-                          width={150} // Chiều rộng thực tế của hình ảnh (px)
-                          height={120} // Chiều cao thực tế của hình ảnh (px)
-                          className="mt-4 mx-auto" // Căn giữa và thêm khoảng cách trên bằng Tailwind
-                        /> */}
             <CardTitle className="text-black text-center text-xl">
               <Image
-                src="/logo2.png" // Đường dẫn đến hình ảnh trong thư mục public
+                src="/logo2.png"
                 alt="Sign In Illustration"
-                width={50} // Chiều rộng thực tế của hình ảnh (px)
-                height={50} // Chiều cao thực tế của hình ảnh (px)
-                className="mt-4 mx-auto" // Căn giữa và thêm khoảng cách trên bằng Tailwind
+                width={50}
+                height={50}
+                className="mt-4 mx-auto"
               />{" "}
               Sign In
             </CardTitle>
@@ -111,7 +137,7 @@ const LoginForm = ({
               />
             </motion.div>
             <motion.div variants={childVariants}>
-              <Label htmlFor="email" className="text-black">
+              <Label htmlFor="password" className="text-black">
                 Password
               </Label>
               <PasswordInput
@@ -122,8 +148,21 @@ const LoginForm = ({
                 onChange={handleLoginChange}
                 showPassword={showLoginPassword}
                 setShowPassword={setShowLoginPassword}
-                disableStrengthCheck={true} // Tắt kiểm tra độ mạnh
+                disableStrengthCheck={true}
               />
+            </motion.div>
+            <motion.div
+              variants={childVariants}
+              className="flex items-center space-x-2"
+            >
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label htmlFor="rememberMe" className="text-black text-sm">
+                Remember Me
+              </Label>
             </motion.div>
             <motion.div variants={childVariants} className="text-right">
               <a
@@ -141,7 +180,7 @@ const LoginForm = ({
         </motion.div>
         <motion.div variants={childVariants}>
           <CardFooter>
-            <Button type="submit" className="btn-signIU w-full text-white ">
+            <Button type="submit" className="btn-signIU w-full text-white">
               Sign In
             </Button>
           </CardFooter>
