@@ -1,6 +1,6 @@
 "use client"
 import { ReactNode, useEffect } from "react"
-import Navbar from "@/components/navbar"
+import Navbar from "@/components/ui-navbar/navbar"
 import Footer from "@/components/footer"
 
 export default function UserLayout({ children }: { children: ReactNode }) {
@@ -8,7 +8,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth", // Cuộn mượt mà
+      behavior: "smooth",
     })
   }, []) // Mảng dependency rỗng để chỉ chạy một lần khi component mount
 
