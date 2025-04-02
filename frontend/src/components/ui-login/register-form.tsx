@@ -251,8 +251,10 @@ const RegisterForm = ({
           <form onSubmit={handleSubmit} noValidate>
             <motion.div variants={childVariants}>
               <CardHeader>
-                <CardTitle className="text-black">Sign Up</CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardTitle className="text-black text-center text-xl">
+                  Sign Up
+                </CardTitle>
+                <CardDescription className="text-gray-600 text-center">
                   Create a new account to get started
                 </CardDescription>
               </CardHeader>
@@ -458,7 +460,7 @@ const RegisterForm = ({
               <CardFooter>
                 <Button
                   type="submit"
-                  className="w-full bg-black text-white hover:bg-gray-800"
+                  className="btn-signIU w-full text-white hover:bg-gray-800"
                 >
                   Sign Up
                 </Button>

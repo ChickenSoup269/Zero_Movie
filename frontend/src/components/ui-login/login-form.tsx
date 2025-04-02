@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import PasswordInput from "./password-input"
 import ForgotPasswordDialog from "./forgot-password-dialog"
+import Image from "next/image"
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -58,10 +59,24 @@ const LoginForm = ({
       <form onSubmit={handleLoginSubmit}>
         <motion.div variants={childVariants}>
           <CardHeader>
+            {/* <Image
+                          src="/logo.png" // Đường dẫn đến hình ảnh trong thư mục public
+                          alt="Sign In Illustration"
+                          width={150} // Chiều rộng thực tế của hình ảnh (px)
+                          height={120} // Chiều cao thực tế của hình ảnh (px)
+                          className="mt-4 mx-auto" // Căn giữa và thêm khoảng cách trên bằng Tailwind
+                        /> */}
             <CardTitle className="text-black text-center text-xl">
+              <Image
+                src="/logo2.png" // Đường dẫn đến hình ảnh trong thư mục public
+                alt="Sign In Illustration"
+                width={50} // Chiều rộng thực tế của hình ảnh (px)
+                height={50} // Chiều cao thực tế của hình ảnh (px)
+                className="mt-4 mx-auto" // Căn giữa và thêm khoảng cách trên bằng Tailwind
+              />{" "}
               Sign In
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-600 text-center">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
@@ -126,10 +141,7 @@ const LoginForm = ({
         </motion.div>
         <motion.div variants={childVariants}>
           <CardFooter>
-            <Button
-              type="submit"
-              className="w-full bg-black text-white hover:bg-gray-800"
-            >
+            <Button type="submit" className="btn-signIU w-full text-white ">
               Sign In
             </Button>
           </CardFooter>
