@@ -31,16 +31,31 @@ interface OTPDialogProps {
   setOpen: (value: boolean) => void
   onSubmit: (otp: string) => void
   title: string
+  countdown: number // Nhận countdown từ parent
+  onResend: () => void // Nhận hàm gửi lại OTP
 }
 
-const OTPDialog = ({ open, setOpen, onSubmit, title }: OTPDialogProps) => {
+const OTPDialog = ({
+  open,
+  setOpen,
+  onSubmit,
+  title,
+  countdown,
+  onResend,
+}: OTPDialogProps) => {
   const [otp, setOtp] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit(otp)
-    setOpen(false)
-    setOtp("")
+    if (countdown > 0) {
+      setOtp("") // Chỉ reset OTP khi chưa hết thời gian, không đóng dialog
+    }
+  }
+
+  const handleResend = () => {
+    onResend()
+    setOtp("") // Reset OTP khi gửi lại
   }
 
   return (
@@ -69,11 +84,24 @@ const OTPDialog = ({ open, setOpen, onSubmit, title }: OTPDialogProps) => {
                 <InputOTPSlot index={5} />
               </InputOTPGroup>
             </InputOTP>
+            <div className="text-sm text-gray-600">
+              Time remaining: {Math.floor(countdown / 60)}:
+              {(countdown % 60).toString().padStart(2, "0")}
+            </div>
+            {countdown === 0 && (
+              <Button
+                type="button"
+                onClick={handleResend}
+                className="w-full bg-gray-500 text-white hover:bg-gray-600"
+              >
+                Resend OTP
+              </Button>
+            )}
           </motion.div>
           <Button
             type="submit"
             className="w-full bg-black text-white hover:bg-gray-800"
-            disabled={otp.length !== 6}
+            disabled={otp.length !== 6 || countdown === 0}
           >
             Verify OTP
           </Button>

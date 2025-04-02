@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useToast } from "@/hooks/use-toast"
 
 interface ErrorToastProps {
@@ -13,7 +14,7 @@ export const ErrorToast = ({
 }: ErrorToastProps) => {
   const { toast } = useToast()
 
-  const showToast = () => {
+  const showToast = (p0: { description: string }) => {
     toast({
       title,
       description,

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from "framer-motion"
 import {
@@ -49,6 +50,8 @@ const ForgotPasswordDialog = ({
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState("")
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null) // Thời gian hết hạn OTP
+  const [countdown, setCountdown] = useState(90) // 1 phút 30 giây
 
   // Khởi tạo SuccessToast và ErrorToast
   const successToast = SuccessToast({
@@ -57,11 +60,41 @@ const ForgotPasswordDialog = ({
     duration: 3000,
   })
 
+  const successOtpSentToast = SuccessToast({
+    title: "OTP Sent!",
+    description: "Check your email for the OTP.",
+    duration: 3000,
+  })
+
   const errorToast = ErrorToast({
     title: "Error",
     description: "Invalid OTP. Please try again.",
     duration: 3000,
   })
+
+  const errorEmailToast = ErrorToast({
+    title: "Error",
+    description: "Failed to send OTP. Please try again.",
+    duration: 3000,
+  })
+
+  // Bộ đếm ngược
+  useEffect(() => {
+    if (isEmailValid && otpExpiry) {
+      const interval = setInterval(() => {
+        const timeLeft = Math.max(
+          0,
+          Math.floor((otpExpiry - Date.now()) / 1000)
+        )
+        setCountdown(timeLeft)
+        if (timeLeft === 0) {
+          setGeneratedOtp("") // Vô hiệu hóa OTP khi hết thời gian
+          clearInterval(interval)
+        }
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [isEmailValid, otpExpiry])
 
   const generateOTP = () => {
     const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -137,9 +170,16 @@ const ForgotPasswordDialog = ({
         response.status,
         response.text
       )
+      successOtpSentToast.showToast() // Thông báo gửi OTP thành công
+      setOtpExpiry(Date.now() + 90 * 1000) // 90 giây từ bây giờ
+      setCountdown(90) // Reset countdown
     } catch (error: any) {
       console.error("Failed to send OTP email:", error.text || error)
+      errorEmailToast.showToast({
+        description: "Failed to send OTP. Please try again.",
+      }) // Thông báo lỗi gửi email
       setEmailError("Failed to send OTP. Please try again.")
+      throw error
     }
   }
 
@@ -158,13 +198,19 @@ const ForgotPasswordDialog = ({
 
   const handleOTPSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (countdown === 0) {
+      errorToast.showToast({
+        description: "OTP has expired. Please request a new one.",
+      })
+      return
+    }
     if (otp.length === 6 && otp === generatedOtp) {
       console.log("OTP verified successfully for email:", forgotEmail)
       setShowResetForm(true)
     } else {
       console.log("Invalid OTP")
       setOtp("")
-      errorToast.showToast() // Gọi ErrorToast khi OTP sai
+      errorToast.showToast({ description: "Invalid OTP. Please try again." }) // Thông báo OTP sai
     }
   }
 
@@ -181,7 +227,7 @@ const ForgotPasswordDialog = ({
     setPasswordError("")
     console.log("New password set successfully:", newPassword)
 
-    successToast.showToast() // Gọi SuccessToast khi reset thành công
+    successToast.showToast() // Thông báo reset thành công
 
     setOpenDialog(false)
     setForgotEmail("")
@@ -192,6 +238,16 @@ const ForgotPasswordDialog = ({
     setShowResetForm(false)
     setNewPassword("")
     setConfirmPassword("")
+  }
+
+  const handleResendOTP = async () => {
+    const newOtp = generateOTP()
+    setGeneratedOtp(newOtp)
+    try {
+      await sendOtpEmail(forgotEmail, newOtp)
+    } catch (error) {
+      // Lỗi đã được xử lý bằng toast trong sendOtpEmail
+    }
   }
 
   return (
@@ -278,6 +334,19 @@ const ForgotPasswordDialog = ({
                         <InputOTPSlot index={5} />
                       </InputOTPGroup>
                     </InputOTP>
+                    <div className="text-sm text-gray-600">
+                      Time remaining: {Math.floor(countdown / 60)}:
+                      {(countdown % 60).toString().padStart(2, "0")}
+                    </div>
+                    {countdown === 0 && (
+                      <Button
+                        type="button"
+                        onClick={handleResendOTP}
+                        className="w-full bg-gray-500 text-white hover:bg-gray-600"
+                      >
+                        Resend OTP
+                      </Button>
+                    )}
                   </motion.div>
                 )}
               </>
