@@ -8,7 +8,7 @@ import { moviesData } from "@/data/moviesData"
 import { theatersData } from "@/data/theatersData"
 import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import SeatSelection from "@/components/seat-selection-cinema"
+import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>

@@ -1,9 +1,9 @@
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, SetStateAction } from "react"
-import { format, addDays, subDays, isSameDay } from "date-fns"
+import { format, addDays, subDays, isSameDay, startOfWeek } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import Ticket from "./ui-details-movies/ticket"
+import Ticket from "./ticket"
 
 interface Seat {
   row: string
@@ -44,12 +44,16 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([])
   const [ticketCount, setTicketCount] = useState(0)
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined | null>(
+    undefined
+  )
   const [ticketId, setTicketId] = useState<string>("")
   const [selectedTime, setSelectedTime] = useState<string>("18:00")
   const [selectedType, setSelectedType] = useState<string>("2D")
   const [selectedRoom, setSelectedRoom] = useState<string>("C1")
   const [selectedTheater, setSelectedTheater] = useState<Theater>(theaters[0])
+  // Thêm state direction
+  const [direction, setDirection] = useState(1)
 
   const timeOptions = ["18:00", "20:00", "22:00"]
   const typeOptions = ["2D", "3D", "IMAX"]
@@ -128,8 +132,8 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
 
     // Kiểm tra giới hạn 6 ghế
-    if (selectedSeats.length + seatsToSelect > 6) {
-      alert("Bạn chỉ có thể chọn tối đa 6 ghế!")
+    if (selectedSeats.length + seatsToSelect > 8) {
+      alert("You can only select up to 8 seats!")
       return
     }
 
@@ -182,14 +186,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const getWeekDates = () => {
     const dates = []
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today) // Luôn bắt đầu từ ngày hôm nay
-      date.setDate(today.getDate() + i) // Tăng dần từ ngày hôm nay
+      const date = new Date(currentWeekStart)
+      date.setDate(currentWeekStart.getDate() + i)
 
       const day = date.getDate().toString().padStart(2, "0")
       const month = months[date.getMonth()]
       const dayOfWeek = daysOfWeek[date.getDay()]
       const isToday = isSameDay(date, today)
-      const isSunday = date.getDay() === 0 // Chủ nhật là ngày 0
+      const isSunday = date.getDay() === 0
       const isSelected = selectedDate && isSameDay(date, selectedDate)
       dates.push({ day, month, dayOfWeek, isToday, isSunday, isSelected, date })
     }
@@ -199,125 +203,57 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const weekDates = getWeekDates()
 
   const handlePrevWeek = () => {
-    // Không cho phép quay lại tuần trước (vì không hiển thị ngày đã qua)
+    const newStart = subDays(currentWeekStart, 7)
+    if (newStart >= todayStartOfWeek) {
+      // So sánh với ngày đầu tuần của hôm nay
+      setDirection(-1)
+      setCurrentWeekStart(newStart)
+    }
   }
-
   const handleNextWeek = () => {
     const newStart = addDays(currentWeekStart, 7)
+    setDirection(1)
     setCurrentWeekStart(newStart)
-    setSelectedDate(undefined) // Reset ngày chọn khi chuyển tuần
+    setSelectedDate(null)
   }
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    // Không cần điều chỉnh currentWeekStart vì luôn hiển thị từ today
+  }
+  const todayStartOfWeek = startOfWeek(today, { weekStartsOn: 1 })
+
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (date && date >= today) {
+      setSelectedDate(date)
+      // Tính ngày đầu tuần (Thứ Hai) của ngày được chọn
+      const newWeekStart = startOfWeek(date, { weekStartsOn: 1 }) // Bắt đầu từ Thứ Hai
+      if (newWeekStart < today) {
+        setCurrentWeekStart(today) // Không cho phép trước ngày hôm nay
+      } else {
+        setDirection(1) // Animation như khi nhấn Next
+        setCurrentWeekStart(newWeekStart)
+      }
+    }
   }
 
-  // Phần JSX cho lịch
-  const renderDatePicker = () => (
-    <div className="flex gap-2 items-center">
-      <div className="text-gray-400">Date:</div>
-      <button
-        onClick={handlePrevWeek}
-        className="text-gray-400 hover:text-white"
-        disabled // Vô hiệu hóa nút Prev vì không hiển thị ngày đã qua
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
-      <div className="flex gap-1">
-        {weekDates.map((date, index) => (
-          <motion.button
-            key={index}
-            onClick={() => handleDateClick(date.date)}
-            className={`px-3 py-2 rounded-full text-sm font-medium flex flex-col items-center justify-center ${
-              date.isSelected
-                ? "bg-[#4599e3] text-white"
-                : date.isToday
-                ? "bg-[#4599e3] text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: date.isSelected || date.isToday ? 1.1 : 1,
-            }}
-            transition={{
-              duration: 0.3,
-              ease: "easeOut",
-              delay: index * 0.05,
-            }}
-            whileHover={{ scale: 1.15 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="text-xs">{date.month}</span>
-            <span className="text-base font-bold">
-              {date.isToday && !date.isSelected ? "Today" : date.day}
-            </span>
-            <span className="text-xs">{date.dayOfWeek}</span>
-          </motion.button>
-        ))}
-      </div>
-      <button
-        onClick={handleNextWeek}
-        className="text-gray-400 hover:text-white"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="ml-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
-          >
-            <CalendarIcon className="w-4 h-4 mr-2" />
-            {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick a date"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
-          <Calendar
-            mode="single"
-            selected={selectedDate || undefined}
-            onSelect={(date) => {
-              if (date && date >= today) {
-                // Chỉ cho phép chọn từ hôm nay trở đi
-                setSelectedDate(date)
-              }
-            }}
-            disabled={(date) => date < today} // Vô hiệu hóa các ngày trước hôm nay
-            initialFocus
-            className="bg-gray-800 text-white border-gray-700"
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
-  )
+  // Variants cho animation "từ trên xuống, từ trái sang phải như lượn sóng"
+  const variants = {
+    enter: {
+      y: -50,
+      opacity: 0,
+      position: "absolute",
+    },
+    center: {
+      y: 0,
+      opacity: 1,
+      position: "relative",
+    },
+    exit: {
+      y: 0,
+      opacity: 0,
+      position: "absolute",
+    },
+  }
 
   // hàm chọn ghế hover select
   const handleMouseEnter = (seat: Seat) => {
@@ -360,8 +296,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           <div className="text-gray-400">Date:</div>
           <button
             onClick={handlePrevWeek}
-            className="text-gray-400 hover:text-white"
-            disabled // Vô hiệu hóa nút Prev vì không hiển thị ngày đã qua
+            className={`text-orange-500 hover:text-orange-400 ${
+              currentWeekStart <= todayStartOfWeek
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
+            disabled={currentWeekStart <= todayStartOfWeek}
           >
             <svg
               className="w-4 h-4"
@@ -378,42 +318,61 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               />
             </svg>
           </button>
-          <div className="flex gap-1">
-            {weekDates.map((date, index) => (
-              <motion.button
-                key={index}
-                onClick={() => handleDateClick(date.date)}
-                className={`px-3 py-4 rounded-xl text-sm font-medium flex flex-col items-center justify-center  ${
-                  date.isSelected
-                    ? "bg-[#4599e3] text-white" // Ngày được chọn: nền xanh, chữ trắng
-                    : date.isToday
-                    ? "border-2 border-dotted border-[#4599e3] text-[#4599e3] bg-white" // Hôm nay: border chấm, text xanh, nền xám
-                    : date.isSunday
-                    ? "border-2 border-red-500 text-red-500 bg-gray-700" // Chủ nhật: border đỏ, text đỏ
-                    : "bg-gray-700 text-white hover:bg-blue-400 duration-300" // Các ngày khác
-                }`}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: date.isSelected || date.isToday ? 1 : 0.9,
-                }}
+          <div className="flex gap-1 overflow-hidden relative min-h-[80px]">
+            {" "}
+            {/* Thêm relative và min-height */}
+            <AnimatePresence initial={false} custom={direction}>
+              <motion.div
+                key={currentWeekStart.toISOString()}
+                className="flex gap-1"
+                custom={direction > 0 ? "enter" : "exit"}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                variants={variants} // lỗi lmao khỏi fix báo chơi chơi
                 transition={{
-                  duration: 0.3,
-                  ease: "easeOut",
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
+                  staggerChildren: 0.05,
                 }}
-                whileHover={{ scale: 0.85 }}
-                whileTap={{ scale: 0.95 }}
               >
-                <span className="text-xs">{date.month}</span>
-                <span className="text-base font-bold">{date.day}</span>
-                <span className="text-xs">{date.dayOfWeek}</span>
-              </motion.button>
-            ))}
+                {weekDates.map((date, index) => (
+                  <motion.button
+                    key={index}
+                    onClick={() => handleDateClick(date.date)}
+                    variants={{
+                      enter: { opacity: 0, y: 20 },
+                      center: { opacity: 1, y: 0 },
+                      exit: { opacity: 0, y: -20 },
+                    }}
+                    className={`px-3 py-3 rounded-xl text-sm font-medium flex flex-col items-center justify-center ${
+                      date.isSelected
+                        ? "bg-[#4599e3] text-white"
+                        : date.isToday
+                        ? "bg-white text-[#4599e3]"
+                        : date.isSunday
+                        ? "text-red-500 bg-gray-700"
+                        : "bg-gray-700 text-white hover:bg-gray-600"
+                    }`}
+                    transition={{
+                      duration: 0.1,
+                      delay: index * 0.04,
+                    }}
+                    whileHover={{ scale: 0.95 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <span className="text-xs">{date.month}</span>
+                    <span className="text-base font-bold">{date.day}</span>
+                    <span className="text-xs">{date.dayOfWeek}</span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            </AnimatePresence>
           </div>
           <button
             onClick={handleNextWeek}
-            className="text-gray-400 hover:text-white"
+            className="text-orange-500 hover:text-orange-400"
           >
             <svg
               className="w-4 h-4"
@@ -445,14 +404,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
               <Calendar
                 mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  if (date && date >= today) {
-                    // Chỉ cho phép chọn từ hôm nay trở đi
-                    setSelectedDate(date)
-                  }
-                }}
-                disabled={(date) => date < today} // Vô hiệu hóa các ngày trước hôm nay
+                selected={selectedDate || undefined}
+                onSelect={handleCalendarSelect} // Dùng hàm mới để kích hoạt animation
+                disabled={(date) => date < today}
                 initialFocus
                 className="bg-gray-800 text-white border-gray-700"
               />
@@ -566,17 +520,19 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         <div className="w-1/3 flex flex-col gap-4">
           <h3 className="text-xl font-bold">Select Your Seats</h3>
           <p className="text-gray-400">
-            {ticketCount} / 6 Seats: {selectedSeats.join(", ")}
+            {ticketCount} / 8 Seats: {selectedSeats.join(", ")}
           </p>
-          {ticketCount >= 6 && (
-            <p className="text-red-500 text-sm">Đã đạt giới hạn 6 ghế!</p>
+          {ticketCount >= 8 && (
+            <p className="text-red-500 text-sm">
+              You can only select up to 8 seats!
+            </p>
           )}
           <Ticket
             theater={selectedTheater}
             movieInfo={movieInfo}
             selectedSeats={selectedSeats}
             selectedTime={selectedTime}
-            selectedDate={selectedDate}
+            selectedDate={selectedDate || undefined}
             ticketId={ticketId}
             selectedRoom={selectedRoom}
             selectedType={selectedType}
