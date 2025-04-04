@@ -1,6 +1,6 @@
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useEffect } from "react"
+import { useState, useEffect, SetStateAction } from "react"
 import { format, addDays, subDays, isSameDay } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { motion } from "framer-motion"
@@ -44,7 +44,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([])
   const [ticketCount, setTicketCount] = useState(0)
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [ticketId, setTicketId] = useState<string>("")
   const [selectedTime, setSelectedTime] = useState<string>("18:00")
   const [selectedType, setSelectedType] = useState<string>("2D")
@@ -95,13 +95,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       .map((_, i) => {
         const seatNumber = i + 1
         let isSold = false
-        // Logic ghế đã được mua (tương tự như trước, tùy theo phòng)
         if (selectedRoom === "C1") {
-          isSold = seatNumber <= 5 // Ví dụ: ghế 1-5 đã được mua
+          isSold = seatNumber <= 5
         } else if (selectedRoom === "C2") {
-          isSold = seatNumber >= 14 // Ví dụ: ghế 14-20 đã được mua
+          isSold = seatNumber >= 14
         } else if (selectedRoom === "C3") {
-          isSold = seatNumber >= 7 && seatNumber <= 12 // Ví dụ: ghế 7-12 đã được mua
+          isSold = seatNumber >= 7 && seatNumber <= 12
         }
         return {
           row,
@@ -183,17 +182,16 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const getWeekDates = () => {
     const dates = []
     for (let i = 0; i < 7; i++) {
-      const date = new Date(currentWeekStart)
-      date.setDate(currentWeekStart.getDate() + i)
+      const date = new Date(today) // Luôn bắt đầu từ ngày hôm nay
+      date.setDate(today.getDate() + i) // Tăng dần từ ngày hôm nay
+
       const day = date.getDate().toString().padStart(2, "0")
       const month = months[date.getMonth()]
       const dayOfWeek = daysOfWeek[date.getDay()]
-      const isToday =
-        date.getDate() === today.getDate() &&
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear()
+      const isToday = isSameDay(date, today)
+      const isSunday = date.getDay() === 0 // Chủ nhật là ngày 0
       const isSelected = selectedDate && isSameDay(date, selectedDate)
-      dates.push({ day, month, dayOfWeek, isToday, isSelected, date })
+      dates.push({ day, month, dayOfWeek, isToday, isSunday, isSelected, date })
     }
     return dates
   }
@@ -201,23 +199,125 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const weekDates = getWeekDates()
 
   const handlePrevWeek = () => {
-    const newStart = subDays(currentWeekStart, 7)
-    setCurrentWeekStart(newStart)
+    // Không cho phép quay lại tuần trước (vì không hiển thị ngày đã qua)
   }
 
   const handleNextWeek = () => {
     const newStart = addDays(currentWeekStart, 7)
     setCurrentWeekStart(newStart)
+    setSelectedDate(undefined) // Reset ngày chọn khi chuyển tuần
   }
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    // Tính ngày đầu tiên của tuần chứa ngày được chọn
-    const dayOfWeek = date.getDay() // 0 (Chủ nhật) đến 6 (Thứ Bảy)
-    const diffToMonday = (dayOfWeek + 6) % 7 // Tính khoảng cách từ ngày hiện tại đến Thứ Hai (tuần bắt đầu từ Thứ Hai)
-    const weekStart = subDays(date, diffToMonday) // Ngày đầu tiên của tuần
-    setCurrentWeekStart(weekStart)
+    // Không cần điều chỉnh currentWeekStart vì luôn hiển thị từ today
   }
+
+  // Phần JSX cho lịch
+  const renderDatePicker = () => (
+    <div className="flex gap-2 items-center">
+      <div className="text-gray-400">Date:</div>
+      <button
+        onClick={handlePrevWeek}
+        className="text-gray-400 hover:text-white"
+        disabled // Vô hiệu hóa nút Prev vì không hiển thị ngày đã qua
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+      <div className="flex gap-1">
+        {weekDates.map((date, index) => (
+          <motion.button
+            key={index}
+            onClick={() => handleDateClick(date.date)}
+            className={`px-3 py-2 rounded-full text-sm font-medium flex flex-col items-center justify-center ${
+              date.isSelected
+                ? "bg-[#4599e3] text-white"
+                : date.isToday
+                ? "bg-[#4599e3] text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: date.isSelected || date.isToday ? 1.1 : 1,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: "easeOut",
+              delay: index * 0.05,
+            }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="text-xs">{date.month}</span>
+            <span className="text-base font-bold">
+              {date.isToday && !date.isSelected ? "Today" : date.day}
+            </span>
+            <span className="text-xs">{date.dayOfWeek}</span>
+          </motion.button>
+        ))}
+      </div>
+      <button
+        onClick={handleNextWeek}
+        className="text-gray-400 hover:text-white"
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="ml-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+          >
+            <CalendarIcon className="w-4 h-4 mr-2" />
+            {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick a date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
+          <Calendar
+            mode="single"
+            selected={selectedDate || undefined}
+            onSelect={(date) => {
+              if (date && date >= today) {
+                // Chỉ cho phép chọn từ hôm nay trở đi
+                setSelectedDate(date)
+              }
+            }}
+            disabled={(date) => date < today} // Vô hiệu hóa các ngày trước hôm nay
+            initialFocus
+            className="bg-gray-800 text-white border-gray-700"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
 
   // hàm chọn ghế hover select
   const handleMouseEnter = (seat: Seat) => {
@@ -255,11 +355,13 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   return (
     <div className="mt-10 p-6 rounded-lg">
       <div className="flex flex-wrap gap-4 items-center mb-6">
+        {/* Phần chọn lịch */}
         <div className="flex gap-2 items-center">
           <div className="text-gray-400">Date:</div>
           <button
             onClick={handlePrevWeek}
             className="text-gray-400 hover:text-white"
+            disabled // Vô hiệu hóa nút Prev vì không hiển thị ngày đã qua
           >
             <svg
               className="w-4 h-4"
@@ -281,36 +383,35 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               <motion.button
                 key={index}
                 onClick={() => handleDateClick(date.date)}
-                className={`px-3 py-2 rounded-full text-sm font-medium flex flex-col items-center justify-center ${
+                className={`px-3 py-4 rounded-xl text-sm font-medium flex flex-col items-center justify-center ${
                   date.isSelected
-                    ? "bg-[#4599e3] text-white"
+                    ? "bg-[#4599e3] text-white" // Ngày được chọn: nền xanh, chữ trắng
                     : date.isToday
-                    ? "bg-[#4599e3] text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    ? "border-2 border-dotted border-[#4599e3] text-[#4599e3] bg-white" // Hôm nay: border chấm, text xanh, nền xám
+                    : date.isSunday
+                    ? "border-2 border-red-500 text-red-500 bg-gray-700" // Chủ nhật: border đỏ, text đỏ
+                    : "bg-gray-700 text-white hover:bg-gray-600" // Các ngày khác
                 }`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{
                   opacity: 1,
                   y: 0,
-                  scale: date.isSelected || date.isToday ? 1.1 : 1, // Phóng to khi được chọn hoặc là ngày hiện tại
+                  scale: date.isSelected || date.isToday ? 1.1 : 1,
                 }}
                 transition={{
                   duration: 0.3,
                   ease: "easeOut",
                   delay: index * 0.05,
-                }} // Delay để các button xuất hiện lần lượt
-                whileHover={{ scale: 1.15 }} // Hiệu ứng hover
-                whileTap={{ scale: 0.95 }} // Hiệu ứng nhấn
+                }}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <span className="text-xs">{date.month}</span>
-                <span className="text-base font-bold">
-                  {date.isToday && !date.isSelected ? "Today" : date.day}
-                </span>
+                <span className="text-base font-bold">{date.day}</span>
                 <span className="text-xs">{date.dayOfWeek}</span>
               </motion.button>
             ))}
           </div>
-
           <button
             onClick={handleNextWeek}
             className="text-gray-400 hover:text-white"
@@ -347,11 +448,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {
-                  if (date) {
+                  if (date && date >= today) {
+                    // Chỉ cho phép chọn từ hôm nay trở đi
                     setSelectedDate(date)
-                    setCurrentWeekStart(date)
                   }
                 }}
+                disabled={(date) => date < today} // Vô hiệu hóa các ngày trước hôm nay
                 initialFocus
                 className="bg-gray-800 text-white border-gray-700"
               />
@@ -491,7 +593,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             <motion.div
               className="absolute top-0 left-0 right-0 h-4 bg-transparent border-t-2 border-blue-400"
               style={{
-                borderRadius: "50% 50% 0 0", // Tạo cung tròn phía trên
+                borderRadius: "100% 100% 0 0", // Tạo cung tròn phía trên
               }}
               initial={{ opacity: 0, y: -20 }}
               animate={{
@@ -505,7 +607,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               }}
             />
             <div className="pt-6">SCREEN</div>{" "}
-            {/* Đẩy chữ "SCREEN" xuống để không bị che */}
           </div>
           {/* ghế cần fix hover gấp */}
           <div className="grid gap-2">
@@ -513,48 +614,49 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               <div key={row.row} className="flex items-center gap-2">
                 <span className="text-gray-400 w-5">{row.row}</span>
                 <div className="flex gap-1 flex-1 justify-center">
-                  {row.seats.map((seat) => {
+                  {row.seats.map((seat, seatIndex) => {
                     const seatId = `${seat.row}${seat.number}`
                     const isSelected = selectedSeats.includes(seatId)
                     const isHovered = hoveredSeats.includes(seatId)
                     const isAisle = seat.number === 5 || seat.number === 14
-                    if (isAisle) {
-                      return <div key={seatId} className="w-6 " />
-                    }
+
                     return (
-                      <motion.button
-                        key={seatId}
-                        onClick={() => handleSeatClick(seat)}
-                        onMouseEnter={() => handleMouseEnter(seat)}
-                        onMouseLeave={handleMouseLeave}
-                        className={`w-8 h-8 rounded-sm text-sm ${
-                          seat.type === "sold"
-                            ? "bg-gray-600 cursor-not-allowed"
-                            : isSelected
-                            ? "bg-blue-400 rounded-bl-[40%] rounded-br-[40%]"
-                            : "bg-white"
-                        }`}
-                        initial={{ scale: 1, opacity: 1, rotate: 0 }}
-                        animate={{
-                          scale: isSelected ? 1.1 : isHovered ? 1.15 : 1, // Scale khi hover hoặc chọn
-                          opacity: seat.type === "sold" ? 0.6 : 1,
-                          color: isSelected
-                            ? "black"
-                            : isHovered
-                            ? "white"
-                            : "black", // Text trắng khi hover, đen khi chọn
-                          backgroundColor: isHovered ? "#facc15" : undefined, // bg-yellow-400 khi hover
-                          boxShadow: isSelected
-                            ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
-                            : isHovered
-                            ? "0px 0px 10px rgba(255, 255, 255, 0.3)"
-                            : "0px 0px 0px rgba(0, 0, 0, 0)", // Box-shadow khi hover hoặc chọn
-                        }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        whileTap={{ scale: seat.type !== "sold" ? 0.95 : 1 }}
-                      >
-                        {seat.type === "sold" ? "" : seat.number}
-                      </motion.button>
+                      <>
+                        {/* Thêm khoảng cách lối đi trước ghế 5 và 14 */}
+                        {(seat.number === 6 || seat.number === 14) && (
+                          <div className="w-4" /> // Khoảng cách lối đi
+                        )}
+                        <motion.button
+                          key={seatId}
+                          onClick={() => handleSeatClick(seat)}
+                          onMouseEnter={() => handleMouseEnter(seat)}
+                          onMouseLeave={handleMouseLeave}
+                          className={`w-8 h-8 rounded-sm text-sm ${
+                            seat.type === "sold"
+                              ? "bg-gray-600 cursor-not-allowed"
+                              : isSelected
+                              ? "bg-blue-400 rounded-bl-[40%] rounded-br-[40%]"
+                              : "bg-white"
+                          }`}
+                          initial={{ scale: 1, opacity: 1, rotate: 0 }}
+                          animate={{
+                            scale: isSelected ? 1.1 : isHovered ? 0.95 : 1,
+                            opacity: seat.type === "sold" ? 0.6 : 1,
+                            color: isSelected ? "white" : "black",
+                            border: isHovered ? "2px solid #4599e3" : "none",
+                            backgroundColor: isSelected ? "#4599e3" : undefined,
+                            boxShadow: isSelected
+                              ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
+                              : isHovered
+                              ? "0px 0px 10px rgba(255, 255, 255, 0.3)"
+                              : "0px 0px 0px rgba(0, 0, 0, 0)",
+                          }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          whileTap={{ scale: seat.type !== "sold" ? 0.95 : 1 }}
+                        >
+                          {seat.type === "sold" ? "" : seat.number}
+                        </motion.button>
+                      </>
                     )
                   })}
                 </div>
@@ -562,9 +664,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               </div>
             ))}
           </div>
+
           <div className="flex justify-center gap-5 mt-5 text-sm text-gray-400">
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-gray-400 rounded-sm"></div>
+              <div className="w-4 h-4 bg-white rounded-sm"></div>
               <span>Available</span>
             </div>
             <div className="flex items-center gap-1">
