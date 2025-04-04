@@ -79,7 +79,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     } else if (selectedSeats.length === 0) {
       setTicketId("")
     }
-  }, [selectedSeats])
+  }, [selectedSeats, ticketId])
 
   useEffect(() => {
     setTicketCount(selectedSeats.length)
@@ -383,27 +383,26 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               <motion.button
                 key={index}
                 onClick={() => handleDateClick(date.date)}
-                className={`px-3 py-4 rounded-xl text-sm font-medium flex flex-col items-center justify-center ${
+                className={`px-3 py-4 rounded-xl text-sm font-medium flex flex-col items-center justify-center  ${
                   date.isSelected
                     ? "bg-[#4599e3] text-white" // Ngày được chọn: nền xanh, chữ trắng
                     : date.isToday
                     ? "border-2 border-dotted border-[#4599e3] text-[#4599e3] bg-white" // Hôm nay: border chấm, text xanh, nền xám
                     : date.isSunday
                     ? "border-2 border-red-500 text-red-500 bg-gray-700" // Chủ nhật: border đỏ, text đỏ
-                    : "bg-gray-700 text-white hover:bg-gray-600" // Các ngày khác
+                    : "bg-gray-700 text-white hover:bg-blue-400 duration-300" // Các ngày khác
                 }`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{
                   opacity: 1,
                   y: 0,
-                  scale: date.isSelected || date.isToday ? 1.1 : 1,
+                  scale: date.isSelected || date.isToday ? 1 : 0.9,
                 }}
                 transition={{
                   duration: 0.3,
                   ease: "easeOut",
-                  delay: index * 0.05,
                 }}
-                whileHover={{ scale: 1.15 }}
+                whileHover={{ scale: 0.85 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <span className="text-xs">{date.month}</span>
@@ -582,7 +581,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             selectedRoom={selectedRoom}
             selectedType={selectedType}
           />
-          <button className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors">
+          <button className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors">
             BUY
           </button>
         </div>
@@ -618,7 +617,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                     const seatId = `${seat.row}${seat.number}`
                     const isSelected = selectedSeats.includes(seatId)
                     const isHovered = hoveredSeats.includes(seatId)
-                    const isAisle = seat.number === 5 || seat.number === 14
 
                     return (
                       <>
@@ -633,7 +631,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                           onMouseLeave={handleMouseLeave}
                           className={`w-8 h-8 rounded-sm text-sm ${
                             seat.type === "sold"
-                              ? "bg-gray-600 cursor-not-allowed"
+                              ? "bg-[#ffffff] cursor-not-allowed"
                               : isSelected
                               ? "bg-blue-400 rounded-bl-[40%] rounded-br-[40%]"
                               : "bg-white"
@@ -644,7 +642,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                             opacity: seat.type === "sold" ? 0.6 : 1,
                             color: isSelected ? "white" : "black",
                             border: isHovered ? "2px solid #4599e3" : "none",
-                            backgroundColor: isSelected ? "#4599e3" : undefined,
+                            backgroundColor: isSelected ? "#4599e3" : "white",
                             boxShadow: isSelected
                               ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
                               : isHovered
