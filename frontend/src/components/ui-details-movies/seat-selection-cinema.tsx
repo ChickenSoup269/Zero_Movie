@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
 import Ticket from "./ticket"
-import DatePicker from "./date-picker" // Import component mới
+import DatePicker from "./date-picker"
+import SeatPicker from "./seat-picker"
 
 interface Seat {
   row: string
@@ -108,26 +108,37 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     if (seat.type === "sold") return
 
     const seatId = `${seat.row}${seat.number}`
-    let newSelectedSeats = [...selectedSeats]
+    const seatsToSelect =
+      selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
+    const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
+    const startIndex = seat.number - 1
 
+    // Nếu ghế đã được chọn, xóa nhóm ghế tương ứng
     if (selectedSeats.includes(seatId)) {
-      newSelectedSeats = newSelectedSeats.filter((id) => id !== seatId)
-      setSelectedSeats(newSelectedSeats)
+      let seatsToRemove: string[] = []
+      for (let i = 0; i < seatsToSelect; i++) {
+        const currentIndex = startIndex + i
+        if (currentIndex >= rowSeats.length) break
+
+        const currentSeat = rowSeats[currentIndex]
+        const currentSeatId = `${currentSeat.row}${currentSeat.number}`
+        if (selectedSeats.includes(currentSeatId)) {
+          seatsToRemove.push(currentSeatId)
+        }
+      }
+      setSelectedSeats((prev) =>
+        prev.filter((id) => !seatsToRemove.includes(id))
+      )
       return
     }
 
-    const seatsToSelect =
-      selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
-
+    // Nếu chưa chọn, thêm nhóm ghế mới
     if (selectedSeats.length + seatsToSelect > 8) {
       alert("You can only select up to 8 seats!")
       return
     }
 
-    const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
-    const startIndex = seat.number - 1
     let seatsToAdd: string[] = []
-
     for (let i = 0; i < seatsToSelect; i++) {
       const currentIndex = startIndex + i
       if (currentIndex >= rowSeats.length) break
@@ -188,7 +199,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           setSelectedDate={setSelectedDate}
         />
 
-        {/* time */}
         <div className="flex items-center gap-2">
           <label className="text-gray-400">Time:</label>
           <motion.select
@@ -316,92 +326,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           </button>
         </div>
 
-        <div className="w-2/3">
-          <div className="relative mb-5 text-center text-gray-400 text-xl font-bold">
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-4 bg-transparent border-t-2 border-blue-400"
-              style={{ borderRadius: "100% 100% 0 0" }}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                boxShadow: "0px 0px 15px rgba(69, 153, 227, 0.8)",
-              }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              whileHover={{ boxShadow: "0px 0px 20px rgba(69, 153, 227, 1)" }}
-            />
-            <div className="pt-6">SCREEN</div>
-          </div>
-
-          <div className="grid gap-2">
-            {seatsData.map((row, index) => (
-              <div key={row.row} className="flex items-center gap-2">
-                <span className="text-gray-400 w-5">{row.row}</span>
-                <div className="flex gap-1 flex-1 justify-center">
-                  {row.seats.map((seat, seatIndex) => {
-                    const seatId = `${seat.row}${seat.number}`
-                    const isSelected = selectedSeats.includes(seatId)
-                    const isHovered = hoveredSeats.includes(seatId)
-
-                    return (
-                      <>
-                        {(seat.number === 6 || seat.number === 14) && (
-                          <div className="w-4" />
-                        )}
-                        <motion.button
-                          key={seatId}
-                          onClick={() => handleSeatClick(seat)}
-                          onMouseEnter={() => handleMouseEnter(seat)}
-                          onMouseLeave={handleMouseLeave}
-                          className={`w-8 h-8 rounded-sm text-sm ${
-                            seat.type === "sold"
-                              ? "bg-[#ffffff] cursor-not-allowed"
-                              : isSelected
-                              ? "bg-blue-400 rounded-bl-[40%] rounded-br-[40%]"
-                              : "bg-white"
-                          }`}
-                          initial={{ scale: 1, opacity: 1, rotate: 0 }}
-                          animate={{
-                            scale: isSelected ? 1.1 : isHovered ? 0.95 : 1,
-                            opacity: seat.type === "sold" ? 0.6 : 1,
-                            color: isSelected ? "white" : "black",
-                            border: isHovered ? "2px solid #4599e3" : "none",
-                            backgroundColor: isSelected ? "#4599e3" : "white",
-                            boxShadow: isSelected
-                              ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
-                              : isHovered
-                              ? "0px 0px 10px rgba(255, 255, 255, 0.3)"
-                              : "0px 0px 0px rgba(0, 0, 0, 0)",
-                          }}
-                          transition={{ duration: 0.3, ease: "easeInOut" }}
-                          whileTap={{ scale: seat.type !== "sold" ? 0.95 : 1 }}
-                        >
-                          {seat.type === "sold" ? "" : seat.number}
-                        </motion.button>
-                      </>
-                    )
-                  })}
-                </div>
-                <span className="text-gray-400 w-5">{row.row}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-center gap-5 mt-5 text-sm text-gray-400">
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-white rounded-sm"></div>
-              <span>Available</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-blue-400 rounded-sm"></div>
-              <span>Selected</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
-              <span>Taken</span>
-            </div>
-          </div>
-        </div>
+        <SeatPicker
+          seatsData={seatsData}
+          selectedSeats={selectedSeats}
+          hoveredSeats={hoveredSeats}
+          handleSeatClick={handleSeatClick}
+          handleMouseEnter={handleMouseEnter}
+          handleMouseLeave={handleMouseLeave}
+        />
       </div>
     </div>
   )
