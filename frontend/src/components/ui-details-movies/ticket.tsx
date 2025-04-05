@@ -48,9 +48,9 @@ const Ticket = ({
   })
 
   return (
-    <div className="bg-white text-black flex overflow-hidden ticket-wrapper relative rounded-md">
+    <div className="bg-white text-black flex overflow-hidden ticket-wrapper relative rounded-md ">
       {/* Bên trái: Thông tin vé */}
-      <div className="w-2/3 p-4 border-r-2 border-dotted border-black">
+      <div className="w-2/3 p-4 border-r-2 border-dotted border-black shadow-lg shadow-blue-500/50">
         <h4 className="text-lg font-bold text-[#4599e3]">{theater.name}</h4>
         <p className="text-xs text-gray-500">{theater.address}</p>
         <div className="mt-2 flex justify-between">
@@ -88,7 +88,7 @@ const Ticket = ({
       </div>
 
       {/* Bên phải: ROOM, TICKET ID, và QR code */}
-      <div className="w-1/3 p-4 bg-[#4599e3] text-white flex flex-col items-center justify-between rounded-r-md">
+      <div className="w-1/3 p-4 bg-[#4599e3] shadow-lg shadow-blue-500/50 text-white flex flex-col items-center justify-between rounded-r-md">
         <div className="text-center">
           <p className="text-4xl font-bold">{selectedRoom}</p>
           <p className="text-sm">ROOM</p>

@@ -532,7 +532,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="YouTube video player"
-                    frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
@@ -552,7 +551,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="YouTube video player (blurred)"
-                    frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
