@@ -172,7 +172,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         <div className="relative flex justify-center">
           {/* Glow Effect Background */}
           <motion.div
-            className="absolute w-[600px] h-[50px] top-0 bg-blue-500 blur-3xl opacity-20"
+            className="absolute w-[700px] h-[20px] top-0 bg-blue-500 blur-3xl opacity-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.3 }}
             transition={{ duration: 1 }}
@@ -180,7 +180,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
           {/* Main Screen */}
           <motion.div
-            className="w-[600px] h-[120px] relative"
+            className="w-[700px] h-[100px] relative"
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -188,18 +188,18 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
             <div
               className="absolute w-full h-full border-t-[15px] border-blue-400"
               style={{
-                borderRadius: "80% / 100px 100px 0 0",
-                transform: "perspective(300px) rotateX(20deg)",
-                clipPath: "inset(0 0 30% 0)",
+                borderRadius: "45% / 100px 100px 0 0",
+                transform: "perspective(500px) rotateX(40deg)",
+                clipPath: "inset(0 0 45% 0)",
               }}
             />
 
             {/* Glow Elements */}
             <motion.div
-              className="absolute top-0 left-1/4 w-1/2 h-[2px] bg-blue-300 blur-sm"
+              className="absolute top-0 left-1/4 w-1/2 h-[10px] bg-blue-300 blur-lg"
               animate={{
                 opacity: [0.8, 0.2, 0.8],
-                boxShadow: "0 0 20px 5px rgba(104, 190, 255, 0.7)",
+                boxShadow: "0 0 50px 5px rgba(104, 190, 255, 0.7)",
               }}
               transition={{
                 duration: 3,
@@ -287,7 +287,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
-            <span>Taken</span>
+            <span>Sold</span>
           </div>
         </div>
       </div>
