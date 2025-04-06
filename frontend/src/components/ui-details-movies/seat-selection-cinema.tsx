@@ -1,18 +1,12 @@
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Ticket from "./ticket"
 import DatePicker from "./date-picker"
 import SeatPicker from "./seat-picker"
 import PaymentDialog from "./payment-dialog"
-
-interface Seat {
-  row: string
-  number: number
-  type: "available" | "sold" | "user-select"
-}
 
 interface MovieInfo {
   type: string
@@ -37,7 +31,7 @@ interface SeatSelectionProps {
 
 const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([])
-  const [soldSeats, setSoldSeats] = useState<string[]>([]) // State lưu ghế đã bán
+  const [soldSeats, setSoldSeats] = useState<string[]>([])
   const [ticketCount, setTicketCount] = useState(0)
   const [selectedDate, setSelectedDate] = useState<Date | undefined | null>(
     undefined
@@ -50,8 +44,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectionMode, setSelectionMode] = useState<
     "single" | "pair" | "group4"
   >("single")
-  const [hoveredSeats, setHoveredSeats] = useState<string[]>([])
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+
+  const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
 
   const timeOptions = ["18:00", "20:00", "22:00"]
   const typeOptions = ["2D", "3D", "IMAX"]
@@ -85,126 +80,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     setTicketCount(selectedSeats.length)
   }, [selectedSeats])
 
-  const rows = ["A", "B", "C", "D", "E", "F", "G", "H"]
-  const seatsPerRow = 18
-
-  const seatsData = rows.map((row) => ({
-    row,
-    seats: Array(seatsPerRow)
-      .fill(null)
-      .map((_, i) => {
-        const seatNumber = i + 1
-        const seatId = `${row}${seatNumber}`
-        let isSold = false
-
-        // Kiểm tra ghế đã bán từ soldSeats hoặc điều kiện ban đầu
-        if (soldSeats.includes(seatId)) {
-          isSold = true
-        } else if (selectedRoom === "C1") {
-          isSold = seatNumber <= 5
-        } else if (selectedRoom === "C2") {
-          isSold = seatNumber >= 14
-        } else if (selectedRoom === "C3") {
-          isSold = seatNumber >= 7 && seatNumber <= 12
-        }
-
-        return {
-          row,
-          number: seatNumber,
-          type: isSold
-            ? "sold"
-            : selectedSeats.includes(seatId)
-            ? "user-select"
-            : "available",
-        } as Seat
-      }),
-  }))
-
-  const handleSeatClick = (seat: Seat) => {
-    if (seat.type === "sold") return
-
-    const seatId = `${seat.row}${seat.number}`
-    const seatsToSelect =
-      selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
-    const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
-    const startIndex = seat.number - 1
-
-    if (selectedSeats.includes(seatId)) {
-      let seatsToRemove: string[] = []
-      for (let i = 0; i < seatsToSelect; i++) {
-        const currentIndex = startIndex + i
-        if (currentIndex >= rowSeats.length) break
-
-        const currentSeat = rowSeats[currentIndex]
-        const currentSeatId = `${currentSeat.row}${currentSeat.number}`
-        if (selectedSeats.includes(currentSeatId)) {
-          seatsToRemove.push(currentSeatId)
-        }
-      }
-      setSelectedSeats((prev) =>
-        prev.filter((id) => !seatsToRemove.includes(id))
-      )
-      return
-    }
-
-    if (selectedSeats.length + seatsToSelect > 8) {
-      alert("You can only select up to 8 seats!")
-      return
-    }
-
-    let seatsToAdd: string[] = []
-    for (let i = 0; i < seatsToSelect; i++) {
-      const currentIndex = startIndex + i
-      if (currentIndex >= rowSeats.length) break
-
-      const currentSeat = rowSeats[currentIndex]
-      if (currentSeat.type === "sold") break
-
-      const currentSeatId = `${currentSeat.row}${currentSeat.number}`
-      if (!selectedSeats.includes(currentSeatId)) {
-        seatsToAdd.push(currentSeatId)
-      }
-    }
-
-    if (seatsToAdd.length < seatsToSelect) {
-      alert(`Không đủ ${seatsToSelect} ghế liền kề khả dụng!`)
-      return
-    }
-
-    setSelectedSeats([...selectedSeats, ...seatsToAdd])
-  }
-
-  const handleMouseEnter = (seat: Seat) => {
-    if (seat.type === "sold") return
-
-    const seatsToSelect =
-      selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
-    const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
-    const startIndex = seat.number - 1
-    let seatsToHighlight: string[] = []
-
-    for (let i = 0; i < seatsToSelect; i++) {
-      const currentIndex = startIndex + i
-      if (currentIndex >= rowSeats.length) break
-
-      const currentSeat = rowSeats[currentIndex]
-      if (currentSeat.type === "sold") break
-
-      const currentSeatId = `${currentSeat.row}${currentSeat.number}`
-      seatsToHighlight.push(currentSeatId)
-    }
-
-    if (seatsToHighlight.length === seatsToSelect) {
-      setHoveredSeats(seatsToHighlight)
-    } else {
-      setHoveredSeats([])
-    }
-  }
-
-  const handleMouseLeave = () => {
-    setHoveredSeats([])
-  }
-
   const handleBuyClick = () => {
     if (selectedSeats.length === 0) {
       alert("Please select at least one seat before proceeding to payment!")
@@ -232,10 +107,18 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         `Payment confirmed with ${method} for $${totalAmount.toFixed(2)}`
       )
     }
-    // Thêm các ghế đã chọn vào danh sách ghế đã bán
-    setSoldSeats((prev) => [...prev, ...selectedSeats])
-    // Reset ghế đã chọn
-    setSelectedSeats([])
+    // Gọi markSeatsAsSold từ SeatPicker để đánh dấu ghế đã chọn là đã bán
+    if (seatPickerRef.current) {
+      seatPickerRef.current.markSeatsAsSold()
+    }
+  }
+
+  const handleSeatsChange = (
+    newSelectedSeats: string[],
+    newSoldSeats: string[]
+  ) => {
+    setSelectedSeats(newSelectedSeats)
+    setSoldSeats(newSoldSeats)
   }
 
   const originalPrice = ticketCount * originalTicketPrice
@@ -372,21 +255,27 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             selectedRoom={selectedRoom}
             selectedType={selectedType}
           />
-          <Button
-            onClick={handleBuyClick}
-            className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
-          >
-            BUY
-          </Button>
+          <div className="flex justify-center">
+            <motion.div
+              initial={{ width: "10rem" }}
+              whileHover={{ width: "100%" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <Button
+                onClick={handleBuyClick}
+                className="w-full px-4 py-2 text-sm bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
+              >
+                BUY
+              </Button>
+            </motion.div>
+          </div>
         </div>
 
         <SeatPicker
-          seatsData={seatsData}
-          selectedSeats={selectedSeats}
-          hoveredSeats={hoveredSeats}
-          handleSeatClick={handleSeatClick}
-          handleMouseEnter={handleMouseEnter}
-          handleMouseLeave={handleMouseLeave}
+          ref={seatPickerRef}
+          selectedRoom={selectedRoom}
+          selectionMode={selectionMode}
+          onSeatsChange={handleSeatsChange}
         />
       </div>
 

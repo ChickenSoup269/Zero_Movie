@@ -140,7 +140,7 @@ const PaymentDialog = ({
             animate="visible"
             exit="exit"
           >
-            <DialogContent className="sm:max-w-[425px] bg-white">
+            <DialogContent className="sm:max-w-[425px] bg-white text-black">
               <DialogHeader>
                 <DialogTitle className="text-center text-lg font-bold">
                   Payment
