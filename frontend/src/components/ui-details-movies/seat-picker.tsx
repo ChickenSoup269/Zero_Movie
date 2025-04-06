@@ -16,10 +16,9 @@ interface Seat {
 
 interface SeatPickerProps {
   selectedRoom: string
-  selectionMode: "single" | "pair" | "group4"
+  selectionMode: "single" | "pair" | "triple" | "group4"
   onSeatsChange: (selectedSeats: string[], soldSeats: string[]) => void
 }
-
 interface SeatPickerRef {
   markSeatsAsSold: () => void
 }
@@ -73,12 +72,21 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       if (seat.type === "sold") return
 
       const seatId = `${seat.row}${seat.number}`
+      // Cập nhật số ghế cần chọn theo selectionMode
       const seatsToSelect =
-        selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
+        selectionMode === "single"
+          ? 1
+          : selectionMode === "pair"
+          ? 2
+          : selectionMode === "triple"
+          ? 3
+          : 4
+
       const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
       const startIndex = seat.number - 1
 
       if (selectedSeats.includes(seatId)) {
+        // Xử lý bỏ chọn (giữ nguyên)
         let seatsToRemove: string[] = []
         for (let i = 0; i < seatsToSelect; i++) {
           const currentIndex = startIndex + i
@@ -96,15 +104,17 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         return
       }
 
+      // Kiểm tra giới hạn 8 ghế
       if (selectedSeats.length + seatsToSelect > 8) {
         toast({
-          title: "Selection Limit",
-          description: "You can only select up to 8 seats!",
+          title: "Giới hạn chọn ghế",
+          description: "Bạn chỉ có thể chọn tối đa 8 ghế!",
           variant: "destructive",
         })
         return
       }
 
+      // Kiểm tra ghế liền kề
       let seatsToAdd: string[] = []
       for (let i = 0; i < seatsToSelect; i++) {
         const currentIndex = startIndex + i
@@ -121,7 +131,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
       if (seatsToAdd.length < seatsToSelect) {
         toast({
-          title: "Not Enough Seats",
+          title: "Không đủ ghế",
           description: `Không đủ ${seatsToSelect} ghế liền kề khả dụng!`,
           variant: "destructive",
         })
@@ -135,7 +145,14 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       if (seat.type === "sold") return
 
       const seatsToSelect =
-        selectionMode === "single" ? 1 : selectionMode === "pair" ? 2 : 4
+        selectionMode === "single"
+          ? 1
+          : selectionMode === "pair"
+          ? 2
+          : selectionMode === "triple"
+          ? 3
+          : 4
+
       const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
       const startIndex = seat.number - 1
       let seatsToHighlight: string[] = []

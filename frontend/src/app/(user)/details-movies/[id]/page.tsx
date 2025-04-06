@@ -197,7 +197,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, transparent 0%, transparent 0%, #0e1116 30%)",
+              "linear-gradient(to bottom, transparent 0%, transparent 0%, #0e1116 40%)",
           }}
         />
       </motion.div>

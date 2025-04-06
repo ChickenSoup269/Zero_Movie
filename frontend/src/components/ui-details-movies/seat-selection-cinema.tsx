@@ -6,7 +6,7 @@ import Ticket from "./ticket"
 import DatePicker from "./date-picker"
 import SeatPicker from "./seat-picker"
 import PaymentDialog from "./payment-dialog"
-
+import { PaymentSummary } from "./payment-summary"
 interface MovieInfo {
   type: string
   movieTitle: string
@@ -41,7 +41,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedRoom, setSelectedRoom] = useState<string>("C1")
   const [selectedTheater, setSelectedTheater] = useState<Theater>(theaters[0])
   const [selectionMode, setSelectionMode] = useState<
-    "single" | "pair" | "group4"
+    "single" | "pair" | "triple" | "group4"
   >("single")
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
 
@@ -220,7 +220,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           <motion.select
             value={selectionMode}
             onChange={(e) =>
-              setSelectionMode(e.target.value as "single" | "pair" | "group4")
+              setSelectionMode(
+                e.target.value as "single" | "pair" | "triple" | "group4"
+              )
             }
             className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
             initial={{ opacity: 0, y: -10 }}
@@ -230,6 +232,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           >
             <option value="single">Single</option>
             <option value="pair">Pair (2 seats)</option>
+            <option value="triple">triple (3 seats)</option>
             <option value="group4">Group (4 seats)</option>
           </motion.select>
         </div>
@@ -247,7 +250,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               You can only select up to 8 seats!
             </p>
           )}
-          <Ticket
+          {/* <Ticket
             theater={selectedTheater}
             movieInfo={movieInfo}
             selectedSeats={selectedSeats}
@@ -256,6 +259,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             ticketId={ticketId}
             selectedRoom={selectedRoom}
             selectedType={selectedType}
+          /> */}
+          <PaymentSummary
+            selectedSeats={selectedSeats}
+            selectedTime={selectedTime}
+            selectedDate={selectedDate || undefined}
+            originalPrice={originalPrice}
+            savings={savings}
+            totalAmount={totalAmount}
           />
           <div className="flex justify-center">
             <motion.div
