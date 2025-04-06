@@ -48,39 +48,45 @@ const Ticket = ({
   })
 
   return (
-    <div className="bg-white text-black flex overflow-hidden ticket-wrapper relative rounded-md ">
+    <div className="bg-white text-black flex flex-col sm:flex-row overflow-hidden ticket-wrapper relative rounded-md">
       {/* Bên trái: Thông tin vé */}
-      <div className="w-2/3 p-4 border-r-2 border-dotted border-black shadow-lg shadow-blue-500/50">
-        <h4 className="text-lg font-bold text-[#4599e3]">{theater.name}</h4>
+      <div className="w-full sm:w-2/3 p-3 sm:p-4 border-b-2 sm:border-b-0 sm:border-r-2 border-dotted border-black shadow-lg shadow-blue-500/50">
+        <h4 className="text-base sm:text-lg font-bold text-[#4599e3]">
+          {theater.name}
+        </h4>
         <p className="text-xs text-gray-500">{theater.address}</p>
-        <div className="mt-2 flex justify-between">
+        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
           <div>
-            <span className="text-gray-500 text-sm">MOVIE</span>
-            <p className="font-semibold">{movieInfo.movieTitle}</p>
+            <span className="text-gray-500 text-xs sm:text-sm">MOVIE</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {movieInfo.movieTitle}
+            </p>
           </div>
           <div>
-            <span className="text-gray-500 text-sm">CUSTOMER</span>
-            <p className="font-semibold">Thien dep trai</p>
+            <span className="text-gray-500 text-xs sm:text-sm">CUSTOMER</span>
+            <p className="font-semibold text-sm sm:text-base">Thien dep trai</p>
           </div>
           <div>
-            <span className="text-gray-500 text-sm">TYPE</span>
-            <p className="font-semibold">{movieInfo.type}</p>
+            <span className="text-gray-500 text-xs sm:text-sm">TYPE</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {movieInfo.type}
+            </p>
           </div>
         </div>
-        <div className="mt-2 flex justify-between">
+        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
           <div>
-            <span className="text-gray-500 text-sm">SEAT</span>
-            <p className="font-semibold">
+            <span className="text-gray-500 text-xs sm:text-sm">SEAT</span>
+            <p className="font-semibold text-sm sm:text-base">
               {selectedSeats.join(", ") || "None"}
             </p>
           </div>
           <div>
-            <span className="text-gray-500 text-sm">TIME</span>
-            <p className="font-semibold">{selectedTime}</p>
+            <span className="text-gray-500 text-xs sm:text-sm">TIME</span>
+            <p className="font-semibold text-sm sm:text-base">{selectedTime}</p>
           </div>
           <div>
-            <span className="text-gray-500 text-sm">DATE</span>
-            <p className="font-semibold">
+            <span className="text-gray-500 text-xs sm:text-sm">DATE</span>
+            <p className="font-semibold text-sm sm:text-base">
               {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "12/07/2022"}
             </p>
           </div>
@@ -88,14 +94,20 @@ const Ticket = ({
       </div>
 
       {/* Bên phải: ROOM, TICKET ID, và QR code */}
-      <div className="w-1/3 p-4 bg-[#4599e3] shadow-lg shadow-blue-500/50 text-white flex flex-col items-center justify-between rounded-r-md">
+      <div className="w-full sm:w-1/3 p-3 sm:p-4 bg-[#4599e3] shadow-lg shadow-blue-500/50 text-white flex flex-col items-center justify-between rounded-b-md sm:rounded-b-none sm:rounded-r-md">
         <div className="text-center">
-          <p className="text-4xl font-bold">{selectedRoom}</p>
-          <p className="text-sm">ROOM</p>
-          <p className="text-sm mt-1">Ticket ID: {ticketId || "None"}</p>
+          <p className="text-2xl sm:text-4xl font-bold">{selectedRoom}</p>
+          <p className="text-xs sm:text-sm">ROOM</p>
+          <p className="text-xs sm:text-sm mt-1">
+            Ticket ID: {ticketId || "None"}
+          </p>
         </div>
         <div className="bg-white p-1 rounded">
-          <QRCodeSVG value={qrCodeContent} size={80} />
+          <QRCodeSVG
+            value={qrCodeContent}
+            size={60}
+            className="sm:w-[80px] sm:h-[80px]"
+          />
         </div>
       </div>
 
@@ -108,26 +120,48 @@ const Ticket = ({
         .ticket-wrapper::before {
           content: "";
           position: absolute;
-          top: 50%;
-          left: -12px;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 16px;
+          height: 16px;
           background-color: #0f1116;
           border-radius: 50%;
           z-index: 1;
+          display: none;
         }
         .ticket-wrapper::after {
           content: "";
           position: absolute;
-          top: 50%;
-          right: -12px;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
+          bottom: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 16px;
+          height: 16px;
           background-color: #0f1116;
           border-radius: 50%;
           z-index: 1;
+          display: none;
+        }
+        @media (min-width: 640px) {
+          .ticket-wrapper::before {
+            top: 50%;
+            left: -12px;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            display: block;
+          }
+          .ticket-wrapper::after {
+            top: 50%;
+            right: -12px;
+            bottom: auto;
+            left: auto;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            display: block;
+          }
         }
       `}</style>
     </div>

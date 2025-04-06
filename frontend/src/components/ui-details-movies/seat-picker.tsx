@@ -1,4 +1,5 @@
 /* eslint-disable prefer-const */
+import { useToast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
 import React, {
   useState,
@@ -19,22 +20,20 @@ interface SeatPickerProps {
   onSeatsChange: (selectedSeats: string[], soldSeats: string[]) => void
 }
 
-// Define the type for the ref object
 interface SeatPickerRef {
   markSeatsAsSold: () => void
 }
 
-// Use React.forwardRef with proper typing
 const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
   ({ selectedRoom, selectionMode, onSeatsChange }, ref) => {
     const [selectedSeats, setSelectedSeats] = useState<string[]>([])
     const [soldSeats, setSoldSeats] = useState<string[]>([])
     const [hoveredSeats, setHoveredSeats] = useState<string[]>([])
+    const { toast } = useToast()
 
     const rows = ["A", "B", "C", "D", "E", "F", "G", "H"]
     const seatsPerRow = 18
 
-    // Tạo dữ liệu ghế dựa trên selectedRoom
     const seatsData = rows.map((row) => ({
       row,
       seats: Array(seatsPerRow)
@@ -66,7 +65,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         }),
     }))
 
-    // Cập nhật selectedSeats và soldSeats cho SeatSelection
     useEffect(() => {
       onSeatsChange(selectedSeats, soldSeats)
     }, [selectedSeats, soldSeats, onSeatsChange])
@@ -99,7 +97,11 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       }
 
       if (selectedSeats.length + seatsToSelect > 8) {
-        alert("You can only select up to 8 seats!")
+        toast({
+          title: "Selection Limit",
+          description: "You can only select up to 8 seats!",
+          variant: "destructive",
+        })
         return
       }
 
@@ -118,7 +120,11 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       }
 
       if (seatsToAdd.length < seatsToSelect) {
-        alert(`Không đủ ${seatsToSelect} ghế liền kề khả dụng!`)
+        toast({
+          title: "Not Enough Seats",
+          description: `Không đủ ${seatsToSelect} ghế liền kề khả dụng!`,
+          variant: "destructive",
+        })
         return
       }
 
@@ -155,24 +161,36 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
     const handleMouseLeave = () => {
       setHoveredSeats([])
     }
-
-    // Hàm để đánh dấu ghế đã chọn là đã bán
     const markSeatsAsSold = () => {
+      if (selectedSeats.length === 0) {
+        toast({
+          title: "No Seats Selected",
+          description: "Please select seats before marking as sold",
+          variant: "destructive",
+        })
+        return
+      }
+
       setSoldSeats((prev) => [...prev, ...selectedSeats])
       setSelectedSeats([])
-    }
 
-    // Expose markSeatsAsSold thông qua ref
+      toast({
+        title: "Success!",
+        description: `${selectedSeats.length} seats marked as sold`,
+        variant: "default",
+      })
+    }
     useImperativeHandle(ref, () => ({
       markSeatsAsSold,
     }))
 
     return (
-      <div className="w-3/3 shadow-lg pl-14">
-        <div className="relative flex justify-center">
+      <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 shadow-lg">
+        {/* phần màn hình */}
+        <div className="relative flex justify-center pt-2 sm:pt-3 md:pt-4">
           {/* Glow Effect Background */}
           <motion.div
-            className="absolute w-[700px] h-[20px] top-0 bg-blue-500 blur-3xl opacity-20"
+            className="absolute w-full h-[20px] top-0 bg-blue-500 blur-3xl opacity-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.3 }}
             transition={{ duration: 1 }}
@@ -180,13 +198,13 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
           {/* Main Screen */}
           <motion.div
-            className="w-[700px] h-[100px] relative"
+            className="w-[90%] sm:w-[500px] md:w-[700px] h-[60px] sm:h-[80px] md:h-[100px] relative"
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
             <div
-              className="absolute w-full h-full border-t-[15px] border-blue-400"
+              className="absolute w-full h-full border-t-[10px] sm:border-t-[12px] md:border-t-[15px] border-blue-400"
               style={{
                 borderRadius: "45% / 100px 100px 0 0",
                 transform: "perspective(500px) rotateX(40deg)",
@@ -196,13 +214,13 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
             {/* Glow Elements */}
             <motion.div
-              className="absolute top-0 left-1/4 w-1/2 h-[10px] bg-blue-300 blur-lg"
+              className="absolute w-full h-[12px] sm:h-[16px] md:h-[20px] top-0 bg-blue-500 blur-xl sm:blur-3xl md:blur-3xl opacity-20"
               animate={{
                 opacity: [0.8, 0.2, 0.8],
-                boxShadow: "0 0 50px 5px rgba(104, 190, 255, 0.7)",
+                boxShadow: "0 0 50px 5px rgba(4, 146, 255, 0.7)",
               }}
               transition={{
-                duration: 3,
+                duration: 5,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
@@ -211,7 +229,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
           {/* Screen Text */}
           <motion.div
-            className="absolute bottom-6 text-white text-2xl font-bold tracking-widest"
+            className="absolute bottom-4 sm:bottom-5 md:bottom-6 text-white text-lg sm:text-xl md:text-2xl font-bold tracking-widest"
             initial={{ opacity: 0 }}
             animate={{
               opacity: 1,
@@ -222,12 +240,17 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
             SCREEN
           </motion.div>
         </div>
-
-        <div className="grid gap-2">
+        {/* phần ghế  */}
+        <div className="grid gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 mt-2 sm:mt-3 md:mt-4 lg:mt-6">
           {seatsData.map((row) => (
-            <div key={row.row} className="flex items-center gap-2">
-              <span className="text-gray-400 w-5">{row.row}</span>
-              <div className="flex gap-1 flex-1 justify-center">
+            <div
+              key={row.row}
+              className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2"
+            >
+              <span className="text-gray-400 w-4 sm:w-5 text-xs sm:text-sm">
+                {row.row}
+              </span>
+              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 flex-1 justify-center ">
                 {row.seats.map((seat) => {
                   const seatId = `${seat.row}${seat.number}`
                   const isSelected = selectedSeats.includes(seatId)
@@ -236,13 +259,13 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                   return (
                     <React.Fragment key={seatId}>
                       {(seat.number === 6 || seat.number === 14) && (
-                        <div className="w-4" />
+                        <div className="w-2 sm:w-3 md:w-4" />
                       )}
                       <motion.button
                         onClick={() => handleSeatClick(seat)}
                         onMouseEnter={() => handleMouseEnter(seat)}
                         onMouseLeave={handleMouseLeave}
-                        className={`w-8 h-8 rounded-sm text-sm ${
+                        className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-sm text-xs sm:text-sm ${
                           seat.type === "sold"
                             ? "bg-gray-600 cursor-not-allowed"
                             : isSelected
@@ -251,10 +274,10 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                         }`}
                         initial={{ scale: 1, opacity: 1, rotate: 0 }}
                         animate={{
-                          scale: isSelected ? 1.1 : isHovered ? 0.95 : 1,
+                          scale: isSelected ? 1 : isHovered ? 0.95 : 1.01,
                           opacity: seat.type === "sold" ? 0.6 : 1,
                           color: isSelected ? "white" : "black",
-                          border: isHovered ? "2px solid #4599e3" : "none",
+                          border: isHovered ? "2px solid #4599e3 " : "none",
                           backgroundColor: isSelected ? "#4599e3" : "white",
                           boxShadow: isSelected
                             ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
@@ -271,22 +294,24 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                   )
                 })}
               </div>
-              <span className="text-gray-400 w-5">{row.row}</span>
+              <span className="text-gray-400 w-3 sm:w-4 md:w-5 text-[10px] sm:text-xs md:text-sm hidden sm:block">
+                {row.row}
+              </span>
             </div>
           ))}
         </div>
-
-        <div className="flex justify-center gap-5 mt-5 text-sm text-gray-400">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-white rounded-sm"></div>
+        {/* phần chú thích */}
+        <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 mt-2 sm:mt-3 md:mt-4 lg:mt-5 text-[10px] sm:text-xs md:text-sm text-gray-400">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-white rounded-sm"></div>
             <span>Available</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-blue-400 rounded-sm"></div>
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-400 rounded-sm"></div>
             <span>Selected</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-600 rounded-sm"></div>
             <span>Sold</span>
           </div>
         </div>
@@ -295,7 +320,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
   }
 )
 
-// Add display name for better debugging
 SeatPicker.displayName = "SeatPicker"
 
 export default SeatPicker
