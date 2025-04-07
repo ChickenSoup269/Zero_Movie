@@ -15,7 +15,7 @@ export class SeatService {
     for (const row of rows) {
       for (let column = 1; column <= 18; column++) {
         seats.push({
-          roomId,
+          roomId: new mongoose.Types.ObjectId(roomId), // Chuyển thành ObjectId
           seatNumber: `${row}${column}`,
           row,
           column,
@@ -23,7 +23,13 @@ export class SeatService {
         });
       }
     }
-    await Seat.insertMany(seats);
+    try {
+      const result = await Seat.insertMany(seats);
+      console.log(`Inserted ${result.length} seats for roomId: ${roomId}`);
+    } catch (error) {
+      console.error(`Failed to insert seats for roomId: ${roomId}`, error);
+      throw error;
+    }
   }
 
   static async getSeatsByRoom(roomId: string): Promise<ISeat[]> {

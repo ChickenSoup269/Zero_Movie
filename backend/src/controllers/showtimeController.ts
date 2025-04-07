@@ -3,8 +3,8 @@ import { ShowtimeService } from '../services/showtimeServices';
 
 export const createShowtime = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { movieId, roomId, startTime, endTime } = req.body;
-    const newShowtime = await ShowtimeService.createShowtime(movieId, roomId, startTime, endTime);
+    const { movieId, roomId, startTime, endTime, price } = req.body; 
+    const newShowtime = await ShowtimeService.createShowtime(movieId, roomId, startTime, endTime, price);
     res.status(201).json({
       message: 'Tạo suất chiếu thành công',
       showtime: {
@@ -13,6 +13,7 @@ export const createShowtime = async (req: Request, res: Response): Promise<void>
         roomId: newShowtime.roomId,
         startTime: newShowtime.startTime.toISOString(),
         endTime: newShowtime.endTime.toISOString(),
+        price: newShowtime.price, 
       },
     });
   } catch (error) {
@@ -32,6 +33,7 @@ export const getAllShowtimes = async (req: Request, res: Response): Promise<void
         roomId: showtime.roomId,
         startTime: showtime.startTime.toISOString(),
         endTime: showtime.endTime.toISOString(),
+        price: showtime.price, // Thêm price
       })),
     });
   } catch (error) {
@@ -52,6 +54,7 @@ export const getShowtimeById = async (req: Request, res: Response): Promise<void
         roomId: showtime.roomId,
         startTime: showtime.startTime.toISOString(),
         endTime: showtime.endTime.toISOString(),
+        price: showtime.price, // Thêm price
       },
     });
   } catch (error) {
@@ -76,6 +79,7 @@ export const deleteShowtime = async (req: Request, res: Response): Promise<void>
         roomId: deletedShowtime.roomId,
         startTime: deletedShowtime.startTime.toISOString(),
         endTime: deletedShowtime.endTime.toISOString(),
+        price: deletedShowtime.price, // Thêm price
       },
     });
   } catch (error) {

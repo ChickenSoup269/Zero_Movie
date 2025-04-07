@@ -7,6 +7,7 @@ export interface IShowtime extends Document {
   roomId: string;  
   startTime: Date;
   endTime: Date;
+  price: number; 
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -16,6 +17,7 @@ const showtimeSchema = new Schema<IShowtime>({
   roomId: { type: String, ref: 'Room', required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
+  price: { type: Number, required: true, min: 0 }, 
 }, {
   timestamps: true,
 });

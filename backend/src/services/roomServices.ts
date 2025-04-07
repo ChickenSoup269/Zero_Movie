@@ -22,9 +22,16 @@ export class RoomService {
       throw new Error('Phòng đã tồn tại trong rạp này');
     }
 
-    const newRoom = await Room.create({ cinemaId, roomNumber, capacity: 144 });
-    await SeatService.initializeSeatsForRoom(newRoom._id.toString()); // Tạo 144 ghế
-    return newRoom;
+    const newRoom = new Room({ cinemaId, roomNumber, capacity: 144 });
+
+    try {
+      await newRoom.save(); // Lưu Room trước
+      await SeatService.initializeSeatsForRoom(newRoom._id.toString()); // Tạo 144 ghế
+      return newRoom;
+    } catch (error) {
+      await Room.findByIdAndDelete(newRoom._id); // Rollback nếu lỗi
+      throw new Error(`Tạo phòng thất bại: ${(error as Error).message}`);
+    }
   }
 
   static async getAllRooms(cinemaId?: string): Promise<IRoom[]> {

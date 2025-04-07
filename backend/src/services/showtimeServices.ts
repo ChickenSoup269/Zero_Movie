@@ -4,29 +4,26 @@ import { ShowtimeSeatService } from './showtimeseatServices';
 import mongoose from 'mongoose';
 
 export class ShowtimeService {
-  static async createShowtime(movieId: number, roomId: string, startTime: string, endTime: string): Promise<IShowtime> {
-    // Kiểm tra đầu vào
-    if (!movieId || !roomId || !startTime || !endTime) {
-      throw new Error('movieId, roomId, startTime, endTime là bắt buộc');
+  static async createShowtime(movieId: number, roomId: string, startTime: string, endTime: string, price: number): Promise<IShowtime> {
+    if (!movieId || !roomId || !startTime || !endTime || price === undefined) {
+      throw new Error('movieId, roomId, startTime, endTime, và price là bắt buộc');
     }
-
+  
     if (!mongoose.Types.ObjectId.isValid(roomId)) {
       throw new Error('Room ID không hợp lệ');
     }
-
+  
     const room = await Room.findById(roomId);
     if (!room) {
       throw new Error('Không tìm thấy phòng');
     }
-
-    // Kiểm tra thời gian
+  
     const start = new Date(startTime);
     const end = new Date(endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
       throw new Error('Thời gian không hợp lệ');
     }
-
-    // Kiểm tra xung đột thời gian
+  
     const conflictingShowtime = await Showtime.findOne({
       roomId,
       $or: [
@@ -38,25 +35,28 @@ export class ShowtimeService {
     if (conflictingShowtime) {
       throw new Error('Phòng đã được đặt trong khoảng thời gian này');
     }
-
-    // Tạo suất chiếu
-    const newShowtime = await Showtime.create({
+  
+    const newShowtime = new Showtime({
       movieId,
       roomId,
       startTime: start,
       endTime: end,
+      price,
     });
-
-    // Khởi tạo 144 ghế trong ShowtimeSeat
-    await ShowtimeSeatService.initializeSeats(newShowtime._id.toString(), roomId);
-
-    return newShowtime;
+  
+    try {
+      await newShowtime.save(); // Lưu Showtime trước
+      await ShowtimeSeatService.initializeSeats(newShowtime._id.toString(), roomId); // Tạo ghế
+      return newShowtime;
+    } catch (error) {
+      await Showtime.findByIdAndDelete(newShowtime._id); // Rollback nếu lỗi
+      throw error; // Ném lỗi lên controller
+    }
   }
 
   static async getAllShowtimes(): Promise<IShowtime[]> {
     return await Showtime.find().populate('roomId');
   }
-  
 
   static async getShowtimeById(id: string): Promise<IShowtime> {
     if (!mongoose.Types.ObjectId.isValid(id)) {

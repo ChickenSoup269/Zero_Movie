@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 
 export interface IRoom extends Document {
   _id: Types.ObjectId;
-  cinemaId: string;
+  cinemaId: Types.ObjectId;
   roomNumber: string;
   capacity: number;
   createdAt?: Date;
@@ -11,7 +11,7 @@ export interface IRoom extends Document {
 }
 
 const roomSchema = new Schema<IRoom>({
-  cinemaId: { type: String, ref: 'Cinema', required: true },
+  cinemaId: { type: Schema.Types.ObjectId, ref: 'Cinema', required: true },
   roomNumber: { type: String, required: true },
   capacity: { type: Number, required: true },
 }, {
