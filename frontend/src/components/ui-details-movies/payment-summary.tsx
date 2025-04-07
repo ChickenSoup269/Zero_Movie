@@ -1,6 +1,5 @@
 import { format } from "date-fns"
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 interface PaymentSummaryProps {
   selectedSeats: string[]
   selectedTime: string
@@ -20,7 +19,7 @@ export const PaymentSummary = ({
 }: PaymentSummaryProps) => {
   return (
     <div className=" bg-transparent text-gray-500 rounded-md p-4 sm:p-5">
-      <h3 className="text-lg sm:text-xl font-bold text-[#4599e3] mb-3 sm:mb-4">
+      <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
         Payment Summary
       </h3>
 
@@ -55,8 +54,8 @@ export const PaymentSummary = ({
             <span className="text-white font-bold text-sm sm:text-base">
               Original Price
             </span>
-            <span className="font-semibold text-sm sm:text-base">
-              ${originalPrice.toFixed(2)}
+            <span className="text-white font-semibold text-sm sm:text-base">
+              {originalPrice.toFixed(2)}đ
             </span>
           </div>
 
@@ -65,7 +64,7 @@ export const PaymentSummary = ({
               Savings
             </span>
             <span className="text-green-500 font-semibold text-sm sm:text-base">
-              -${savings.toFixed(2)}
+              -{savings.toFixed(2)}đ
             </span>
           </div>
 
@@ -75,7 +74,7 @@ export const PaymentSummary = ({
                 Total
               </span>
               <span className="text-white font-bold text-lg sm:text-xl">
-                ${totalAmount.toFixed(2)}
+                {totalAmount.toFixed(2)}đ
               </span>
             </div>
           </div>
@@ -83,8 +82,8 @@ export const PaymentSummary = ({
       </div>
 
       {/* Thông tin khuyến mãi */}
-      <div className="mt-4 sm:mt-5  p-2 sm:p-3 rounded text-xs sm:text-sm text-gray-700">
-        <p>You saved ${savings.toFixed(2)} with our special discount!</p>
+      <div className="mt-4 sm:mt-5 sm:p-3 rounded text-xs sm:text-sm text-gray-700">
+        <p>You saved {savings.toFixed(2)}đ with our special discount!</p>
       </div>
     </div>
   )

@@ -243,9 +243,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
           <p className="text-gray-400 text-sm sm:text-base">
-            <span className="mr-1 text-gray-600  px-3 py-1 rounded-sm inline-block">
+            <span className="mr-1 text-gray-400 font-medium px-3 py-1 rounded-sm inline-block">
               {" "}
-              {ticketCount} Seats
+              {ticketCount} Seats:
             </span>
             {selectedSeats.length > 0 ? (
               selectedSeats.map((seat, index) => {
@@ -257,7 +257,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                 return (
                   <span
                     key={index}
-                    className={`mr-1 text-orange-500 px-3 py-1 rounded-xl inline-block ${
+                    className={`mr-1 text-orange-400 px-3 py-1 rounded-full inline-block ${
                       seat === "D10" ? "bg-red-600" : "bg-gray-800"
                     }`}
                   >
@@ -266,7 +266,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                 )
               })
             ) : (
-              <span className="text-orange-500">No seats selected</span>
+              <span className="text-orange-400">No seats selected</span>
             )}
           </p>
           {/* <Ticket
