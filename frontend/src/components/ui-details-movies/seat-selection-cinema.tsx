@@ -243,13 +243,32 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
           <p className="text-gray-400 text-sm sm:text-base">
-            {ticketCount} / 8 Seats: {selectedSeats.join(", ")}
+            <span className="mr-1 text-gray-600  px-3 py-1 rounded-sm inline-block">
+              {" "}
+              {ticketCount} Seats
+            </span>
+            {selectedSeats.length > 0 ? (
+              selectedSeats.map((seat, index) => {
+                // Giả sử seat là chuỗi như "A7", tách chữ và số
+                const letterMatch = seat.match(/[A-Za-z]+/)
+                const letter = letterMatch ? letterMatch[0] : "" // Lấy phần chữ
+                const numberMatch = seat.match(/\d+/)
+                const number = numberMatch ? numberMatch[0] : "" // Lấy phần số
+                return (
+                  <span
+                    key={index}
+                    className={`mr-1 text-orange-500 px-3 py-1 rounded-xl inline-block ${
+                      seat === "D10" ? "bg-red-600" : "bg-gray-800"
+                    }`}
+                  >
+                    {letter} {number}
+                  </span>
+                )
+              })
+            ) : (
+              <span className="text-orange-500">No seats selected</span>
+            )}
           </p>
-          {ticketCount >= 8 && (
-            <p className="text-red-500 text-xs sm:text-sm">
-              You can only select up to 8 seats!
-            </p>
-          )}
           {/* <Ticket
             theater={selectedTheater}
             movieInfo={movieInfo}

@@ -260,10 +260,10 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 <span className="text-sm font-semibold text-yellow-400">
                   IMDb {movie.rating.toFixed(1)}/10
                 </span>
-                <span className="px-2 py-1 bg-gray-700 text-white text-sm rounded">
+                <span className="px-2 py-1 bg-white text-black text-sm font-bold rounded">
                   {movie.ageRating}
                 </span>
-                <span className="flex items-center gap-1 text-sm text-green-400">
+                <span className="flex items-center gap-1 text-sm font-bold text-green-400">
                   <svg
                     className="w-4 h-4"
                     fill="currentColor"
