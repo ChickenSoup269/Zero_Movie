@@ -7,6 +7,8 @@ import DatePicker from "./date-picker"
 import SeatPicker from "./seat-picker"
 import PaymentDialog from "./payment-dialog"
 import { PaymentSummary } from "./payment-summary"
+import { format } from "date-fns"
+
 interface MovieInfo {
   type: string
   movieTitle: string
@@ -21,6 +23,18 @@ interface Theater {
   phone: string
   description: string
   mapUrl: string
+}
+
+interface TicketData {
+  theater: Theater
+  movieInfo: MovieInfo
+  selectedSeats: string[]
+  selectedTime: string
+  selectedDate: Date | undefined
+  ticketId: string
+  selectedRoom: string
+  selectedType: string
+  purchaseTime: string // Thời gian mua vé
 }
 
 interface SeatSelectionProps {
@@ -44,6 +58,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     "single" | "pair" | "triple" | "group4"
   >("single")
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false) // Trạng thái mới để kiểm soát hiển thị Ticket
 
   const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
 
@@ -109,6 +124,30 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     if (seatPickerRef.current) {
       seatPickerRef.current.markSeatsAsSold()
     }
+
+    // Lưu thông tin vé vào localStorage
+    const ticketData: TicketData = {
+      theater: selectedTheater,
+      movieInfo,
+      selectedSeats,
+      selectedTime,
+      selectedDate: selectedDate || undefined,
+      ticketId,
+      selectedRoom,
+      selectedType,
+      purchaseTime: new Date().toISOString(), // Thời gian mua vé
+    }
+
+    const existingTickets = JSON.parse(
+      localStorage.getItem("purchasedTickets") || "[]"
+    )
+    localStorage.setItem(
+      "purchasedTickets",
+      JSON.stringify([...existingTickets, ticketData])
+    )
+
+    setIsPaymentCompleted(true) // Cập nhật trạng thái sau khi thanh toán
+    setIsPaymentOpen(false) // Đóng dialog
   }
 
   const handleSeatsChange = (
@@ -122,6 +161,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const originalPrice = ticketCount * originalTicketPrice
   const totalAmount = ticketCount * discountedTicketPrice
   const savings = originalPrice - totalAmount
+
+  const formattedDateTime = selectedDate
+    ? `${format(selectedDate, "dd/MM/yyyy")}; ${selectedTime}`
+    : "Not selected"
 
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
@@ -232,7 +275,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           >
             <option value="single">Single</option>
             <option value="pair">Pair (2 seats)</option>
-            <option value="triple">triple (3 seats)</option>
+            <option value="triple">Triple (3 seats)</option>
             <option value="group4">Group (4 seats)</option>
           </motion.select>
         </div>
@@ -249,11 +292,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             </span>
             {selectedSeats.length > 0 ? (
               selectedSeats.map((seat, index) => {
-                // Giả sử seat là chuỗi như "A7", tách chữ và số
                 const letterMatch = seat.match(/[A-Za-z]+/)
-                const letter = letterMatch ? letterMatch[0] : "" // Lấy phần chữ
+                const letter = letterMatch ? letterMatch[0] : ""
                 const numberMatch = seat.match(/\d+/)
-                const number = numberMatch ? numberMatch[0] : "" // Lấy phần số
+                const number = numberMatch ? numberMatch[0] : ""
                 return (
                   <span
                     key={index}
@@ -269,39 +311,46 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               <span className="text-orange-400">No seats selected</span>
             )}
           </p>
-          {/* <Ticket
-            theater={selectedTheater}
-            movieInfo={movieInfo}
-            selectedSeats={selectedSeats}
-            selectedTime={selectedTime}
-            selectedDate={selectedDate || undefined}
-            ticketId={ticketId}
-            selectedRoom={selectedRoom}
-            selectedType={selectedType}
-          /> */}
-          <PaymentSummary
-            selectedSeats={selectedSeats}
-            selectedTime={selectedTime}
-            selectedDate={selectedDate || undefined}
-            originalPrice={originalPrice}
-            savings={savings}
-            totalAmount={totalAmount}
-          />
-          <div className="flex justify-center">
-            <motion.div
-              initial={{ width: "10rem" }}
-              whileHover={{ width: "100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="w-full max-w-xs"
-            >
-              <Button
-                onClick={handleBuyClick}
-                className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
-              >
-                BUY
-              </Button>
-            </motion.div>
-          </div>
+
+          {/* Hiển thị Ticket nếu thanh toán hoàn tất, nếu không hiển thị card thanh toán */}
+          {isPaymentCompleted ? (
+            <Ticket
+              theater={selectedTheater}
+              movieInfo={movieInfo}
+              selectedSeats={selectedSeats}
+              selectedTime={selectedTime}
+              selectedDate={selectedDate || undefined}
+              ticketId={ticketId}
+              selectedRoom={selectedRoom}
+              selectedType={selectedType}
+            />
+          ) : (
+            <>
+              <PaymentSummary
+                selectedSeats={selectedSeats}
+                selectedTime={selectedTime}
+                selectedDate={selectedDate || undefined}
+                originalPrice={originalPrice}
+                savings={savings}
+                totalAmount={totalAmount}
+              />
+              <div className="flex justify-center">
+                <motion.div
+                  initial={{ width: "10rem" }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="w-full max-w-xs"
+                >
+                  <Button
+                    onClick={handleBuyClick}
+                    className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
+                  >
+                    BUY
+                  </Button>
+                </motion.div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="w-full md:w-2/3">
