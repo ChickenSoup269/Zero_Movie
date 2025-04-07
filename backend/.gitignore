@@ -1,6 +1,0 @@
-# Prevent .env files from being pushed
-.env
-.env.*
-
-# Prevent node_modules from being pushed
-node_modules/
