@@ -8,7 +8,7 @@ import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X as CloseIcon, ShoppingCart } from "lucide-react"
+import { Menu, X as CloseIcon, Film } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -191,7 +191,7 @@ export default function Navbar() {
               whileHover={{ scale: 1.1 }}
               transition={{ duration: 0.2 }}
             >
-              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <Film className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItems.length}

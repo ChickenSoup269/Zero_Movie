@@ -26,6 +26,10 @@ import emailjs from "@emailjs/browser"
 import { EMAILJS_PUBLIC_KEY } from "@/api/key"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
+import axios, { AxiosError } from "axios"
+
+const axiosJWT = axios.create()
+const API_URL = process.env.API_URL
 
 const tabVariantsRight = {
   hidden: { opacity: 0, x: 40 },
@@ -55,6 +59,24 @@ interface RegisterFormProps {
   setShowRegisterPassword: (value: boolean) => void
   showConfirmPassword: boolean
   setShowConfirmPassword: (value: boolean) => void
+}
+
+// Hàm gọi API đăng ký
+const registerUser = async (data: {
+  email: string
+  username: string
+  password: string
+}) => {
+  try {
+    const res = await axiosJWT.post(`${API_URL}/user/register`, data)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
 }
 
 const RegisterForm = ({
@@ -88,14 +110,13 @@ const RegisterForm = ({
   const [openOTPDialog, setOpenOTPDialog] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [generatedOtp, setGeneratedOtp] = useState("")
-  const [otpExpiry, setOtpExpiry] = useState<number | null>(null) // Thời gian hết hạn OTP (timestamp)
-  const [countdown, setCountdown] = useState(90) // 1 phút 30 giây
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null)
+  const [countdown, setCountdown] = useState(90)
 
   useEffect(() => {
     emailjs.init(EMAILJS_PUBLIC_KEY)
   }, [])
 
-  // Bộ đếm ngược
   useEffect(() => {
     if (openOTPDialog && otpExpiry) {
       const interval = setInterval(() => {
@@ -105,7 +126,7 @@ const RegisterForm = ({
         )
         setCountdown(timeLeft)
         if (timeLeft === 0) {
-          setGeneratedOtp("") // Vô hiệu hóa OTP khi hết thời gian
+          setGeneratedOtp("")
           clearInterval(interval)
         }
       }, 1000)
@@ -134,6 +155,12 @@ const RegisterForm = ({
   const errorEmailToast = ErrorToast({
     title: "Error",
     description: "Failed to send OTP. Please try again.",
+    duration: 3000,
+  })
+
+  const errorRegisterToast = ErrorToast({
+    title: "Registration Failed",
+    description: "An error occurred during registration. Please try again.",
     duration: 3000,
   })
 
@@ -166,8 +193,8 @@ const RegisterForm = ({
         response.text
       )
       successOtpSentToast.showToast()
-      setOtpExpiry(Date.now() + 90 * 1000) // 90 giây từ bây giờ
-      setCountdown(90) // Reset countdown
+      setOtpExpiry(Date.now() + 90 * 1000)
+      setCountdown(90)
     } catch (error: any) {
       console.error("Failed to send OTP email:", error.text || error)
       errorEmailToast.showToast({
@@ -326,7 +353,7 @@ const RegisterForm = ({
     registerData.confirmPassword,
   ])
 
-  const handleOTPSubmit = (otp: string) => {
+  const handleOTPSubmit = async (otp: string) => {
     if (countdown === 0) {
       errorToast.showToast({
         description: "OTP has expired. Please request a new one.",
@@ -334,15 +361,30 @@ const RegisterForm = ({
       return
     }
     if (otp === generatedOtp) {
-      console.log("Registration successful! User Data:", registerData)
-      successRegisterToast.showToast()
-      setOpenOTPDialog(false)
-      handleRegisterSubmit({ preventDefault: () => {} } as React.FormEvent)
+      try {
+        // Gọi API đăng ký
+        const response = await registerUser({
+          email: registerData.email,
+          username: registerData.username,
+          password: registerData.password,
+        })
+        console.log("Registration successful! API Response:", response)
+        successRegisterToast.showToast()
+        setOpenOTPDialog(false)
+        handleRegisterSubmit({ preventDefault: () => {} } as React.FormEvent)
+      } catch (error: any) {
+        console.error("Registration failed:", error)
+        errorRegisterToast.showToast({
+          description:
+            error.message ||
+            "An error occurred during registration. Please try again.",
+        })
+        // Không đóng dialog, để người dùng thử lại nếu cần
+      }
     } else {
       errorToast.showToast({
         description: "Invalid OTP. Please try again.",
       })
-      // Không đóng dialog, để người dùng nhập lại
     }
   }
 
@@ -592,8 +634,8 @@ const RegisterForm = ({
           setOpen={setOpenOTPDialog}
           onSubmit={handleOTPSubmit}
           title="Verify OTP for Registration"
-          countdown={countdown} // Truyền countdown
-          onResend={handleResendOTP} // Truyền hàm gửi lại OTP
+          countdown={countdown}
+          onResend={handleResendOTP}
         />
       </div>
     </TooltipProvider>

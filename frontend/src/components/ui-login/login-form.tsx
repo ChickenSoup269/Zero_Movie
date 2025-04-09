@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from "framer-motion"
 import {
   CardHeader,
@@ -9,11 +10,17 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox từ Shadcn/UI
+import { Checkbox } from "@/components/ui/checkbox"
 import PasswordInput from "./password-input"
 import ForgotPasswordDialog from "./forgot-password-dialog"
 import Image from "next/image"
 import { useState, useEffect } from "react"
+import axios, { AxiosError } from "axios"
+import { SuccessToast } from "@/components/ui-notification/success-toast"
+import { ErrorToast } from "@/components/ui-notification/error-toast"
+
+const axiosJWT = axios.create()
+const API_URL = process.env.API_URL
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -40,6 +47,20 @@ interface LoginFormProps {
   setOpenDialog: (value: boolean) => void
 }
 
+// Hàm gọi API đăng nhập
+const loginUser = async (data: { email: string; password: string }) => {
+  try {
+    const res = await axiosJWT.post(`${API_URL}/user/login`, data)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
 const LoginForm = ({
   loginData,
   handleLoginChange,
@@ -49,9 +70,21 @@ const LoginForm = ({
   openDialog,
   setOpenDialog,
 }: LoginFormProps) => {
-  const [rememberMe, setRememberMe] = useState(false) // State cho checkbox "Remember Me"
+  const [rememberMe, setRememberMe] = useState(false)
 
-  // Load thông tin từ localStorage khi component mount
+  // Toast thông báo
+  const successLoginToast = SuccessToast({
+    title: "Success!",
+    description: "You have successfully logged in.",
+    duration: 3000,
+  })
+
+  const errorLoginToast = ErrorToast({
+    title: "Login Failed",
+    description: "Invalid email or password. Please try again.",
+    duration: 3000,
+  })
+
   useEffect(() => {
     const savedLogin = localStorage.getItem("rememberedLogin")
     if (savedLogin) {
@@ -66,8 +99,7 @@ const LoginForm = ({
     }
   }, [handleLoginChange])
 
-  // Xử lý submit form và lưu thông tin nếu "Remember Me" được chọn
-  const handleSubmitWithRemember = (e: React.FormEvent) => {
+  const handleSubmitWithRemember = async (e: React.FormEvent) => {
     e.preventDefault()
     if (rememberMe) {
       localStorage.setItem(
@@ -77,7 +109,32 @@ const LoginForm = ({
     } else {
       localStorage.removeItem("rememberedLogin")
     }
-    handleLoginSubmit(e) // Gọi hàm submit gốc
+
+    try {
+      // Gọi API đăng nhập
+      const response = await loginUser({
+        email: loginData.email,
+        password: loginData.password,
+      })
+      console.log("Login successful! API Response:", response)
+
+      // Lưu token vào localStorage (giả định API trả về access_token)
+      if (response.access_token) {
+        localStorage.setItem("access_token", response.access_token)
+      }
+
+      // Hiển thị toast thành công
+      successLoginToast.showToast()
+
+      // Gọi hàm submit gốc để xử lý logic tiếp theo (nếu có)
+      handleLoginSubmit(e)
+    } catch (error: any) {
+      console.error("Login failed:", error)
+      errorLoginToast.showToast({
+        description:
+          error.message || "Invalid email or password. Please try again.",
+      })
+    }
   }
 
   return (
