@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 import setupRoutes from './routes/appRoutes'
 import morgan from 'morgan';
 import { connectDB } from "./config/db";
-import { fetchMoviesFromTMDB } from "./services/fetchmovieServices";
-import { fetchAndStoreGenres } from "./services/fetchgenresServices";
+// import { fetchMoviesFromTMDB } from "./services/fetchmovieServices";
+// import { fetchAndStoreGenres } from "./services/fetchgenresServices";
 // import {seedCinemas} from "./services/seedData"
 import { startCronJobs } from './utils/cronUtils';
 
@@ -22,8 +22,8 @@ app.use(morgan("combined"))
 
 connectDB().then(async () => {
   console.log("Kết nối MongoDB thành công!");
-  await fetchMoviesFromTMDB();
-  await fetchAndStoreGenres();
+  // await fetchMoviesFromTMDB();
+  // await fetchAndStoreGenres();
   // await seedCinemas();
   startCronJobs();
 });

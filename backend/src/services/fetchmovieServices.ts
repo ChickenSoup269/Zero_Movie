@@ -1,6 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { Movie } from "../models/movieModel";
+import {Movie} from "../models/movieModel";
 
 dotenv.config();
 

@@ -1,9 +1,9 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { Genre } from "../models/genresModel";
-import { Movie } from "../models/movieModel";
+import {Genre} from "../models/genresModel";
+import {Movie} from "../models/movieModel";
 
-dotenv.config();
+dotenv.config();  
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_GENRES_URL = "https://api.themoviedb.org/3/genre/movie/list";
