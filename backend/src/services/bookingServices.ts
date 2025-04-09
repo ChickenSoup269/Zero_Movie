@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import Booking, { IBooking } from '../models/bookingModel'; // Import cả IBooking
 import Showtime from '../models/showtimeModel';
 import ShowtimeSeat from '../models/showtimeseatModel';
-import { Movie } from '../models/movieModel';
+import  {Movie} from '../models/movieModel';
 
 export class BookingService {
   static async createBooking(
