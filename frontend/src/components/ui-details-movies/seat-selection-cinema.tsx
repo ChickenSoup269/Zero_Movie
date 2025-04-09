@@ -8,6 +8,7 @@ import SeatPicker from "./seat-picker"
 import PaymentDialog from "./payment-dialog"
 import { PaymentSummary } from "./payment-summary"
 import { format } from "date-fns"
+import CustomDropdown from "@/components/ui-dropdown/custom-dropdown"
 
 interface MovieInfo {
   type: string
@@ -34,7 +35,7 @@ interface TicketData {
   ticketId: string
   selectedRoom: string
   selectedType: string
-  purchaseTime: string // Thời gian mua vé
+  purchaseTime: string
 }
 
 interface SeatSelectionProps {
@@ -58,13 +59,36 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     "single" | "pair" | "triple" | "group4"
   >("single")
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false) // Trạng thái mới để kiểm soát hiển thị Ticket
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false)
 
   const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
 
-  const timeOptions = ["18:00", "20:00", "22:00"]
-  const typeOptions = ["2D", "3D", "IMAX"]
-  const roomOptions = ["C1", "C2", "C3"]
+  const timeOptions = [
+    { value: "18:00", label: "18:00" },
+    { value: "20:00", label: "20:00" },
+    { value: "22:00", label: "22:00" },
+  ]
+  const typeOptions = [
+    { value: "2D", label: "2D" },
+    { value: "3D", label: "3D" },
+    { value: "IMAX", label: "IMAX" },
+  ]
+  const roomOptions = [
+    { value: "C1", label: "C1" },
+    { value: "C2", label: "C2" },
+    { value: "C3", label: "C3" },
+  ]
+  const theaterOptions = theaters.map((theater) => ({
+    value: theater.id.toString(),
+    label: theater.name,
+  }))
+  const modeOptions = [
+    { value: "single", label: "Single" },
+    { value: "pair", label: "Pair (2 seats)" },
+    { value: "triple", label: "Triple (3 seats)" },
+    { value: "group4", label: "Group (4 seats)" },
+  ]
+
   const originalTicketPrice = 15
   const discountedTicketPrice = 10
 
@@ -125,7 +149,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       seatPickerRef.current.markSeatsAsSold()
     }
 
-    // Lưu thông tin vé vào localStorage
     const ticketData: TicketData = {
       theater: selectedTheater,
       movieInfo,
@@ -135,7 +158,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       ticketId,
       selectedRoom,
       selectedType,
-      purchaseTime: new Date().toISOString(), // Thời gian mua vé
+      purchaseTime: new Date().toISOString(),
     }
 
     const existingTickets = JSON.parse(
@@ -146,8 +169,8 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       JSON.stringify([...existingTickets, ticketData])
     )
 
-    setIsPaymentCompleted(true) // Cập nhật trạng thái sau khi thanh toán
-    setIsPaymentOpen(false) // Đóng dialog
+    setIsPaymentCompleted(true)
+    setIsPaymentOpen(false)
   }
 
   const handleSeatsChange = (
@@ -168,151 +191,91 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
-      {/* Dropdowns: Chuyển thành dạng cột trên mobile */}
+      {/* Sử dụng CustomDropdown */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
         <DatePicker
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
         />
 
-        <div className="flex items-center gap-2">
-          <label className="text-gray-400 text-sm sm:text-base">Time:</label>
-          <motion.select
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
-            className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            whileHover={{ scale: 1.05 }}
-          >
-            {timeOptions.map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </motion.select>
-        </div>
+        <CustomDropdown
+          label="Time"
+          value={selectedTime}
+          onChange={setSelectedTime}
+          options={timeOptions}
+          delay={0}
+        />
 
-        <div className="flex items-center gap-2">
-          <label className="text-gray-400 text-sm sm:text-base">Type:</label>
-          <motion.select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            {typeOptions.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </motion.select>
-        </div>
+        <CustomDropdown
+          label="Type"
+          value={selectedType}
+          onChange={setSelectedType}
+          options={typeOptions}
+          delay={0.1}
+        />
 
-        <div className="flex items-center gap-2">
-          <label className="text-gray-400 text-sm sm:text-base">Room:</label>
-          <motion.select
-            value={selectedRoom}
-            onChange={(e) => setSelectedRoom(e.target.value)}
-            className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut", delay: 0.2 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            {roomOptions.map((room) => (
-              <option key={room} value={room}>
-                {room}
-              </option>
-            ))}
-          </motion.select>
-        </div>
+        <CustomDropdown
+          label="Room"
+          value={selectedRoom}
+          onChange={setSelectedRoom}
+          options={roomOptions}
+          delay={0.2}
+        />
 
-        <div className="flex items-center gap-2">
-          <label className="text-gray-400 text-sm sm:text-base">Cinema:</label>
-          <motion.select
-            value={selectedTheater.id}
-            onChange={(e) => {
-              const theater = theaters.find(
-                (t) => t.id === parseInt(e.target.value)
-              )
-              if (theater) setSelectedTheater(theater)
-            }}
-            className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut", delay: 0.3 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            {theaters.map((theater) => (
-              <option key={theater.id} value={theater.id}>
-                {theater.name}
-              </option>
-            ))}
-          </motion.select>
-        </div>
+        <CustomDropdown
+          label="Cinema"
+          value={selectedTheater.id.toString()}
+          onChange={(value) => {
+            const theater = theaters.find((t) => t.id === parseInt(value))
+            if (theater) setSelectedTheater(theater)
+          }}
+          options={theaterOptions}
+          delay={0.3}
+        />
 
-        <div className="flex items-center gap-2">
-          <label className="text-gray-400 text-sm sm:text-base">
-            Select Mode:
-          </label>
-          <motion.select
-            value={selectionMode}
-            onChange={(e) =>
-              setSelectionMode(
-                e.target.value as "single" | "pair" | "triple" | "group4"
-              )
-            }
-            className="bg-gray-700 text-white border-gray-600 rounded px-2 sm:px-3 py-1 text-sm sm:text-base w-full sm:w-auto"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut", delay: 0.4 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <option value="single">Single</option>
-            <option value="pair">Pair (2 seats)</option>
-            <option value="triple">Triple (3 seats)</option>
-            <option value="group4">Group (4 seats)</option>
-          </motion.select>
-        </div>
+        <CustomDropdown
+          label="Select Mode"
+          value={selectionMode}
+          onChange={(value) =>
+            setSelectionMode(value as "single" | "pair" | "triple" | "group4")
+          }
+          options={modeOptions}
+          delay={0.4}
+        />
       </div>
 
-      {/* Chuyển layout thành dạng cột trên mobile */}
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
-          <p className="text-gray-400 text-sm sm:text-base">
-            <span className="mr-1 text-gray-400 font-medium px-3 py-1 rounded-sm inline-block">
-              {" "}
-              {ticketCount} Seats:
-            </span>
-            {selectedSeats.length > 0 ? (
-              selectedSeats.map((seat, index) => {
-                const letterMatch = seat.match(/[A-Za-z]+/)
-                const letter = letterMatch ? letterMatch[0] : ""
-                const numberMatch = seat.match(/\d+/)
-                const number = numberMatch ? numberMatch[0] : ""
-                return (
-                  <span
-                    key={index}
-                    className={`mr-1 text-orange-400 px-3 py-1 rounded-full inline-block ${
-                      seat === "D10" ? "bg-red-600" : "bg-gray-800"
-                    }`}
-                  >
-                    {letter} {number}
-                  </span>
-                )
-              })
-            ) : (
-              <span className="text-orange-400">No seats selected</span>
-            )}
-          </p>
+          <div className="bg-gray-900 p-4 rounded-lg">
+            <p className="text-gray-400 text-sm sm:text-base flex items-center gap-2">
+              <span className="text-orange-500 font-semibold">
+                {ticketCount} / 8 Seats:
+              </span>
+              <span className="text-gray-400">|</span>
+              {selectedSeats.length > 0 ? (
+                selectedSeats.map((seat, index) => {
+                  const letterMatch = seat.match(/[A-Za-z]+/)
+                  const letter = letterMatch ? letterMatch[0] : ""
+                  const numberMatch = seat.match(/\d+/)
+                  const number = numberMatch ? numberMatch[0] : ""
+                  return (
+                    <span
+                      key={index}
+                      className={`text-orange-500 px-3 py-1 rounded-full inline-block mr-2 ${
+                        seat === "D10" ? "bg-red-600" : "bg-gray-800"
+                      }`}
+                    >
+                      {letter} {number}
+                    </span>
+                  )
+                })
+              ) : (
+                <span className="text-orange-500">No seats selected</span>
+              )}
+            </p>
+          </div>
 
-          {/* Hiển thị Ticket nếu thanh toán hoàn tất, nếu không hiển thị card thanh toán */}
           {isPaymentCompleted ? (
             <Ticket
               theater={selectedTheater}

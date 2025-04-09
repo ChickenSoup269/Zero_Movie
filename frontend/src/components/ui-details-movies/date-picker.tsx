@@ -214,7 +214,7 @@ const DatePicker = ({ selectedDate, setSelectedDate }: DatePickerProps) => {
             className="ml-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
           >
             <CalendarIcon className="w-4 h-4 mr-2" />
-            {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick a date"}
+            {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick date"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">

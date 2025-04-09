@@ -4,3 +4,4 @@
 
 # Prevent node_modules from being pushed
 node_modules/
+dist/

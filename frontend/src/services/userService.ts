@@ -1,8 +1,8 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError } from "axios"
 
-const axiosJWT = axios.create();
+const axiosJWT = axios.create()
 
-const API_URL = process.env.API_URL;
+const API_URL = process.env.API_URL
 
 export const getUserProfile = async (access_token: string) => {
   try {
@@ -10,14 +10,14 @@ export const getUserProfile = async (access_token: string) => {
       headers: {
         token: `Bearer ${access_token}`,
       },
-    });
-    return res.data;
+    })
+    return res.data
   } catch (error) {
     // Ép kiểu error thành AxiosError
-    const axiosError = error as AxiosError;
-    throw axiosError.response ? axiosError.response.data : axiosError;
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
   }
-};
+}
 
 export const updateUserProfile = async (
   access_token: string,
@@ -28,16 +28,16 @@ export const updateUserProfile = async (
       headers: {
         token: `Bearer ${access_token}`,
       },
-    });
+    })
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message);
+      throw new Error(res.data.message)
     }
-    return res.data;
+    return res.data
   } catch (error) {
-    const axiosError = error as AxiosError;
-    throw axiosError.response ? axiosError.response.data : axiosError;
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
   }
-};
+}
 
 export const deleteUserService = async (id: string, access_token: string) => {
   try {
@@ -45,16 +45,16 @@ export const deleteUserService = async (id: string, access_token: string) => {
       headers: {
         token: `Bearer ${access_token}`,
       },
-    });
+    })
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message);
+      throw new Error(res.data.message)
     }
-    return res.data;
+    return res.data
   } catch (error) {
-    const axiosError = error as AxiosError;
-    throw axiosError.response ? axiosError.response.data : axiosError;
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
   }
-};
+}
 
 export const getAllUsers = async (access_token: string) => {
   try {
@@ -62,13 +62,13 @@ export const getAllUsers = async (access_token: string) => {
       headers: {
         token: `Bearer ${access_token}`,
       },
-    });
-    return res.data;
+    })
+    return res.data
   } catch (error) {
-    const axiosError = error as AxiosError;
-    throw axiosError.response ? axiosError.response.data : axiosError;
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
   }
-};
+}
 
 export const searchUsers = async (access_token: string, query: string) => {
   try {
@@ -79,10 +79,10 @@ export const searchUsers = async (access_token: string, query: string) => {
           token: `Bearer ${access_token}`,
         },
       }
-    );
-    return res.data;
+    )
+    return res.data
   } catch (error) {
-    const axiosError = error as AxiosError;
-    throw axiosError.response ? axiosError.response.data : axiosError;
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
   }
-};
+}
