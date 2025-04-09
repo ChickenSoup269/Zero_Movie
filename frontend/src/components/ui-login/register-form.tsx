@@ -456,6 +456,43 @@ const RegisterForm = ({
             >
               <CardContent className="space-y-4">
                 <motion.div variants={childVariants} className="space-y-1">
+                  <Label htmlFor="email" className="text-black">
+                    Email
+                  </Label>
+                  <Tooltip open={showEmailTooltip}>
+                    <TooltipTrigger asChild>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder={
+                          isSubmitted && errors.email && !registerData.email
+                            ? errors.email
+                            : "Enter your email"
+                        }
+                        value={registerData.email}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        className={`border ${
+                          isSubmitted && errors.email
+                            ? "border-red-500 placeholder:text-red-500"
+                            : touched.email && registerData.email
+                            ? "border-green-500"
+                            : "border-gray-300"
+                        } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
+                      />
+                    </TooltipTrigger>
+                    {isSubmitted &&
+                      errors.email &&
+                      registerData.email &&
+                      errors.email !== "This field cannot be empty." && (
+                        <TooltipContent side="bottom">
+                          <p className="text-red-500 text-xs">{errors.email}</p>
+                        </TooltipContent>
+                      )}
+                  </Tooltip>
+                </motion.div>
+                <motion.div variants={childVariants} className="space-y-1">
                   <Label htmlFor="fullName" className="text-black">
                     Full Name
                   </Label>
@@ -492,43 +529,6 @@ const RegisterForm = ({
                           <p className="text-red-500 text-xs">
                             {errors.fullName}
                           </p>
-                        </TooltipContent>
-                      )}
-                  </Tooltip>
-                </motion.div>
-                <motion.div variants={childVariants} className="space-y-1">
-                  <Label htmlFor="email" className="text-black">
-                    Email
-                  </Label>
-                  <Tooltip open={showEmailTooltip}>
-                    <TooltipTrigger asChild>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder={
-                          isSubmitted && errors.email && !registerData.email
-                            ? errors.email
-                            : "Enter your email"
-                        }
-                        value={registerData.email}
-                        onChange={handleInputChange}
-                        onInput={handleInput}
-                        className={`border ${
-                          isSubmitted && errors.email
-                            ? "border-red-500 placeholder:text-red-500"
-                            : touched.email && registerData.email
-                            ? "border-green-500"
-                            : "border-gray-300"
-                        } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
-                      />
-                    </TooltipTrigger>
-                    {isSubmitted &&
-                      errors.email &&
-                      registerData.email &&
-                      errors.email !== "This field cannot be empty." && (
-                        <TooltipContent side="bottom">
-                          <p className="text-red-500 text-xs">{errors.email}</p>
                         </TooltipContent>
                       )}
                   </Tooltip>

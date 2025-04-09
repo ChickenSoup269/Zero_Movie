@@ -18,8 +18,8 @@ import Image from "next/image"
 import { useState, useEffect } from "react"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
-import { useRouter } from "next/navigation" // Thêm useRouter để chuyển hướng
-import { login } from "@/services/authService" // Import hàm login từ file API (thay đường dẫn theo đúng cấu trúc dự án của bạn)
+import { useRouter } from "next/navigation"
+import { login } from "@/services/authService"
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -74,14 +74,10 @@ const LoginForm = ({
   })
 
   useEffect(() => {
-    const savedLogin = localStorage.getItem("rememberedLogin")
-    if (savedLogin) {
-      const { email, password } = JSON.parse(savedLogin)
+    const savedEmail = localStorage.getItem("rememberedEmail")
+    if (savedEmail) {
       handleLoginChange({
-        target: { name: "email", value: email },
-      } as React.ChangeEvent<HTMLInputElement>)
-      handleLoginChange({
-        target: { name: "password", value: password },
+        target: { name: "email", value: savedEmail },
       } as React.ChangeEvent<HTMLInputElement>)
       setRememberMe(true)
     }
@@ -89,25 +85,21 @@ const LoginForm = ({
 
   const handleSubmitWithRemember = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (rememberMe) {
-      localStorage.setItem(
-        "rememberedLogin",
-        JSON.stringify({ email: loginData.email, password: loginData.password })
-      )
+      // Chỉ lưu email, không lưu mật khẩu
+      localStorage.setItem("rememberedEmail", loginData.email)
     } else {
-      localStorage.removeItem("rememberedLogin")
+      localStorage.removeItem("rememberedEmail")
     }
 
-    setIsLoading(true) // Bật trạng thái loading
+    setIsLoading(true)
     try {
-      // Gọi API đăng nhập
       const response = await login({
         email: loginData.email,
         password: loginData.password,
       })
-      console.log("Login successful! API Response:", response)
 
-      // Lưu access_token và refresh_token (nếu API trả về)
       if (response.access_token) {
         localStorage.setItem("access_token", response.access_token)
       }
@@ -115,14 +107,9 @@ const LoginForm = ({
         localStorage.setItem("refresh_token", response.refresh_token)
       }
 
-      // Hiển thị toast thành công
       successLoginToast.showToast()
-
-      // Gọi hàm submit gốc để xử lý logic tiếp theo (nếu có)
       handleLoginSubmit(e)
-
-      // Chuyển hướng đến trang dashboard
-      router.push("/dashboard")
+      router.push("/")
     } catch (error: any) {
       console.error("Login failed:", error)
       errorLoginToast.showToast({
@@ -130,7 +117,7 @@ const LoginForm = ({
           error.message || "Invalid email or password. Please try again.",
       })
     } finally {
-      setIsLoading(false) // Tắt trạng thái loading
+      setIsLoading(false)
     }
   }
 
