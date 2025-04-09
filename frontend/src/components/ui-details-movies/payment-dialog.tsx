@@ -1,36 +1,35 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { CreditCard, Lock, QrCode } from "lucide-react"
-import { QRCodeSVG } from "qrcode.react"
-import Image from "next/image"
-
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CreditCard, Lock, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import Image from "next/image";
 interface PaymentDialogProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   onConfirm: (
     method: string,
     cardDetails?: {
-      holderName: string
-      cardNumber: string
-      expiry: string
-      cvv: string
+      holderName: string;
+      cardNumber: string;
+      expiry: string;
+      cvv: string;
     }
-  ) => void
-  originalPrice: number
-  savings: number
-  totalAmount: number
+  ) => void;
+  originalPrice: number;
+  savings: number;
+  totalAmount: number;
 }
 
 const PaymentDialog = ({
@@ -43,69 +42,69 @@ const PaymentDialog = ({
 }: PaymentDialogProps) => {
   const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card">(
     "paypal"
-  )
-  const [showQR, setShowQR] = useState(false)
-  const [holderName, setHolderName] = useState("")
-  const [cardNumber, setCardNumber] = useState("")
-  const [expiry, setExpiry] = useState("")
-  const [cvv, setCvv] = useState("")
+  );
+  const [showQR, setShowQR] = useState(false);
+  const [holderName, setHolderName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
 
   // Tạo mã QR ngẫu nhiên (dựa trên timestamp và một số ngẫu nhiên)
   const generateQRData = () => {
-    const timestamp = Date.now()
-    const randomNum = Math.floor(Math.random() * 1000000)
-    return `payment:${timestamp}:${randomNum}:${totalAmount}`
-  }
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000000);
+    return `payment:${timestamp}:${randomNum}:${totalAmount}`;
+  };
 
   const handleConfirm = () => {
     if (paymentMethod === "card") {
       if (!holderName || !cardNumber || !expiry || !cvv) {
-        alert("Please fill in all card details!")
-        return
+        alert("Please fill in all card details!");
+        return;
       }
-      onConfirm("card", { holderName, cardNumber, expiry, cvv })
+      onConfirm("card", { holderName, cardNumber, expiry, cvv });
     } else {
-      onConfirm(paymentMethod)
+      onConfirm(paymentMethod);
     }
-    onClose()
-  }
+    onClose();
+  };
 
   const formatCardNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
+    const cleaned = value.replace(/\D/g, "");
     const formatted = cleaned
       .replace(/(\d{4})/g, "$1 ")
       .trim()
-      .slice(0, 19)
-    return formatted
-  }
+      .slice(0, 19);
+    return formatted;
+  };
 
   const formatExpiry = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
+    const cleaned = value.replace(/\D/g, "");
     const formatted = cleaned
       .replace(/(\d{2})(\d{0,2})/, "$1/$2")
       .trim()
-      .slice(0, 5)
-    return formatted
-  }
+      .slice(0, 5);
+    return formatted;
+  };
 
   const formatCvv = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    return cleaned.slice(0, 3)
-  }
+    const cleaned = value.replace(/\D/g, "");
+    return cleaned.slice(0, 3);
+  };
 
   // Variants cho form và QR Code
   const contentVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -20 },
-  }
+  };
 
   // Variants cho icon
   const iconVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.8 },
-  }
+  };
 
   // Variants cho dialog (hiệu ứng Windows 11)
   const dialogVariants = {
@@ -128,7 +127,7 @@ const PaymentDialog = ({
         ease: "easeIn", // Đường cong mượt mà khi đóng
       },
     },
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -150,8 +149,8 @@ const PaymentDialog = ({
                 {/* PayPal Button */}
                 <Button
                   onClick={() => {
-                    setPaymentMethod("paypal")
-                    setShowQR(false)
+                    setPaymentMethod("paypal");
+                    setShowQR(false);
                   }}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "paypal" && !showQR
@@ -200,8 +199,8 @@ const PaymentDialog = ({
                 {/* Card Payment Option */}
                 <Button
                   onClick={() => {
-                    setPaymentMethod("card")
-                    setShowQR(false)
+                    setPaymentMethod("card");
+                    setShowQR(false);
                   }}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "card" && !showQR
@@ -341,7 +340,7 @@ const PaymentDialog = ({
         )}
       </AnimatePresence>
     </Dialog>
-  )
-}
+  );
+};
 
-export default PaymentDialog
+export default PaymentDialog;
