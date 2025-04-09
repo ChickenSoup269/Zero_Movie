@@ -26,10 +26,8 @@ import emailjs from "@emailjs/browser"
 import { EMAILJS_PUBLIC_KEY } from "@/api/key"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
-import axios, { AxiosError } from "axios"
-
-const axiosJWT = axios.create()
-const API_URL = process.env.API_URL
+import { useRouter } from "next/navigation"
+import { register } from "@/services/authService" // Import hàm register từ file API (thay đường dẫn theo đúng cấu trúc dự án của bạn)
 
 const tabVariantsRight = {
   hidden: { opacity: 0, x: 40 },
@@ -52,6 +50,7 @@ interface RegisterFormProps {
     username: string
     password: string
     confirmPassword: string
+    fullName?: string // Thêm fullName vào registerData
   }
   handleRegisterChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleRegisterSubmit: (e: React.FormEvent) => void
@@ -59,24 +58,6 @@ interface RegisterFormProps {
   setShowRegisterPassword: (value: boolean) => void
   showConfirmPassword: boolean
   setShowConfirmPassword: (value: boolean) => void
-}
-
-// Hàm gọi API đăng ký
-const registerUser = async (data: {
-  email: string
-  username: string
-  password: string
-}) => {
-  try {
-    const res = await axiosJWT.post(`${API_URL}/user/register`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
-    }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
 }
 
 const RegisterForm = ({
@@ -93,6 +74,7 @@ const RegisterForm = ({
     username: "",
     password: "",
     confirmPassword: "",
+    fullName: "", // Thêm lỗi cho fullName
     terms: "",
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -101,17 +83,22 @@ const RegisterForm = ({
     username: false,
     password: false,
     confirmPassword: false,
+    fullName: false, // Thêm touched cho fullName
   })
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
   const [showUsernameTooltip, setShowUsernameTooltip] = useState(false)
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false)
   const [showConfirmPasswordTooltip, setShowConfirmPasswordTooltip] =
     useState(false)
+  const [showFullNameTooltip, setShowFullNameTooltip] = useState(false) // Thêm tooltip cho fullName
   const [openOTPDialog, setOpenOTPDialog] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [generatedOtp, setGeneratedOtp] = useState("")
   const [otpExpiry, setOtpExpiry] = useState<number | null>(null)
   const [countdown, setCountdown] = useState(90)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const router = useRouter()
 
   useEffect(() => {
     emailjs.init(EMAILJS_PUBLIC_KEY)
@@ -210,6 +197,7 @@ const RegisterForm = ({
       username: "",
       password: "",
       confirmPassword: "",
+      fullName: "",
       terms: "",
     }
 
@@ -239,6 +227,12 @@ const RegisterForm = ({
       newErrors.confirmPassword = "This field cannot be empty."
     } else if (registerData.confirmPassword !== registerData.password) {
       newErrors.confirmPassword = "Passwords do not match."
+    }
+
+    if (!registerData.fullName) {
+      newErrors.fullName = "This field cannot be empty."
+    } else if (registerData.fullName.length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters."
     }
 
     if (!termsAgreed) {
@@ -341,16 +335,31 @@ const RegisterForm = ({
     } else {
       setShowConfirmPasswordTooltip(false)
     }
+
+    if (
+      isSubmitted &&
+      errors.fullName &&
+      registerData.fullName &&
+      errors.fullName !== "This field cannot be empty."
+    ) {
+      setShowFullNameTooltip(true)
+      const timer = setTimeout(() => setShowFullNameTooltip(false), 3000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowFullNameTooltip(false)
+    }
   }, [
     isSubmitted,
     errors.email,
     errors.username,
     errors.password,
     errors.confirmPassword,
+    errors.fullName,
     registerData.email,
     registerData.username,
     registerData.password,
     registerData.confirmPassword,
+    registerData.fullName,
   ])
 
   const handleOTPSubmit = async (otp: string) => {
@@ -361,17 +370,28 @@ const RegisterForm = ({
       return
     }
     if (otp === generatedOtp) {
+      setIsLoading(true)
       try {
         // Gọi API đăng ký
-        const response = await registerUser({
+        const response = await register({
           email: registerData.email,
           username: registerData.username,
           password: registerData.password,
+          fullName: registerData.fullName || "", // Đảm bảo fullName không undefined
         })
         console.log("Registration successful! API Response:", response)
+
+        // Lưu access_token nếu API trả về
+        if (response.access_token) {
+          localStorage.setItem("access_token", response.access_token)
+        }
+
         successRegisterToast.showToast()
         setOpenOTPDialog(false)
         handleRegisterSubmit({ preventDefault: () => {} } as React.FormEvent)
+
+        // Chuyển hướng đến trang đăng nhập
+        router.push("/login")
       } catch (error: any) {
         console.error("Registration failed:", error)
         errorRegisterToast.showToast({
@@ -379,7 +399,8 @@ const RegisterForm = ({
             error.message ||
             "An error occurred during registration. Please try again.",
         })
-        // Không đóng dialog, để người dùng thử lại nếu cần
+      } finally {
+        setIsLoading(false)
       }
     } else {
       errorToast.showToast({
@@ -434,6 +455,47 @@ const RegisterForm = ({
               animate="visible"
             >
               <CardContent className="space-y-4">
+                <motion.div variants={childVariants} className="space-y-1">
+                  <Label htmlFor="fullName" className="text-black">
+                    Full Name
+                  </Label>
+                  <Tooltip open={showFullNameTooltip}>
+                    <TooltipTrigger asChild>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        type="text"
+                        placeholder={
+                          isSubmitted &&
+                          errors.fullName &&
+                          !registerData.fullName
+                            ? errors.fullName
+                            : "Enter your full name"
+                        }
+                        value={registerData.fullName || ""}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        className={`border ${
+                          isSubmitted && errors.fullName
+                            ? "border-red-500 placeholder:text-red-500"
+                            : touched.fullName && registerData.fullName
+                            ? "border-green-500"
+                            : "border-gray-300"
+                        } text-black bg-white placeholder-gray-400 transition-all duration-300 rounded-md focus:ring-0 focus:border-gray-500`}
+                      />
+                    </TooltipTrigger>
+                    {isSubmitted &&
+                      errors.fullName &&
+                      registerData.fullName &&
+                      errors.fullName !== "This field cannot be empty." && (
+                        <TooltipContent side="bottom">
+                          <p className="text-red-500 text-xs">
+                            {errors.fullName}
+                          </p>
+                        </TooltipContent>
+                      )}
+                  </Tooltip>
+                </motion.div>
                 <motion.div variants={childVariants} className="space-y-1">
                   <Label htmlFor="email" className="text-black">
                     Email
@@ -622,8 +684,9 @@ const RegisterForm = ({
                 <Button
                   type="submit"
                   className="btn-signIU w-full text-white hover:bg-gray-800"
+                  disabled={isLoading}
                 >
-                  Sign Up
+                  {isLoading ? "Signing Up..." : "Sign Up"}
                 </Button>
               </CardFooter>
             </motion.div>

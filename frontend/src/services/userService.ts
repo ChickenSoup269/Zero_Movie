@@ -2,7 +2,11 @@ import axios, { AxiosError } from "axios"
 
 const axiosJWT = axios.create()
 
-const API_URL = process.env.API_URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
+}
 
 export const getUserProfile = async (access_token: string) => {
   try {

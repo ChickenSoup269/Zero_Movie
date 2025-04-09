@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react/jsx-no-duplicate-props */
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 

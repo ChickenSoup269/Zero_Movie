@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from "framer-motion"
 import {
@@ -15,12 +16,10 @@ import PasswordInput from "./password-input"
 import ForgotPasswordDialog from "./forgot-password-dialog"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import axios, { AxiosError } from "axios"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
-
-const axiosJWT = axios.create()
-const API_URL = process.env.API_URL
+import { useRouter } from "next/navigation" // Thêm useRouter để chuyển hướng
+import { login } from "@/services/authService" // Import hàm login từ file API (thay đường dẫn theo đúng cấu trúc dự án của bạn)
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -47,20 +46,6 @@ interface LoginFormProps {
   setOpenDialog: (value: boolean) => void
 }
 
-// Hàm gọi API đăng nhập
-const loginUser = async (data: { email: string; password: string }) => {
-  try {
-    const res = await axiosJWT.post(`${API_URL}/user/login`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
-    }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
-}
-
 const LoginForm = ({
   loginData,
   handleLoginChange,
@@ -71,6 +56,9 @@ const LoginForm = ({
   setOpenDialog,
 }: LoginFormProps) => {
   const [rememberMe, setRememberMe] = useState(false)
+  const [isLoading, setIsLoading] = useState(false) // Thêm trạng thái loading
+
+  const router = useRouter() // Khởi tạo router để chuyển hướng
 
   // Toast thông báo
   const successLoginToast = SuccessToast({
@@ -97,7 +85,7 @@ const LoginForm = ({
       } as React.ChangeEvent<HTMLInputElement>)
       setRememberMe(true)
     }
-  }, [handleLoginChange])
+  }, [])
 
   const handleSubmitWithRemember = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,17 +98,21 @@ const LoginForm = ({
       localStorage.removeItem("rememberedLogin")
     }
 
+    setIsLoading(true) // Bật trạng thái loading
     try {
       // Gọi API đăng nhập
-      const response = await loginUser({
+      const response = await login({
         email: loginData.email,
         password: loginData.password,
       })
       console.log("Login successful! API Response:", response)
 
-      // Lưu token vào localStorage (giả định API trả về access_token)
+      // Lưu access_token và refresh_token (nếu API trả về)
       if (response.access_token) {
         localStorage.setItem("access_token", response.access_token)
+      }
+      if (response.refresh_token) {
+        localStorage.setItem("refresh_token", response.refresh_token)
       }
 
       // Hiển thị toast thành công
@@ -128,12 +120,17 @@ const LoginForm = ({
 
       // Gọi hàm submit gốc để xử lý logic tiếp theo (nếu có)
       handleLoginSubmit(e)
+
+      // Chuyển hướng đến trang dashboard
+      router.push("/dashboard")
     } catch (error: any) {
       console.error("Login failed:", error)
       errorLoginToast.showToast({
         description:
           error.message || "Invalid email or password. Please try again.",
       })
+    } finally {
+      setIsLoading(false) // Tắt trạng thái loading
     }
   }
 
@@ -237,8 +234,12 @@ const LoginForm = ({
         </motion.div>
         <motion.div variants={childVariants}>
           <CardFooter>
-            <Button type="submit" className="btn-signIU w-full text-white">
-              Sign In
+            <Button
+              type="submit"
+              className="btn-signIU w-full text-white"
+              disabled={isLoading} // Vô hiệu hóa nút khi đang loading
+            >
+              {isLoading ? "Signing In..." : "Sign In"}
             </Button>
           </CardFooter>
         </motion.div>
