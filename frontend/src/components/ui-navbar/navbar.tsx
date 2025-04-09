@@ -18,6 +18,18 @@ import {
 } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import Ticket from "@/components/ui-details-movies/ticket" // Thay đường dẫn này bằng đường dẫn thực tế đến component Ticket
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useUser } from "@/hooks/use-user"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface NavItem {
   href: string
@@ -44,6 +56,7 @@ export default function Navbar() {
   const [cartItems, setCartItems] = useState<TicketData[]>([])
 
   const pathname = usePathname()
+  const { user, isLoggedIn, loading, logout } = useUser()
 
   const navItems: NavItem[] = [
     { href: "/", label: "home" },
@@ -200,11 +213,60 @@ export default function Navbar() {
             </motion.div>
           </div>
 
-          <Link href="/login">
-            <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
-              Sign in
-            </Button>
-          </Link>
+          {loading ? (
+            <Skeleton className="h-8 w-8 rounded-full" />
+          ) : isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={user?.avatar || "/default-avatar.png"}
+                      alt={user?.name || "User"}
+                    />
+                    <AvatarFallback className="bg-[#4599e3] text-white">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email || "No email"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/orders">My Tickets</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/login">
+              <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
+                Sign in
+              </Button>
+            </Link>
+          )}
         </div>
 
         <AnimatePresence>
