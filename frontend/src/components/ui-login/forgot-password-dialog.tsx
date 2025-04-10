@@ -23,7 +23,11 @@ import {
 } from "@/components/ui/input-otp"
 import { useState, useEffect } from "react"
 import emailjs from "@emailjs/browser"
-import { EMAILJS_PUBLIC_KEY } from "@/api/key"
+import {
+  EMAILJS_PUBLIC_KEY,
+  EMAILJS_SERVICE_ID,
+  EMAILJS_TEMPLATE_PASSWORD_ID,
+} from "@/api/key"
 import PasswordInput from "./password-input"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
@@ -160,8 +164,8 @@ const ForgotPasswordDialog = ({
 
     try {
       const response = await emailjs.send(
-        "service_rcd6nxv",
-        "template_3ptxgn1",
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_PASSWORD_ID,
         templateParams,
         EMAILJS_PUBLIC_KEY
       )
