@@ -37,20 +37,16 @@ export class UserService {
   }
 
   // Cập nhật thông tin hồ sơ người dùng
-  static async updateUserProfile(
-    userId: string,
-    updateData: {
-      username?: string
-      email?: string
-      fullName?: string
-      avatar?: string
-      backgroundImage?: string
-    }
-  ) {
+  static async updateUserProfile(userId: string, formData: FormData) {
     try {
       const res = await axiosJWT.put(
         `${API_URL}/users/profile/${userId}`,
-        updateData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data", // Ensure the correct Content-Type
+          },
+        }
       )
       if (res.data.status === "ERR") {
         throw new Error(res.data.message)

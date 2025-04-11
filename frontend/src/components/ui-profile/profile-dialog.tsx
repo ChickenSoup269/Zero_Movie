@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button"
 import { UserService } from "@/services/userService"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
-import { Camera, Key } from "lucide-react" // Thêm icon Key
-import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog" // Import ForgotPasswordDialog
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
+import { Camera, Key } from "lucide-react"
 
 interface ProfileDialogProps {
   open: boolean
@@ -45,7 +46,7 @@ export default function ProfileDialog({
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isForgotPasswordDialogOpen, setIsForgotPasswordDialogOpen] =
-    useState(false) // State để mở ForgotPasswordDialog
+    useState(false)
 
   const errorToast = ErrorToast({
     title: "Error",
@@ -101,6 +102,8 @@ export default function ProfileDialog({
       const formDataToSend = new FormData()
       formDataToSend.append("fullName", formData.fullName)
       formDataToSend.append("username", formData.username)
+
+      // Chỉ append file nếu có thay đổi
       if (avatarFile) {
         formDataToSend.append("avatar", avatarFile)
       }
@@ -108,10 +111,12 @@ export default function ProfileDialog({
         formDataToSend.append("backgroundImage", backgroundFile)
       }
 
+      // Gửi cả FormData thay vì object thông thường
       const response = await UserService.updateUserProfile(
         user.id,
-        formDataToSend // Sửa lại để gửi FormData trực tiếp
+        formDataToSend // Sửa lại thành formDataToSend
       )
+
       onProfileUpdate(response.data)
       successToast.showToast()
       onOpenChange(false)
@@ -127,79 +132,70 @@ export default function ProfileDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] w-[90%]">
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              {/* Background Image */}
-              <div className="relative h-32 w-full rounded-lg overflow-hidden">
-                {formData.backgroundImage ? (
-                  <Image
-                    src={formData.backgroundImage}
-                    alt="Background"
-                    layout="fill"
-                    objectFit="cover"
-                    className="brightness-75"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">No Background</span>
-                  </div>
-                )}
-                <label
-                  htmlFor="background-upload"
-                  className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/20 transition-colors"
-                >
-                  <Camera className="h-6 w-6 text-white" />
-                  <input
-                    id="background-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleBackgroundChange}
-                  />
-                </label>
-              </div>
+        <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
+          <DialogHeader className="relative">
+            {/* Background Image với margin 5px */}
+            <div className="relative h-40 w-full">
+              {formData.backgroundImage ? (
+                <Image
+                  src={formData.backgroundImage}
+                  alt="Background"
+                  layout="fill"
+                  objectFit="cover" // Giữ nguyên tỷ lệ, co lại để vừa khung
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-black dark:border-white">
+                  <span className="text-black dark:text-white font-mono text-lg">
+                    No Background
+                  </span>
+                </div>
+              )}
+              <label
+                htmlFor="background-upload"
+                className="absolute bottom-2 right-2 p-1.5 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors"
+              >
+                <Camera className="h-4 w-4 text-white" />
+                <input
+                  id="background-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBackgroundChange}
+                />
+              </label>
+            </div>
 
-              {/* Avatar */}
-              <div className="relative -mt-16 mx-auto h-24 w-24 rounded-full border-4 border-white">
+            {/* Điều chỉnh vị trí avatar để phù hợp với margin mới */}
+            <div className="absolute left-6 top-24 h-24 w-24 group">
+              {" "}
+              {/* Thêm class group */}
+              <div className="relative h-full w-full rounded-full border-2 border-white overflow-hidden shadow-lg dark:shadow-gray-500/90">
                 {formData.avatar ? (
-                  <>
-                    <Image
-                      src={formData.avatar}
-                      alt={formData.fullName || "User"}
-                      width={96}
-                      height={96}
-                      className="absolute rounded-full blur-md opacity-80 scale-110"
-                      style={{ filter: "brightness(1.2)" }}
-                    />
-                    <Image
-                      src={formData.avatar}
-                      alt={formData.fullName || "User"}
-                      width={96}
-                      height={96}
-                      className="relative rounded-full"
-                    />
-                  </>
+                  <Image
+                    src={formData.avatar}
+                    alt={formData.fullName || "User"}
+                    fill
+                    sizes="96px"
+                    style={{
+                      objectFit: "cover", // Nên dùng cover thay vì contain để đẹp hơn
+                      objectPosition: "center",
+                    }}
+                    className="rounded-full transition-opacity group-hover:opacity-75 " /* Thêm hiệu ứng khi hover */
+                  />
                 ) : (
-                  <Avatar className="h-24 w-24">
-                    <AvatarFallback
-                      className="bg-[#4599e3] text-white text-2xl"
-                      style={{
-                        filter: "drop-shadow(0 0 8px rgba(69, 153, 227, 0.8))",
-                      }}
-                    >
+                  <Avatar className="h-full w-full">
+                    <AvatarFallback className="bg-[#4599e3] text-white text-2xl">
                       {formData.fullName?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 )}
                 <label
                   htmlFor="avatar-upload"
-                  className="absolute inset-0 flex items-center justify-center rounded-full cursor-pointer hover:bg-black/20 transition-colors"
+                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/30 rounded-full"
                 >
-                  <Camera className="h-6 w-6 text-white" />
+                  <div className="p-2 bg-black/50 rounded-full">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
                   <input
                     id="avatar-upload"
                     type="file"
@@ -209,66 +205,85 @@ export default function ProfileDialog({
                   />
                 </label>
               </div>
+            </div>
 
-              {/* Form Fields */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    placeholder="Enter your username"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email (Cannot be changed)</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="email"
-                      name="email"
-                      value={userProfile?.email || user?.email || "No email"}
-                      disabled
-                      className="bg-gray-100"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsForgotPasswordDialogOpen(true)}
-                      className="flex items-center space-x-1"
-                    >
-                      <Key className="h-4 w-4" />
-                      <span>Reset Password</span>
-                    </Button>
+            <DialogTitle className="pt-16 px-6">Edit Profile</DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="profile" className="w-full px-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="tickets">Tickets</TabsTrigger>
+              <TabsTrigger value="movies">Movies</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile">
+              <form onSubmit={handleSubmit} className="px-6 pb-6">
+                <div className="space-y-4">
+                  {/* Form Fields */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder="Enter your username"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email (Cannot be changed)</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="email"
+                          name="email"
+                          value={
+                            userProfile?.email || user?.email || "No email"
+                          }
+                          disabled
+                          className="bg-gray-100 dark:bg-gray-700"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsForgotPasswordDialogOpen(true)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Key className="h-4 w-4" />
+                          <span>Reset Password</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <DialogFooter className="mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save"}
-              </Button>
-            </DialogFooter>
-          </form>
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Saving..." : "Save"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
