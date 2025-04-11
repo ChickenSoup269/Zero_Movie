@@ -81,3 +81,57 @@ export const createGuestSession = async () => {
     throw axiosError.response ? axiosError.response.data : axiosError
   }
 }
+
+export const sendOtp = async (email: string) => {
+  try {
+    const res = await axiosJWT.post(`${API_URL}/auth/forgot-password`, {
+      email,
+    })
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    if (axiosError.response) {
+      throw new Error(
+        (axiosError.response.data as { message: string }).message ||
+          "Lỗi không xác định từ server"
+      )
+    } else if (axiosError.request) {
+      throw new Error(
+        "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc backend."
+      )
+    } else {
+      throw new Error(axiosError.message || "Lỗi không xác định")
+    }
+  }
+}
+
+export const resetPassword = async (data: {
+  email: string
+  otp: string
+  newPassword: string
+}) => {
+  try {
+    const res = await axiosJWT.post(`${API_URL}/auth/reset-password`, data)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    if (axiosError.response) {
+      throw new Error(
+        (axiosError.response.data as { message: string }).message ||
+          "Lỗi không xác định từ server"
+      )
+    } else if (axiosError.request) {
+      throw new Error(
+        "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc backend."
+      )
+    } else {
+      throw new Error(axiosError.message || "Lỗi không xác định")
+    }
+  }
+}

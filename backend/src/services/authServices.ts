@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import User from '../models/userModel';
 import Session from '../models/Auth/sessionModel';
 import GuestSession from '../models/Auth/guestsessionModel';
+import nodemailer from 'nodemailer';
 
 export class AuthService {
   static async register({ username, email, password, fullName }: {
@@ -84,5 +85,54 @@ export class AuthService {
     });
 
     return { guestSessionId, expiresAt };
+  }
+  static async forgotPassword(email: string) {
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('Không tìm thấy email này');
+
+    // Tạo mã ngẫu nhiên 6 chữ số
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Hết hạn sau 10 phút
+
+    // Lưu mã và thời gian hết hạn vào user
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpires = expiresAt;
+    await user.save();
+
+    // Gửi email bằng nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Mã đặt lại mật khẩu',
+      text: `Mã đặt lại mật khẩu của bạn là: ${resetCode}. Mã này hết hạn sau 10 phút.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return { message: 'Mã đặt lại mật khẩu đã được gửi tới email của bạn' };
+  }
+  static async resetPassword(code: string, newPassword: string) {
+    const user = await User.findOne({
+      resetPasswordCode: code,
+      resetPasswordExpires: { $gt: new Date() }, // Mã chưa hết hạn
+    });
+
+    if (!user) throw new Error('Mã không hợp lệ hoặc đã hết hạn');
+
+    // Cập nhật mật khẩu mới
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordCode = undefined; // Xóa mã
+    user.resetPasswordExpires = undefined; // Xóa thời gian hết hạn
+    await user.save();
+
+    return { message: 'Đặt lại mật khẩu thành công' };
   }
 }

@@ -7,14 +7,22 @@ export class UserService {
     return user;
   }
 
-  static async updateUserProfile(userId: string, { username, email, fullName }: {
+  static async updateUserProfile(userId: string, updateData: {
     username?: string;
     email?: string;
     fullName?: string;
+    avatar?: string;          
+    backgroundImage?: string; 
   }) {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { username, email, fullName },
+      { 
+        username: updateData.username,
+        email: updateData.email,
+        fullName: updateData.fullName,
+        avatar: updateData.avatar,
+        backgroundImage: updateData.backgroundImage,
+      },
       { new: true, runValidators: true }
     ).select('-password');
     if (!updatedUser) throw new Error('Không tìm thấy người dùng để cập nhật');
