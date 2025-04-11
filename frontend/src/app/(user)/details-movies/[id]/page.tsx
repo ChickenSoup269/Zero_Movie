@@ -1,17 +1,34 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { moviesData } from "@/data/moviesData"
-import { theatersData } from "@/data/theatersData"
+import { theatersData } from "@/data/theatersData" // Assuming this remains static
 import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
+import { getMovieById } from "@/services/movieService" // Import the API function
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>
+}
+
+// Define interfaces for type safety
+interface Movie {
+  id: number
+  tmdbId: number
+  title: string
+  image: string
+  poster: string
+  genre: string
+  rating: number
+  ageRating: string
+  duration: string
+  description: string
+  director?: string
+  writers?: string[]
+  starring?: string
 }
 
 interface Theater {
@@ -28,30 +45,66 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const unwrappedParams = React.use(params)
   const movieId = unwrappedParams.id
 
-  const movie = moviesData.find((m) => m.id === parseInt(movieId))
+  // State for movie data, loading, and error
+  const [movie, setMovie] = useState<Movie | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!movie) {
-    notFound()
-  }
+  // State for theaters and popups
+  const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false)
+  const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
 
-  // Kiểm tra theatersData
+  // Fetch movie data when component mounts
+  useEffect(() => {
+    const fetchMovie = async () => {
+      try {
+        setLoading(true)
+        const movieData = await getMovieById(parseInt(movieId))
+        setMovie(movieData)
+        setLoading(false)
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch movie details")
+        setLoading(false)
+        notFound() // Trigger Next.js 404 if movie not found
+      }
+    }
+
+    fetchMovie()
+  }, [movieId])
+
+  // Handle theaters data
   if (!theatersData || theatersData.length === 0) {
     return <div>Error: No theaters available</div>
   }
 
-  // Cập nhật theatersData với tiền tố "CGV"
+  // Update theatersData with "CGV" prefix
   const updatedTheatersData: Theater[] = theatersData.map((theater) => ({
     ...theater,
     name: `CGV ${theater.name}`,
   }))
 
-  const genres = movie.genre.split(", ")
-  const [selectedTheater, setSelectedTheater] = useState<Theater>(
-    updatedTheatersData[0]
-  )
+  // Set initial selected theater
+  useEffect(() => {
+    if (updatedTheatersData.length > 0 && !selectedTheater) {
+      setSelectedTheater(updatedTheatersData[0])
+    }
+  }, [updatedTheatersData, selectedTheater])
 
-  const [isTrailerOpen, setIsTrailerOpen] = useState(false)
-  const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
+  // Loading and error states
+  if (loading) {
+    return <div className="text-white text-center py-10">Loading...</div>
+  }
+
+  if (error || !movie) {
+    return (
+      <div className="text-white text-center py-10">
+        {error || "Movie not found"}
+      </div>
+    )
+  }
+
+  const genres = movie.genre.split(", ")
 
   const openTheaterPopup = (theater: Theater) => {
     setSelectedTheater(theater)
@@ -72,6 +125,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
+  // Animation variants (unchanged from original)
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -293,27 +347,21 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Director
                       </td>
-                      <td className="py-2">
-                        {movie.director || "James Cameron"}
-                      </td>
+                      <td className="py-2">{movie.director || "Unknown"}</td>
                     </tr>
                     <tr className="border-b border-gray-700">
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Writers
                       </td>
                       <td className="py-2">
-                        {movie.writers?.join(", ") ||
-                          "Rick Jaffa, Amanda Silver"}
+                        {movie.writers?.join(", ") || "Unknown"}
                       </td>
                     </tr>
                     <tr>
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Stars
                       </td>
-                      <td className="py-2">
-                        {movie.starring ||
-                          "Zoe Saldana, Sam Worthington, Sigourney Weaver"}
-                      </td>
+                      <td className="py-2">{movie.starring || "Unknown"}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -379,7 +427,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     <motion.div
                       key={theater.id}
                       className={`flex justify-between items-center cursor-pointer p-2 rounded ${
-                        selectedTheater.id === theater.id ? "bg-gray-700" : ""
+                        selectedTheater?.id === theater.id ? "bg-gray-700" : ""
                       }`}
                       onClick={() => openTheaterPopup(theater)}
                       whileHover="hover"
@@ -412,15 +460,15 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             movieInfo={{
               type: "Movie",
               movieTitle: movie.title,
-              director: movie.director,
+              director: movie.director || "Unknown",
             }}
-            theaters={updatedTheatersData} // Truyền toàn bộ danh sách rạp
+            theaters={updatedTheatersData}
           />
         </div>
       </motion.div>
 
       <AnimatePresence>
-        {isTheaterPopupOpen && (
+        {isTheaterPopupOpen && selectedTheater && (
           <motion.div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             variants={overlayVariants}

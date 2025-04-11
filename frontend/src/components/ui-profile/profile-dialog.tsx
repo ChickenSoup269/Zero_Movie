@@ -133,7 +133,7 @@ export default function ProfileDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
-          <DialogHeader className="relative">
+          <DialogHeader className="relative px-1 pt-1 ">
             {/* Background Image với margin 5px */}
             <div className="relative h-40 w-full">
               {formData.backgroundImage ? (
@@ -142,6 +142,7 @@ export default function ProfileDialog({
                   alt="Background"
                   layout="fill"
                   objectFit="cover" // Giữ nguyên tỷ lệ, co lại để vừa khung
+                  className="rounded-2xl"
                 />
               ) : (
                 <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-black dark:border-white">
@@ -215,7 +216,7 @@ export default function ProfileDialog({
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
               <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              <TabsTrigger value="movies">Movies</TabsTrigger>
+              <TabsTrigger value="movies">List Movies</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile">

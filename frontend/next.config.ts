@@ -6,6 +6,7 @@ const nextConfig = {
       "raw.githubusercontent.com",
       "cdn-icons-png.flaticon.com",
       "www.edigitalagency.com.au",
+      "image.tmdb.org",
     ],
     // Cho phép tải ảnh từ Netflix CDN
   },

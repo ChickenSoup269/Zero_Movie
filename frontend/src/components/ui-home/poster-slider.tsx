@@ -1,26 +1,36 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// components/PosterSlider.js
 "use client"
 
 import Image from "next/image"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation, Autoplay } from "swiper/modules"
+import { Swiper as SwiperType } from "swiper" // Import Swiper type
 import { motion } from "framer-motion"
 import "swiper/css"
 import "swiper/css/navigation"
 
+// Interface Slide đầy đủ (đồng bộ với Movies)
 interface Slide {
+  id: number
   image: string
   title: string
   description: string
   poster: string
+  duration: string
+  genre: string
+  releaseYear: number
+  ageRating: string
+  starring: string
+  status: "nowShowing" | "upcoming"
+  director: string
+  rating: number
 }
 
+// Props cho PosterSlider
 interface PosterSliderProps {
   slides: Slide[]
   activeSlide: number
   handlePosterClick: (index: number) => void
-  swiperInstance: any
+  swiperInstance: SwiperType | null // Sử dụng SwiperType thay vì any
 }
 
 const PosterSlider = ({
@@ -32,17 +42,15 @@ const PosterSlider = ({
   // Variants cho poster
   const posterVariants = {
     active: {
-      scale: 1.3, // Giữ scale như trước
+      scale: 1.3,
       y: -20,
       zIndex: 25,
-
       transition: { duration: 0.35, ease: "easeInOut" },
     },
     inactive: {
       scale: 1,
-      y: 0, // Trở về vị trí ban đầu
+      y: 0,
       zIndex: 0,
-
       transition: { duration: 0.35, ease: "easeInOut" },
     },
   }
@@ -74,13 +82,13 @@ const PosterSlider = ({
         >
           {slides.map((slide, index) => (
             <SwiperSlide
-              key={index}
+              key={slide.id} // Dùng slide.id thay vì index để đảm bảo uniqueness
               className="relative overflow-hidden b-game-card"
             >
               {/* Layer image blur */}
               <div className="absolute inset-0">
                 <Image
-                  src={slide.poster}
+                  src={slide.poster || "/fallback-poster.jpg"}
                   alt={`${slide.title}-blur`}
                   width={150}
                   height={200}
@@ -107,12 +115,13 @@ const PosterSlider = ({
                   onClick={() => handlePosterClick(index)}
                 >
                   <Image
-                    src={slide.poster}
-                    alt={slide.title}
+                    src={slide.poster || "/fallback-poster.jpg"}
+                    alt={slide.title || "Movie poster"}
                     width={150}
                     height={200}
                     className="rounded-lg shadow-lg b-game-card__cover"
                     objectFit="contain"
+                    loading="lazy" // Tối ưu tải hình ảnh
                   />
                 </motion.div>
               </div>
