@@ -49,3 +49,25 @@ export async function createGuestSession(req: Request, res: Response): Promise<v
     res.status(400).json({ message: (error as Error).message || 'Lỗi khi tạo phiên guest' });
   }
 }
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) throw new Error('Thiếu email');
+    const result = await AuthService.forgotPassword(email);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { code, newPassword } = req.body;
+    if (!code || !newPassword) throw new Error('Thiếu mã hoặc mật khẩu mới');
+    const result = await AuthService.resetPassword(code, newPassword);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+};

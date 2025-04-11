@@ -8,6 +8,10 @@ export interface IUser extends Document {
   fullName: string;
   role: 'user' | 'admin';
   points: number;
+  resetPasswordCode?: string;
+  resetPasswordExpires?: Date;
+  avatar?: string;          
+  backgroundImage?: string; 
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +23,10 @@ const userSchema = new Schema<IUser>({
   fullName: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   points: { type: Number, default: 0 },
+  resetPasswordCode: { type: String },
+  resetPasswordExpires: { type: Date },
+  avatar: { type: String },          
+  backgroundImage: { type: String },
 }, { timestamps: true });
 
 userSchema.index({ email: 1 }, { unique: true });

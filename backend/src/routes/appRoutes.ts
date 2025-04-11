@@ -9,16 +9,13 @@ import showtimeseatRoutes from "./showtimeseatRoutes";
 import userRoutes from "./userRoutes";
 import authRoutes from "./authRoutes";
 import bookingRoutes from "./bookingRoutes";
-import paymentRoutes from "./paymentRoutes";
-import paymentRouter from "./paymentRouter";
+import paymentRouter from "./paymentRoutes";
 
 export default function setupRoutes(app: Application) {
   app.use("/api/auth", authRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/bookings", bookingRoutes);
   app.use("/api/payment", paymentRouter);
-
-  app.use("/api/payments", paymentRoutes);
   app.use("/api/cinemas", cinemaRoutes);
   app.use("/api/movies", moviesRoutes);
   app.use("/api/genres", genresRoutes);
