@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
 import FullImageSlider from "@/components/ui-home/full-image-slider"
 import Movies from "@/components/ui-home/movies"
 import { getAllMovies } from "@/services/movieService"
+import { GenreService } from "@/services/genreService"
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
-// Interface cho dữ liệu phim từ API
 interface Movie {
   _id: string
   tmdbId: number
@@ -29,13 +30,11 @@ interface Movie {
   __v: number
 }
 
-// Interface cho API response
 interface ApiResponse {
   message: string
   movies: Movie[]
 }
 
-// Interface cho slides (dùng chung cho FullImageSlider, Movies, PosterSlider)
 interface Slide {
   id: number
   image: string
@@ -58,28 +57,49 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchMovies = async () => {
+    const fetchMoviesAndGenres = async () => {
       try {
         setLoading(true)
-        const response = await getAllMovies()
-        console.log("Raw API response:", response)
-
-        // Xử lý response để lấy mảng movies
+        const movieResponse = await getAllMovies()
         let moviesArray: Movie[] = []
-        if (response && typeof response === "object" && "movies" in response) {
-          moviesArray = (response as ApiResponse).movies
-        } else if (Array.isArray(response)) {
-          moviesArray = response as Movie[] // Trường hợp API trả mảng trực tiếp
+        if (
+          movieResponse &&
+          typeof movieResponse === "object" &&
+          "movies" in movieResponse
+        ) {
+          moviesArray = (movieResponse as ApiResponse).movies
+        } else if (Array.isArray(movieResponse)) {
+          moviesArray = movieResponse as Movie[]
         } else {
           throw new Error("API response is not an array or valid object")
         }
 
-        console.log("Movies array:", moviesArray)
+        const genreMap = await GenreService.getGenreMap()
+        console.log("Genre map:", genreMap)
+        console.log(
+          "Sample movie:",
+          moviesArray[0]?.title,
+          moviesArray[0]?.genreIds
+        )
 
         const mappedSlides: Slide[] = moviesArray.map((movie) => {
           const releaseDate = new Date(movie.releaseDate)
+          const genreNames =
+            movie.genreIds
+              .map((id) => {
+                const name = genreMap[id]
+                console.log(
+                  `Movie ${movie.title} - Genre ID ${id}: ${
+                    name || "Not found"
+                  }`
+                )
+                return name
+              })
+              .filter((name): name is string => !!name)
+              .join(", ") || "No genres available"
+
           return {
-            id: movie.tmdbId, // Dùng tmdbId làm id
+            id: movie.tmdbId,
             image: movie.backdropPath
               ? `${TMDB_IMAGE_BASE_URL}${movie.backdropPath}`
               : "/fallback-image.jpg",
@@ -88,13 +108,13 @@ export default function Home() {
             poster: movie.posterPath
               ? `${TMDB_IMAGE_BASE_URL}${movie.posterPath}`
               : "/fallback-poster.jpg",
-            duration: "N/A", // API không cung cấp, dùng mặc định
-            genre: movie.genreIds.join(", "), // Tạm thời nối genreIds
+            duration: "N/A",
+            genre: genreNames,
             releaseYear: releaseDate.getFullYear(),
-            ageRating: movie.adult ? "R" : "PG-13", // Giả định từ adult
-            starring: "Unknown", // API không cung cấp
+            ageRating: movie.adult ? "R" : "PG-13",
+            starring: "Unknown",
             status: releaseDate <= new Date() ? "nowShowing" : "upcoming",
-            director: "Unknown", // API không cung cấp
+            director: "Unknown",
             rating: movie.voteAverage || 0,
           }
         })
@@ -104,21 +124,19 @@ export default function Home() {
           mappedSlides.map((slide) => ({
             id: slide.id,
             title: slide.title,
-            image: slide.image,
-            poster: slide.poster,
-            status: slide.status,
+            genre: slide.genre,
           }))
         )
         setSlides(mappedSlides)
         setLoading(false)
       } catch (err: any) {
-        console.error("Error fetching movies:", err)
-        setError(err.message || "Failed to fetch movies")
+        console.error("Error fetching data:", err)
+        setError(err.message || "Failed to fetch movies or genres")
         setLoading(false)
       }
     }
 
-    fetchMovies()
+    fetchMoviesAndGenres()
   }, [])
 
   if (loading) {

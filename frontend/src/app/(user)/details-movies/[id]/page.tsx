@@ -1,21 +1,19 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { theatersData } from "@/data/theatersData" // Assuming this remains static
-import React from "react"
+import { theatersData } from "@/data/theatersData"
 import { motion, AnimatePresence } from "framer-motion"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
-import { getMovieById } from "@/services/movieService" // Import the API function
+import { getMovieById } from "@/services/movieService"
+import { GenreService, IGenre } from "@/services/genreService"
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>
 }
 
-// Define interfaces for type safety
-interface Movie {
+interface MovieUI {
   id: number
   tmdbId: number
   title: string
@@ -26,9 +24,9 @@ interface Movie {
   ageRating: string
   duration: string
   description: string
-  director?: string
-  writers?: string[]
-  starring?: string
+  director: string
+  writers: string[]
+  starring: string
 }
 
 interface Theater {
@@ -42,56 +40,87 @@ interface Theater {
 }
 
 export default function MovieDetail({ params }: MovieDetailProps) {
-  const unwrappedParams = React.use(params)
-  const movieId = unwrappedParams.id
-
-  // State for movie data, loading, and error
-  const [movie, setMovie] = useState<Movie | null>(null)
+  const [movie, setMovie] = useState<MovieUI | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // State for theaters and popups
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
+  const [genreMap, setGenreMap] = useState<{ [key: number]: string }>({})
 
-  // Fetch movie data when component mounts
+  // Lấy genre map khi component mount
   useEffect(() => {
-    const fetchMovie = async () => {
+    const fetchGenreMap = async () => {
       try {
+        const map = await GenreService.getGenreMap()
+        setGenreMap(map)
+      } catch (err: any) {
+        console.error("Error fetching genre map:", err)
+      }
+    }
+    fetchGenreMap()
+  }, [])
+
+  useEffect(() => {
+    const fetchParamsAndMovie = async () => {
+      try {
+        const unwrappedParams = await params
+        const movieId = unwrappedParams.id
+
         setLoading(true)
         const movieData = await getMovieById(parseInt(movieId))
-        setMovie(movieData)
+        console.log("Fetched movie data:", movieData)
+
+        const movieUI: MovieUI = {
+          id: movieData.tmdbId,
+          tmdbId: movieData.tmdbId,
+          title: movieData.title || "Untitled",
+          image: movieData.backdropPath
+            ? `https://image.tmdb.org/t/p/original${movieData.backdropPath}`
+            : "/fallback-image.jpg",
+          poster: movieData.posterPath
+            ? `https://image.tmdb.org/t/p/w500${movieData.posterPath}`
+            : "/fallback-poster.jpg",
+          genre: Array.isArray(movieData.genreIds)
+            ? movieData.genreIds
+                .map((id) => genreMap[id] || "Unknown")
+                .filter(Boolean)
+                .join(", ")
+            : "Unknown",
+          rating: movieData.voteAverage || 0,
+          ageRating: movieData.adult ? "R" : "PG-13",
+          duration: "N/A",
+          description: movieData.overview || "No description available.",
+          director: "Unknown",
+          writers: [],
+          starring: "Unknown",
+        }
+        console.log("Mapped movieUI:", movieUI)
+        setMovie(movieUI)
         setLoading(false)
       } catch (err: any) {
+        console.error("Error fetching movie:", err)
         setError(err.message || "Failed to fetch movie details")
         setLoading(false)
-        notFound() // Trigger Next.js 404 if movie not found
+        notFound()
       }
     }
 
-    fetchMovie()
-  }, [movieId])
+    fetchParamsAndMovie()
+  }, [params, genreMap])
 
-  // Handle theaters data
-  if (!theatersData || theatersData.length === 0) {
-    return <div>Error: No theaters available</div>
-  }
+  const updatedTheatersData: Theater[] =
+    theatersData?.map((theater) => ({
+      ...theater,
+      name: `CGV ${theater.name}`,
+    })) || []
 
-  // Update theatersData with "CGV" prefix
-  const updatedTheatersData: Theater[] = theatersData.map((theater) => ({
-    ...theater,
-    name: `CGV ${theater.name}`,
-  }))
-
-  // Set initial selected theater
   useEffect(() => {
     if (updatedTheatersData.length > 0 && !selectedTheater) {
       setSelectedTheater(updatedTheatersData[0])
     }
   }, [updatedTheatersData, selectedTheater])
 
-  // Loading and error states
   if (loading) {
     return <div className="text-white text-center py-10">Loading...</div>
   }
@@ -104,7 +133,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     )
   }
 
-  const genres = movie.genre.split(", ")
+  const genres = movie.genre.split(", ").filter(Boolean)
 
   const openTheaterPopup = (theater: Theater) => {
     setSelectedTheater(theater)
@@ -125,7 +154,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
-  // Animation variants (unchanged from original)
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -140,11 +168,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.5,
-        staggerChildren: 0.2,
-        ease: "easeInOut",
-      },
+      transition: { duration: 0.5, staggerChildren: 0.2, ease: "easeInOut" },
     },
   }
 
@@ -154,14 +178,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   }
 
   const overlayVariants = {
-    hidden: {
-      opacity: 0,
-      transition: { duration: 0.5, ease: "easeInOut" },
-    },
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.5, ease: "easeInOut" },
-    },
+    hidden: { opacity: 0, transition: { duration: 0.5, ease: "easeInOut" } },
+    visible: { opacity: 1, transition: { duration: 0.5, ease: "easeInOut" } },
   }
 
   const popupContentVariants = {
@@ -214,11 +232,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         "0 0 20px 5px rgba(255, 0, 255, 0.5)",
         "0 0 20px 5px rgba(255, 0, 0, 0.5)",
       ],
-      transition: {
-        duration: 5,
-        repeat: Infinity,
-        ease: "linear",
-      },
+      transition: { duration: 5, repeat: Infinity, ease: "linear" },
     },
   }
 
@@ -246,6 +260,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           alt={movie.title}
           layout="fill"
           objectFit="cover"
+          loading="lazy"
         />
         <div
           className="absolute inset-0"
@@ -286,6 +301,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 width={250}
                 height={250}
                 className="relative z-10 rounded-lg shadow-lg w-full h-auto object-cover"
+                loading="lazy"
               />
             </motion.div>
 
@@ -301,7 +317,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               </motion.h1>
               <motion.div
                 variants={infoItemVariants}
-                className="flex gap-2 items-center"
+                className="flex gap-2 items-center flex-wrap"
               >
                 {genres.map((genre, index) => (
                   <span
@@ -347,21 +363,23 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Director
                       </td>
-                      <td className="py-2">{movie.director || "Unknown"}</td>
+                      <td className="py-2">{movie.director}</td>
                     </tr>
                     <tr className="border-b border-gray-700">
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Writers
                       </td>
                       <td className="py-2">
-                        {movie.writers?.join(", ") || "Unknown"}
+                        {movie.writers.length > 0
+                          ? movie.writers.join(", ")
+                          : "Unknown"}
                       </td>
                     </tr>
                     <tr>
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
                         Stars
                       </td>
-                      <td className="py-2">{movie.starring || "Unknown"}</td>
+                      <td className="py-2">{movie.starring}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -460,7 +478,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             movieInfo={{
               type: "Movie",
               movieTitle: movie.title,
-              director: movie.director || "Unknown",
+              director: movie.director,
             }}
             theaters={updatedTheatersData}
           />
@@ -554,7 +572,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             >
               <button
                 onClick={closeTrailerPopup}
-                className="absolute top-[-10] right-[-10] text-gray-300 hover:text-white z-10"
+                className="absolute top-[-10px] right-[-10px] text-gray-300 hover:text-white z-10"
               >
                 <svg
                   className="w-6 h-6"
@@ -567,7 +585,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
+                    d="M6 18L18 6M6 6l12  #12"
                   />
                 </svg>
               </button>
@@ -579,7 +597,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
-                    title="YouTube video player"
+                    title="Movie trailer"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
@@ -598,7 +616,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
-                    title="YouTube video player (blurred)"
+                    title="Movie trailer (blurred)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen

@@ -130,7 +130,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     variants={textContainerVariants}
                     className="absolute inset-0 z-50 flex items-center justify-start p-8"
                   >
-                    <div className="bg-opacity-60 p-6 rounded-lg max-w-lg pb-20">
+                    <div className="bg-opacity-100 p-6 rounded-lg max-w-lg pb-20">
                       <motion.h1
                         variants={textItemVariants}
                         className="text-6xl font-bold mb-4 text-white"
