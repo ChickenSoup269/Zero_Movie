@@ -6,6 +6,7 @@ import FullImageSlider from "@/components/ui-home/full-image-slider"
 import Movies from "@/components/ui-home/movies"
 import { getAllMovies } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
+import actorAgeData from "@/data/actorAgeData" // Import dữ liệu ageRating và director
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
@@ -51,6 +52,15 @@ interface Slide {
   rating: number
 }
 
+// Interface cho dữ liệu bên ngoài
+interface ActorAgeInfo {
+  id: number
+  ageRating: string
+  director: string
+  title?: string
+  genre?: string
+}
+
 export default function Home() {
   const [slides, setSlides] = useState<Slide[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,6 +92,12 @@ export default function Home() {
           moviesArray[0]?.genreIds
         )
 
+        // Tạo map từ actorAgeData để tìm kiếm nhanh hơn
+        const actorAgeMap = new Map<number, ActorAgeInfo>()
+        actorAgeData.movies.forEach((movie) => {
+          actorAgeMap.set(movie.id, movie)
+        })
+
         const mappedSlides: Slide[] = moviesArray.map((movie) => {
           const releaseDate = new Date(movie.releaseDate)
           const genreNames =
@@ -98,6 +114,9 @@ export default function Home() {
               .filter((name): name is string => !!name)
               .join(", ") || "No genres available"
 
+          // Tìm thông tin ageRating và director từ dữ liệu bên ngoài
+          const extraInfo = actorAgeMap.get(movie.tmdbId)
+
           return {
             id: movie.tmdbId,
             image: movie.backdropPath
@@ -111,10 +130,14 @@ export default function Home() {
             duration: "N/A",
             genre: genreNames,
             releaseYear: releaseDate.getFullYear(),
-            ageRating: movie.adult ? "R" : "PG-13",
+            ageRating:
+              extraInfo?.ageRating ||
+              (movie.adult
+                ? "public/images/ageRating/pegi_18"
+                : "public/images/ageRating/pegi_12"),
             starring: "Unknown",
             status: releaseDate <= new Date() ? "nowShowing" : "upcoming",
-            director: "Unknown",
+            director: extraInfo?.director || "Unknown",
             rating: movie.voteAverage || 0,
           }
         })
@@ -125,6 +148,8 @@ export default function Home() {
             id: slide.id,
             title: slide.title,
             genre: slide.genre,
+            director: slide.director,
+            ageRating: slide.ageRating,
           }))
         )
         setSlides(mappedSlides)

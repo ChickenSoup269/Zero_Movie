@@ -1,13 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { notFound } from "next/navigation"
-import { theatersData } from "@/data/theatersData"
 import { motion, AnimatePresence } from "framer-motion"
+import { theatersData } from "@/data/theatersData"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
 import { getMovieById } from "@/services/movieService"
-import { GenreService, IGenre } from "@/services/genreService"
+import { GenreService } from "@/services/genreService"
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>
@@ -48,33 +48,41 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
   const [genreMap, setGenreMap] = useState<{ [key: number]: string }>({})
 
-  // Lấy genre map khi component mount
+  // Fetch genre map when component mounts
   useEffect(() => {
     const fetchGenreMap = async () => {
       try {
         const map = await GenreService.getGenreMap()
+        console.log("Genre map in MovieDetail:", map)
         setGenreMap(map)
       } catch (err: any) {
-        console.error("Error fetching genre map:", err)
+        console.error("Error fetching genre map:", err.message)
       }
     }
     fetchGenreMap()
   }, [])
 
+  // Fetch movie data based on params.id
   useEffect(() => {
     const fetchParamsAndMovie = async () => {
       try {
         const unwrappedParams = await params
         const movieId = unwrappedParams.id
+        console.log("Movie ID from params:", movieId)
 
         setLoading(true)
-        const movieData = await getMovieById(parseInt(movieId))
-        console.log("Fetched movie data:", movieData)
+        const response = await getMovieById(parseInt(movieId))
+        console.log("Fetched movie data:", response)
+
+        const movieData = response.movie // Truy cập movie từ response
+        if (!movieData) {
+          throw new Error("Phim không tìm thấy trong cơ sở dữ liệu")
+        }
 
         const movieUI: MovieUI = {
-          id: movieData.tmdbId,
-          tmdbId: movieData.tmdbId,
-          title: movieData.title || "Untitled",
+          id: movieData.tmdbId || parseInt(movieId),
+          tmdbId: movieData.tmdbId || parseInt(movieId),
+          title: movieData.title || "Không có tiêu đề",
           image: movieData.backdropPath
             ? `https://image.tmdb.org/t/p/original${movieData.backdropPath}`
             : "/fallback-image.jpg",
@@ -83,38 +91,44 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             : "/fallback-poster.jpg",
           genre: Array.isArray(movieData.genreIds)
             ? movieData.genreIds
-                .map((id) => genreMap[id] || "Unknown")
+                .map((id) => {
+                  const genreName = genreMap[id] || "Không xác định"
+                  console.log(`Genre ID ${id}: ${genreName}`)
+                  return genreName
+                })
                 .filter(Boolean)
                 .join(", ")
-            : "Unknown",
+            : "Không xác định",
           rating: movieData.voteAverage || 0,
           ageRating: movieData.adult ? "R" : "PG-13",
-          duration: "N/A",
-          description: movieData.overview || "No description available.",
-          director: "Unknown",
-          writers: [],
-          starring: "Unknown",
+          duration: movieData.runtime ? `${movieData.runtime} phút` : "N/A",
+          description: movieData.overview || "Không có mô tả.",
+          director: movieData.director || "Không xác định",
+          writers: movieData.writers || [],
+          starring: movieData.starring || "Không xác định",
         }
+
         console.log("Mapped movieUI:", movieUI)
         setMovie(movieUI)
         setLoading(false)
       } catch (err: any) {
-        console.error("Error fetching movie:", err)
-        setError(err.message || "Failed to fetch movie details")
+        console.error("Error fetching movie:", err.message)
+        setError(err.message || "Lỗi khi lấy chi tiết phim")
         setLoading(false)
-        notFound()
       }
     }
 
     fetchParamsAndMovie()
   }, [params, genreMap])
 
+  // Map theaters data with CGV prefix
   const updatedTheatersData: Theater[] =
     theatersData?.map((theater) => ({
       ...theater,
       name: `CGV ${theater.name}`,
     })) || []
 
+  // Set default selected theater
   useEffect(() => {
     if (updatedTheatersData.length > 0 && !selectedTheater) {
       setSelectedTheater(updatedTheatersData[0])
@@ -122,13 +136,13 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   }, [updatedTheatersData, selectedTheater])
 
   if (loading) {
-    return <div className="text-white text-center py-10">Loading...</div>
+    return <div className="text-white text-center py-10">Đang tải...</div>
   }
 
   if (error || !movie) {
     return (
       <div className="text-white text-center py-10">
-        {error || "Movie not found"}
+        {error || "Không tìm thấy phim"}
       </div>
     )
   }
@@ -154,6 +168,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
+  // Animation variants
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -249,6 +264,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   return (
     <div className="relative min-h-screen text-white flex flex-col">
+      {/* Background Image */}
       <motion.div
         className="absolute inset-0 z-0"
         variants={imageVariants}
@@ -271,6 +287,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         />
       </motion.div>
 
+      {/* Main Content */}
       <motion.div
         className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20"
         variants={backgroundVariants}
@@ -283,6 +300,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             initial="hidden"
             animate="visible"
           >
+            {/* Poster */}
             <motion.div
               variants={infoItemVariants}
               className="relative sm:w-1/12 xl:w-1/6"
@@ -305,6 +323,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               />
             </motion.div>
 
+            {/* Movie Info */}
             <motion.div
               variants={infoItemVariants}
               className="w-full md:w-1/2 flex flex-col gap-4"
@@ -355,36 +374,34 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               >
                 {movie.description}
               </motion.p>
-
               <motion.div variants={infoItemVariants}>
                 <table className="w-full text-gray-300 border-collapse">
                   <tbody>
                     <tr className="border-b border-gray-700">
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
-                        Director
+                        Đạo diễn
                       </td>
                       <td className="py-2">{movie.director}</td>
                     </tr>
                     <tr className="border-b border-gray-700">
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
-                        Writers
+                        Biên kịch
                       </td>
                       <td className="py-2">
                         {movie.writers.length > 0
                           ? movie.writers.join(", ")
-                          : "Unknown"}
+                          : "Không xác định"}
                       </td>
                     </tr>
                     <tr>
                       <td className="py-2 pr-4 font-semibold text-white w-1/4">
-                        Stars
+                        Diễn viên
                       </td>
                       <td className="py-2">{movie.starring}</td>
                     </tr>
                   </tbody>
                 </table>
               </motion.div>
-
               <motion.div
                 variants={infoItemVariants}
                 className="flex gap-4 mt-4"
@@ -397,7 +414,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   variants={buttonHoverVariants}
                   onClick={openTrailerPopup}
                 >
-                  Watch Trailer
+                  Xem Trailer
                   <svg
                     className="w-5 h-5"
                     fill="currentColor"
@@ -413,7 +430,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   initial="rest"
                   variants={buttonHoverVariants}
                 >
-                  To Watchlist
+                  Thêm vào Watchlist
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -432,13 +449,14 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               </motion.div>
             </motion.div>
 
+            {/* Theaters List */}
             <motion.div
               variants={infoItemVariants}
               className="w-full md:w-1/4 flex flex-col gap-4"
             >
               <div className="mt-4">
                 <h3 className="text-lg font-semibold text-white sm:pt-0 md:pt-10 xl:pt-20">
-                  Available Theaters
+                  Rạp chiếu
                 </h3>
                 <div className="space-y-2">
                   {updatedTheatersData.map((theater) => (
@@ -474,9 +492,10 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             </motion.div>
           </motion.div>
 
+          {/* Seat Selection */}
           <SeatSelection
             movieInfo={{
-              type: "Movie",
+              type: "Phim",
               movieTitle: movie.title,
               director: movie.director,
             }}
@@ -485,6 +504,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         </div>
       </motion.div>
 
+      {/* Theater Popup */}
       <AnimatePresence>
         {isTheaterPopupOpen && selectedTheater && (
           <motion.div
@@ -525,13 +545,13 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   {selectedTheater.name}
                 </h3>
                 <div>
-                  <span className="font-semibold">Address:</span>{" "}
+                  <span className="font-semibold">Địa chỉ:</span>{" "}
                   <span className="text-gray-300">
                     {selectedTheater.address}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold">Phone:</span>{" "}
+                  <span className="font-semibold">Số điện thoại:</span>{" "}
                   <span className="text-gray-300">{selectedTheater.phone}</span>
                 </div>
                 <p className="text-gray-300 text-base">
@@ -547,13 +567,14 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                ></iframe>
+                />
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Trailer Popup */}
       <AnimatePresence>
         {isTrailerOpen && (
           <motion.div
@@ -571,7 +592,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               exit="hidden"
             >
               <button
-                onClick={closeTrailerPopup}
+                onClick={closeTheaterPopup}
                 className="absolute top-[-10px] right-[-10px] text-gray-300 hover:text-white z-10"
               >
                 <svg
@@ -585,7 +606,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M6 18L18 6M6 6l12  #12"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </button>
@@ -597,11 +618,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
-                    title="Movie trailer"
+                    title="Trailer phim"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
-                  ></iframe>
+                  />
                 </div>
                 <motion.div
                   className="absolute top-0 left-0 w-full h-full"
@@ -616,11 +637,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                     src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
-                    title="Movie trailer (blurred)"
+                    title="Trailer phim (blurred)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
-                  ></iframe>
+                  />
                 </motion.div>
               </div>
             </motion.div>

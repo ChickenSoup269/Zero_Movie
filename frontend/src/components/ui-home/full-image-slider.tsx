@@ -11,6 +11,7 @@ import "swiper/css/navigation"
 import PosterSlider from "./poster-slider"
 
 interface Slide {
+  id: number
   image: string
   title: string
   description: string
@@ -20,6 +21,9 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
+  status: "nowShowing" | "upcoming"
+  director: string
+  rating: number
 }
 
 interface FullImageSliderProps {
@@ -145,8 +149,20 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                           {slide.releaseYear || "N/A"}
                         </span>{" "}
                         |{" "}
-                        <span className="font-bold">
-                          {slide.ageRating || "N/A"}
+                        <span className="font-bold inline-flex items-center">
+                          {slide.ageRating ? (
+                            <>
+                              <Image
+                                src={`/${slide.ageRating}.avif`}
+                                alt={slide.ageRating}
+                                width={45}
+                                height={45}
+                                className="mr-1 rounded-md"
+                              />
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
                         </span>{" "}
                         |{" "}
                         <span className="font-bold">
@@ -174,10 +190,40 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                       </motion.div>
                       <motion.div
                         variants={textItemVariants}
-                        className="text-sm text-gray-300 border-t border-gray-500 pt-2"
+                        className="text-sm text-gray-300 border-t border-gray-500 pt-2 flex flex-col space-y-1"
                       >
-                        <span className="font-semibold">Starring:</span>{" "}
-                        {slide.starring || "Unknown"}
+                        {/* Dòng 1: Director và Age Rating */}
+                        <div className="flex space-x-4">
+                          <div>
+                            <span className="font-semibold text-white">
+                              Director:
+                            </span>
+                            <span className="font-mono">
+                              {" "}
+                              {slide.director || "Unknown"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-white">
+                              Rating:
+                            </span>{" "}
+                            <span className="font-mono">
+                              {slide.rating
+                                ? `${slide.rating.toFixed(1)}/10`
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-white">
+                              Status:
+                            </span>{" "}
+                            <span className="font-mono text-green-400">
+                              {slide.status === "nowShowing"
+                                ? "Now Showing"
+                                : "Coming Soon"}
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     </div>
                   </motion.div>
