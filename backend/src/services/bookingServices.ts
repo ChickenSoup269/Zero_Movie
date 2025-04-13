@@ -1,31 +1,22 @@
-import mongoose from 'mongoose';
-import Booking, { IBooking } from '../models/bookingModel'; // Import cả IBooking
+import Booking from '../models/bookingModel';
 import Showtime from '../models/showtimeModel';
 import ShowtimeSeat from '../models/showtimeseatModel';
-import  {Movie} from '../models/movieModel';
+import { Movie } from '../models/movieModel';
 
 export class BookingService {
-  static async createBooking(
-    userId: string | null,
-    movieId: number,
-    showtimeId: string,
-    seatIds: string[]
-  ): Promise<{ booking: IBooking; totalPrice: number }> {
-    if (!mongoose.Types.ObjectId.isValid(showtimeId) || seatIds.some(id => !mongoose.Types.ObjectId.isValid(id))) {
-      throw new Error('Showtime ID hoặc Seat ID không hợp lệ');
-    }
-
+  static async createBooking(userId: string | null, movieId: number, showtimeId: string, seatIds: string[]) {
     const movie = await Movie.findOne({ tmdbId: movieId });
     if (!movie) throw new Error('Phim không tồn tại');
 
     const showtime = await Showtime.findById(showtimeId);
     if (!showtime || showtime.movieId !== movieId) throw new Error('Suất chiếu không tồn tại hoặc không khớp với phim');
 
-    const showtimeSeats = await ShowtimeSeat.find({ showtimeId, _id: { $in: seatIds } });
+    const showtimeSeats = await ShowtimeSeat.find({ showtimeId, seatId: { $in: seatIds } });
     if (showtimeSeats.length !== seatIds.length) throw new Error('Một số ghế không tồn tại trong suất chiếu này');
-    if (showtimeSeats.some(seat => seat.status !== 'available')) throw new Error('Một số ghế đã được đặt');
+    const unavailableSeats = showtimeSeats.filter(seat => seat.status !== 'available');
+    if (unavailableSeats.length > 0) throw new Error('Một số ghế đã được đặt');
 
-    const totalPrice = showtime.price * seatIds.length;
+    const totalPrice = showtime.price * seatIds.length; // Tính tổng giá
 
     const booking = new Booking({
       userId: userId || null,
@@ -37,11 +28,10 @@ export class BookingService {
     });
     await booking.save();
 
-    return { booking, totalPrice };
+    return { booking, totalPrice }; // Trả về cả booking và totalPrice
   }
 
-  static async getUserBookings(userId: string): Promise<IBooking[]> {
-    if (!userId) throw new Error('User ID không hợp lệ');
+  static async getUserBookings(userId: string) {
     const bookings = await Booking.find({ userId })
       .populate('movieId', 'title')
       .populate('showtimeId', 'startTime endTime price')
@@ -49,45 +39,22 @@ export class BookingService {
     return bookings;
   }
 
-  // Các hàm khác nếu có (confirmBooking, cancelBooking)
-  static async confirmBooking(bookingId: string): Promise<IBooking> {
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new Error('Booking ID không hợp lệ');
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      const booking = await Booking.findById(bookingId).session(session);
-      if (!booking || booking.status !== 'pending') throw new Error('Booking không hợp lệ hoặc đã được xử lý');
-
-      const updatedSeats = await ShowtimeSeat.updateMany(
-        { showtimeId: booking.showtimeId, _id: { $in: booking.seatIds }, status: 'available' },
-        { $set: { status: 'booked' } },
-        { session }
-      );
-
-      if (updatedSeats.matchedCount !== booking.seatIds.length) {
-        throw new Error('Một số ghế đã được đặt bởi người khác');
-      }
-
-      booking.status = 'confirmed';
-      await booking.save({ session });
-
-      await session.commitTransaction();
-      return booking;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
-
-  static async cancelBooking(bookingId: string): Promise<void> {
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new Error('Booking ID không hợp lệ');
+  static async confirmBooking(bookingId: string) {
     const booking = await Booking.findById(bookingId);
-    if (!booking || booking.status !== 'pending') return;
-    booking.status = 'cancelled';
+    if (!booking || booking.status !== 'pending') throw new Error('Booking không hợp lệ hoặc đã được xử lý');
+
+    const updatedSeats = await ShowtimeSeat.updateMany(
+      { showtimeId: booking.showtimeId, seatId: { $in: booking.seatIds }, status: 'available' },
+      { $set: { status: 'booked' } }
+    );
+
+    if (updatedSeats.matchedCount !== booking.seatIds.length) {
+      throw new Error('Một số ghế đã được đặt bởi người khác');
+    }
+
+    booking.status = 'confirmed';
     await booking.save();
+
+    return booking;
   }
 }

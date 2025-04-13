@@ -1,12 +1,11 @@
 import { Schema, Document, model, Types } from 'mongoose';
 
 export interface IPayment extends Document {
-  _id: Types.ObjectId
   bookingId: Types.ObjectId;
   userId?: Types.ObjectId;
   amount: number;
   status: 'pending' | 'completed' | 'failed';
-  paymentMethod: 'paypal'; 
+  paymentMethod: 'paypal'; // Chỉ dùng PayPal
   transactionId?: string;
   createdAt: Date;
   updatedAt: Date;

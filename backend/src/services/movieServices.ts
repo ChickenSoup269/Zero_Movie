@@ -1,58 +1,62 @@
-import { Movie, IMovie } from '../models/movieModel';
+import { Movie } from "../models/movieModel";
 
 export class MovieService {
-  static async getAllMovies(): Promise<IMovie[]> {
+  static async getAllMovies(): Promise<any[]> {
     try {
       return await Movie.find();
     } catch (error) {
-      throw new Error('Lỗi khi lấy danh sách phim');
+      throw new Error("Lỗi khi lấy danh sách phim");
     }
   }
 
-  static async getMovieById(tmdbId: number): Promise<IMovie> {
+  static async getMovieById(tmdbId: number): Promise<any> {
     try {
       const movie = await Movie.findOne({ tmdbId });
-      if (!movie) throw new Error('Không tìm thấy phim');
+      if (!movie) throw new Error("Không tìm thấy phim");
       return movie;
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Lỗi khi lấy phim');
+      throw error instanceof Error ? error : new Error("Lỗi khi lấy phim");
     }
   }
 
-  static async searchMoviesByTitle(title: string): Promise<IMovie[]> {
+  static async searchMoviesByTitle(title: string): Promise<any[]> {
     try {
-      return await Movie.find({ title: new RegExp(title, 'i') });
+      return await Movie.find({ title: new RegExp(title, "i") });
     } catch (error) {
-      throw new Error('Lỗi khi tìm kiếm phim');
+      throw new Error("Lỗi khi tìm kiếm phim");
     }
   }
 
-  static async addMovie(movieData: Partial<IMovie>): Promise<IMovie> {
+  static async addMovie(movieData: any): Promise<any> {
     try {
       const newMovie = new Movie(movieData);
       return await newMovie.save();
     } catch (error) {
-      throw new Error('Lỗi khi thêm phim');
+      throw new Error("Lỗi khi thêm phim");
     }
   }
 
-  static async updateMovie(tmdbId: number, movieData: Partial<IMovie>): Promise<IMovie> {
+  static async updateMovie(tmdbId: number, movieData: any): Promise<any> {
     try {
-      const updatedMovie = await Movie.findOneAndUpdate({ tmdbId }, movieData, { new: true });
-      if (!updatedMovie) throw new Error('Không tìm thấy phim');
+      const updatedMovie = await Movie.findOneAndUpdate(
+        { tmdbId },
+        movieData,
+        { new: true }
+      );
+      if (!updatedMovie) throw new Error("Không tìm thấy phim");
       return updatedMovie;
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Lỗi khi cập nhật phim');
+      throw error instanceof Error ? error : new Error("Lỗi khi cập nhật phim");
     }
   }
 
-  static async deleteMovie(tmdbId: number): Promise<IMovie> {
+  static async deleteMovie(tmdbId: number): Promise<any> {
     try {
       const deletedMovie = await Movie.findOneAndDelete({ tmdbId });
-      if (!deletedMovie) throw new Error('Không tìm thấy phim');
+      if (!deletedMovie) throw new Error("Không tìm thấy phim");
       return deletedMovie;
     } catch (error) {
-      throw new Error('Lỗi khi xóa phim');
+      throw new Error("Lỗi khi xóa phim");
     }
   }
 }
