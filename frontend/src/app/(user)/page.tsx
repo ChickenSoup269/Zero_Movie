@@ -26,6 +26,7 @@ interface Movie {
   originalLanguage: string
   adult: boolean
   video: boolean
+  status?: "upcoming" | "nowPlaying" // Added status field from schema
   createdAt: string
   updatedAt: string
   __v: number
@@ -47,7 +48,7 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
-  status: "nowShowing" | "upcoming"
+  status: "nowPlaying" | "upcoming"
   director: string
   rating: number
 }
@@ -117,6 +118,11 @@ export default function Home() {
           // Tìm thông tin ageRating và director từ dữ liệu bên ngoài
           const extraInfo = actorAgeMap.get(movie.tmdbId)
 
+          // Prioritize the status from the database, fallback to date-based logic if not available
+          const status =
+            movie.status ||
+            (releaseDate <= new Date() ? "nowPlaying" : "upcoming")
+
           return {
             id: movie.tmdbId,
             image: movie.backdropPath
@@ -136,7 +142,7 @@ export default function Home() {
                 ? "public/images/ageRating/pegi_18"
                 : "public/images/ageRating/pegi_12"),
             starring: "Unknown",
-            status: releaseDate <= new Date() ? "nowShowing" : "upcoming",
+            status: status as "nowPlaying" | "upcoming", // Use the status from database or fallback
             director: extraInfo?.director || "Unknown",
             rating: movie.voteAverage || 0,
           }
@@ -150,6 +156,7 @@ export default function Home() {
             genre: slide.genre,
             director: slide.director,
             ageRating: slide.ageRating,
+            status: slide.status, // Log status to verify
           }))
         )
         setSlides(mappedSlides)

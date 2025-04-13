@@ -1,22 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from "mongoose"
 
 export interface IMovie extends Document {
-  tmdbId: number;
-  title: string;
-  originalTitle: string;
-  originalLanguage: string;
-  overview: string;
-  releaseDate?: Date;
-  posterPath?: string;
-  backdropPath?: string;
-  popularity?: number;
-  voteAverage?: number;
-  voteCount?: number;
-  adult?: boolean;
-  video?: boolean;
-  genreIds: number[]; 
-  createdAt: Date;
-  updatedAt: Date;
+  tmdbId: number
+  title: string
+  originalTitle: string
+  originalLanguage: string
+  overview: string
+  releaseDate?: Date
+  posterPath?: string
+  backdropPath?: string
+  popularity?: number
+  voteAverage?: number
+  voteCount?: number
+  adult?: boolean
+  video?: boolean
+  genreIds: number[]
+  status?: "upcoming" | "nowPlaying"
+  createdAt: Date
+  updatedAt: Date
 }
 
 const movieSchema = new mongoose.Schema<IMovie>(
@@ -35,8 +36,12 @@ const movieSchema = new mongoose.Schema<IMovie>(
     adult: { type: Boolean, default: false },
     video: { type: Boolean, default: false },
     genreIds: { type: [Number], required: true },
+    status: {
+      type: String,
+      enum: ["upcoming", "nowPlaying"],
+    },
   },
   { timestamps: true }
-);
+)
 
-export const Movie = mongoose.model<IMovie>('Movie', movieSchema);
+export const Movie = mongoose.model<IMovie>("Movie", movieSchema)

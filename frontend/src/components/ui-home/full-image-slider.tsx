@@ -141,14 +141,11 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                       >
                         {slide.title || "Untitled"}
                       </motion.h1>
+
                       <motion.div
                         variants={textItemVariants}
                         className="text-sm text-white mb-2"
                       >
-                        <span className="font-bold">
-                          {slide.releaseYear || "N/A"}
-                        </span>{" "}
-                        |{" "}
                         <span className="font-bold inline-flex items-center">
                           {slide.ageRating ? (
                             <>
@@ -167,7 +164,11 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                         |{" "}
                         <span className="font-bold">
                           {slide.genre || "N/A"}
-                        </span>
+                        </span>{" "}
+                        |{" "}
+                        <span className="font-bold">
+                          {slide.releaseYear || "N/A"}
+                        </span>{" "}
                       </motion.div>
                       <motion.p
                         variants={textItemVariants}
@@ -192,7 +193,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                         variants={textItemVariants}
                         className="text-sm text-gray-300 border-t border-gray-500 pt-2 flex flex-col space-y-1"
                       >
-                        {/* Dòng 1: Director và Age Rating */}
+                        {/* Dòng 1: Director, Age Rating, now showing */}
                         <div className="flex space-x-4">
                           <div>
                             <span className="font-semibold text-white">
@@ -207,7 +208,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                             <span className="font-semibold text-white">
                               Rating:
                             </span>{" "}
-                            <span className="font-mono">
+                            <span className="font-mono text-yellow-400">
                               {slide.rating
                                 ? `${slide.rating.toFixed(1)}/10`
                                 : "N/A"}

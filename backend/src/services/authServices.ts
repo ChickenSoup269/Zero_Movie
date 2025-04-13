@@ -66,19 +66,30 @@ export class AuthService {
   }
 
   static async login({ email, password }: { email: string; password: string }) {
-    const user = await User.findOne({ email }).select("+password")
+    const user = await User.findOne({ email })
     if (!user) throw new Error("Email không đúng")
 
-    console.log("Login attempt for email:", email)
-    console.log("Password entered (plain):", password)
-    console.log("Stored hashed password:", user.password)
-
     const isMatch = await bcrypt.compare(password, user.password)
-    console.log("Password match:", isMatch)
-
     if (!isMatch) throw new Error("Mật khẩu không đúng")
 
-    const entry = {
+    const accessToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h" }
+    )
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET!,
+      { expiresIn: "7d" }
+    )
+
+    await Session.create({
+      userId: user._id,
+      refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    })
+
+    return {
       user: {
         id: user._id,
         username: user.username,
@@ -88,23 +99,9 @@ export class AuthService {
         avatar: user.avatar,
         backgroundImage: user.backgroundImage,
       },
-      accessToken: jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET!,
-        { expiresIn: "1h" }
-      ),
-      refreshToken: jwt.sign(
-        { id: user._id },
-        process.env.JWT_REFRESH_SECRET!,
-        { expiresIn: "7d" }
-      ),
+      accessToken,
+      refreshToken,
     }
-    await Session.create({
-      userId: user._id,
-      refreshToken: entry.refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    })
-    return entry
   }
 
   static async refreshToken(refreshToken: string) {

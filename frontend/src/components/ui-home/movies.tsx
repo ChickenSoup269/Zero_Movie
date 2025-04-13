@@ -16,7 +16,7 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
-  status: "nowShowing" | "upcoming"
+  status: "nowPlaying" | "upcoming"
   director: string
   rating: number
 }
@@ -26,20 +26,20 @@ interface MoviesProps {
 }
 
 const Movies = ({ slides }: MoviesProps) => {
-  const [selectedTab, setSelectedTab] = useState<"nowShowing" | "upcoming">(
-    "nowShowing"
+  const [selectedTab, setSelectedTab] = useState<"nowPlaying" | "upcoming">(
+    "nowPlaying"
   )
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const moviesContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  const nowShowingMovies = slides.filter(
-    (slide) => slide.status === "nowShowing"
+  const nowPlayingMovies = slides.filter(
+    (slide) => slide.status === "nowPlaying"
   )
   const upcomingMovies = slides.filter((slide) => slide.status === "upcoming")
   const displayedMovies =
-    selectedTab === "nowShowing" ? nowShowingMovies : upcomingMovies
+    selectedTab === "nowPlaying" ? nowPlayingMovies : upcomingMovies
 
   const moviesPerPage = 8
   const totalPages = Math.ceil(displayedMovies.length / moviesPerPage)
@@ -153,17 +153,17 @@ const Movies = ({ slides }: MoviesProps) => {
       <div className="flex justify-center mb-8">
         <button
           onClick={() => {
-            setSelectedTab("nowShowing")
+            setSelectedTab("nowPlaying")
             setCurrentPage(1)
             setHoveredIndex(null)
           }}
           className={`px-6 py-2 text-lg font-semibold rounded-l-lg transition-colors duration-300 ${
-            selectedTab === "nowShowing"
+            selectedTab === "nowPlaying"
               ? "bg-[#4599e3] text-white"
               : "bg-gray-700 text-gray-300 hover:bg-gray-600"
           }`}
         >
-          Now Showing
+          Now Playing
         </button>
         <button
           onClick={() => {
