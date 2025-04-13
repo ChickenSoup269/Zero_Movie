@@ -23,7 +23,11 @@ import OTPDialog from "./OTP-dialog"
 import { useState, useEffect } from "react"
 import zxcvbn from "zxcvbn"
 import emailjs from "@emailjs/browser"
-import { EMAILJS_PUBLIC_KEY } from "@/api/key"
+import {
+  EMAILJS_PUBLIC_KEY,
+  EMAILJS_SERVICE_ID,
+  EMAILJS_TEMPLATE_PASSWORD_ID,
+} from "@/api/key"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useRouter } from "next/navigation"
@@ -169,8 +173,8 @@ const RegisterForm = ({
 
     try {
       const response = await emailjs.send(
-        "service_rcd6nxv",
-        "template_3ptxgn1",
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_PASSWORD_ID,
         templateParams,
         EMAILJS_PUBLIC_KEY
       )

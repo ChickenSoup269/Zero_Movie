@@ -5,11 +5,13 @@ import Image from "next/image"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation, Autoplay } from "swiper/modules"
 import { motion, AnimatePresence } from "framer-motion"
+import { Swiper as SwiperType } from "swiper"
 import "swiper/css"
 import "swiper/css/navigation"
 import PosterSlider from "./poster-slider"
 
 interface Slide {
+  id: number
   image: string
   title: string
   description: string
@@ -19,6 +21,9 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
+  status: "nowShowing" | "upcoming"
+  director: string
+  rating: number
 }
 
 interface FullImageSliderProps {
@@ -27,8 +32,7 @@ interface FullImageSliderProps {
 
 const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   const [activeSlide, setActiveSlide] = useState(0)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [swiperInstance, setSwiperInstance] = useState<any>(null)
+  const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null)
 
   const handlePosterClick = (index: number) => {
     if (swiperInstance) {
@@ -37,7 +41,6 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
     }
   }
 
-  // Hàm cắt mô tả tại dấu chấm đầu tiên
   const getFirstSentence = (description: string) => {
     const firstPeriodIndex = description.indexOf(".")
     if (firstPeriodIndex !== -1) {
@@ -46,7 +49,6 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
     return description
   }
 
-  // Animation variants cho hình ảnh
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -61,20 +63,18 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
     },
   }
 
-  // Animation variants cho container text
   const textContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2, // Thời gian delay giữa các phần tử con
-        delayChildren: 0.3, // Delay trước khi bắt đầu animation của các con
+        staggerChildren: 0.2,
+        delayChildren: 0.3,
       },
     },
     exit: { opacity: 0 },
   }
 
-  // Animation variants cho từng phần tử con
   const textItemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -82,6 +82,14 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
       y: 0,
       transition: { duration: 0.4, ease: "easeInOut" },
     },
+  }
+
+  if (slides.length === 0) {
+    return (
+      <div className="relative w-full h-[90vh] text-white flex items-center justify-center">
+        No movies available
+      </div>
+    )
   }
 
   return (
@@ -113,44 +121,62 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     className="absolute top-0 left-0 w-full h-full full-screen-img"
                   >
                     <Image
-                      src={slide.image}
-                      alt={slide.title}
+                      src={slide.image || "/fallback-image.jpg"}
+                      alt={slide.title || "Movie slide"}
                       layout="fill"
                       objectFit="cover"
+                      onError={() =>
+                        console.error(`Failed to load image: ${slide.image}`)
+                      }
                     />
                   </motion.div>
                   <motion.div
                     variants={textContainerVariants}
                     className="absolute inset-0 z-50 flex items-center justify-start p-8"
                   >
-                    <div className="bg-opacity-60 p-6 rounded-lg max-w-lg pb-20">
-                      {/* Title */}
+                    <div className="bg-opacity-100 p-6 rounded-lg max-w-lg pb-20">
                       <motion.h1
                         variants={textItemVariants}
                         className="text-6xl font-bold mb-4 text-white"
                       >
-                        {slide.title}
+                        {slide.title || "Untitled"}
                       </motion.h1>
-
-                      {/* Release Year | Age Rating | Genre */}
                       <motion.div
                         variants={textItemVariants}
                         className="text-sm text-white mb-2"
                       >
-                        <span className="font-bold">{slide.releaseYear}</span> |{" "}
-                        <span className="font-bold">{slide.ageRating}</span> |{" "}
-                        <span className="font-bold">{slide.genre}</span>
+                        <span className="font-bold">
+                          {slide.releaseYear || "N/A"}
+                        </span>{" "}
+                        |{" "}
+                        <span className="font-bold inline-flex items-center">
+                          {slide.ageRating ? (
+                            <>
+                              <Image
+                                src={`/${slide.ageRating}.avif`}
+                                alt={slide.ageRating}
+                                width={45}
+                                height={45}
+                                className="mr-1 rounded-md"
+                              />
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </span>{" "}
+                        |{" "}
+                        <span className="font-bold">
+                          {slide.genre || "N/A"}
+                        </span>
                       </motion.div>
-
-                      {/* Description */}
                       <motion.p
                         variants={textItemVariants}
                         className="text-lg mb-4 text-gray-200 leading-relaxed"
                       >
-                        {getFirstSentence(slide.description)}
+                        {getFirstSentence(
+                          slide.description || "No description available."
+                        )}
                       </motion.p>
-
-                      {/* Buttons */}
                       <motion.div
                         variants={textItemVariants}
                         className="flex space-x-4 mb-4"
@@ -162,14 +188,42 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                           View Details
                         </button>
                       </motion.div>
-
-                      {/* Starring */}
                       <motion.div
                         variants={textItemVariants}
-                        className="text-sm text-gray-300 border-t border-gray-500 pt-2"
+                        className="text-sm text-gray-300 border-t border-gray-500 pt-2 flex flex-col space-y-1"
                       >
-                        <span className="font-semibold">Starring:</span>{" "}
-                        {slide.starring}
+                        {/* Dòng 1: Director và Age Rating */}
+                        <div className="flex space-x-4">
+                          <div>
+                            <span className="font-semibold text-white">
+                              Director:
+                            </span>
+                            <span className="font-mono">
+                              {" "}
+                              {slide.director || "Unknown"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-white">
+                              Rating:
+                            </span>{" "}
+                            <span className="font-mono">
+                              {slide.rating
+                                ? `${slide.rating.toFixed(1)}/10`
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-white">
+                              Status:
+                            </span>{" "}
+                            <span className="font-mono text-green-400">
+                              {slide.status === "nowShowing"
+                                ? "Now Showing"
+                                : "Coming Soon"}
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     </div>
                   </motion.div>

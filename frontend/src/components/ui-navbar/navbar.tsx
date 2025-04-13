@@ -8,7 +8,7 @@ import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X as CloseIcon, Film } from "lucide-react"
+import { Menu, X as CloseIcon, Film, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -17,19 +17,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { format } from "date-fns"
-import Ticket from "@/components/ui-details-movies/ticket" // Thay đường dẫn này bằng đường dẫn thực tế đến component Ticket
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useUser } from "@/hooks/use-user"
+import TicketComponent from "@/components/ui-details-movies/ticket"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useUser } from "@/hooks/use-user"
+import UserProfileDropdown from "@/components/ui-profile/user-profile-dropdown"
 
 interface NavItem {
   href: string
@@ -56,7 +47,7 @@ export default function Navbar() {
   const [cartItems, setCartItems] = useState<TicketData[]>([])
 
   const pathname = usePathname()
-  const { user, isLoggedIn, loading, logout } = useUser()
+  const { user, isLoggedIn, loading } = useUser()
 
   const navItems: NavItem[] = [
     { href: "/", label: "home" },
@@ -91,16 +82,31 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-    document.documentElement.classList.add("dark")
+    const isDarkMode = localStorage.getItem("darkMode") === "true"
+    setDarkMode(isDarkMode)
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
   }, [])
 
   useEffect(() => {
+    localStorage.setItem("darkMode", darkMode.toString())
     if (darkMode) {
       document.documentElement.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
     }
   }, [darkMode])
+
+  const handleRemoveTicket = (ticketId: string) => {
+    const updatedCartItems = cartItems.filter(
+      (item) => item.ticketId !== ticketId
+    )
+    setCartItems(updatedCartItems)
+    localStorage.setItem("purchasedTickets", JSON.stringify(updatedCartItems))
+  }
 
   const mobileMenuVariants = {
     hidden: { opacity: 0, y: -20 },
@@ -164,7 +170,7 @@ export default function Navbar() {
                   className={`hover:[text-shadow:_0_2px_4px_rgb(255_255_255_/_0.8)] capitalize transition-colors duration-300 px-2 py-1 ${
                     pathname === item.href
                       ? isScrolled
-                        ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-2 pt-5 pb-2 "
+                        ? "bg-[#4599e3] text-white font-bold rounded-b-lg -mt-2 pt-5 pb-2"
                         : "bg-[#4599e3] text-white font-bold rounded-lg"
                       : ""
                   }`}
@@ -216,50 +222,7 @@ export default function Navbar() {
           {loading ? (
             <Skeleton className="h-8 w-8 rounded-full" />
           ) : isLoggedIn ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={user?.avatar || "/default-avatar.png"}
-                      alt={user?.name || "User"}
-                    />
-                    <AvatarFallback className="bg-[#4599e3] text-white">
-                      {user?.name?.charAt(0).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.name || "User"}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email || "No email"}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/orders">My Tickets</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserProfileDropdown isLoggedIn={isLoggedIn} user={user} />
           ) : (
             <Link href="/login">
               <Button className="bg-[#4599e3] hover:bg-[#287ac3] dark:hover:bg-[#dfdfdf] dark:bg-white dark:text-black duration-300">
@@ -299,7 +262,6 @@ export default function Navbar() {
         </AnimatePresence>
       </nav>
 
-      {/* Dialog hiển thị danh sách vé */}
       <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
         <AnimatePresence>
           {isCartOpen && (
@@ -322,7 +284,7 @@ export default function Navbar() {
                     </p>
                   ) : (
                     cartItems.map((ticket, index) => (
-                      <div key={index} className="space-y-2">
+                      <div key={index} className="space-y-2 relative">
                         <p className="text-sm sm:text-base text-gray-500">
                           Purchased at:{" "}
                           {format(
@@ -330,7 +292,7 @@ export default function Navbar() {
                             "dd/MM/yyyy HH:mm:ss"
                           )}
                         </p>
-                        <Ticket
+                        <TicketComponent
                           theater={ticket.theater}
                           movieInfo={ticket.movieInfo}
                           selectedSeats={ticket.selectedSeats}
@@ -344,6 +306,14 @@ export default function Navbar() {
                           selectedRoom={ticket.selectedRoom}
                           selectedType={ticket.selectedType}
                         />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+                          onClick={() => handleRemoveTicket(ticket.ticketId)}
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
                       </div>
                     ))
                   )}

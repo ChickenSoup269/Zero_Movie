@@ -1,4 +1,3 @@
-// hooks/use-user.ts
 import { useState, useEffect } from "react"
 import {
   login,
@@ -7,11 +6,24 @@ import {
 } from "@/services/authService"
 import axios from "axios"
 
+// Định nghĩa kiểu User
+interface User {
+  id: string
+  username: string
+  email: string
+  fullName: string
+  role: string
+  avatar?: string // avatar là tùy chọn
+  backgroundImage?: string
+}
+
 // Create an axios instance for handling JWT
-const axiosJWT = axios.create()
+const axiosJWT = axios.create({
+  timeout: 10000, // 10 giây timeout
+})
 
 export const useUser = () => {
-  const [user, setUser] = useState<unknown>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -23,24 +35,32 @@ export const useUser = () => {
         const storedRefreshToken = localStorage.getItem("refresh_token")
         const userData = localStorage.getItem("user")
 
+        console.log("Access token:", accessToken) // Thêm log
+        console.log("Refresh token:", storedRefreshToken) // Thêm log
+        console.log("User data:", userData) // Thêm log
+
         if (userData) {
-          setUser(JSON.parse(userData))
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          console.log("User from localStorage:", parsedUser)
         }
 
         if (accessToken) {
-          // Nếu có access token, đánh dấu đã đăng nhập
           setIsLoggedIn(true)
+          console.log("User is logged in (access token found)")
         } else if (storedRefreshToken) {
-          // Nếu access token hết hạn nhưng có refresh token, thử renew
           try {
             const response = await refreshToken(storedRefreshToken)
             localStorage.setItem("access_token", response.access_token)
             localStorage.setItem("refresh_token", response.refresh_token)
             setIsLoggedIn(true)
+            console.log("User is logged in (refresh token successful)")
           } catch (error) {
             console.error("Token refresh failed:", error)
             clearAuthData()
           }
+        } else {
+          console.log("No tokens found, user is not logged in")
         }
       } catch (error) {
         console.error("Auth initialization error:", error)
@@ -91,6 +111,7 @@ export const useUser = () => {
     localStorage.removeItem("user")
     setUser(null)
     setIsLoggedIn(false)
+    console.log("Auth data cleared")
   }
 
   const loginUser = async (credentials: {
@@ -104,8 +125,18 @@ export const useUser = () => {
       localStorage.setItem("user", JSON.stringify(response.user))
       setUser(response.user)
       setIsLoggedIn(true)
+      console.log("Logged in user:", response.user)
+      console.log(
+        "Access token after login:",
+        localStorage.getItem("access_token")
+      )
+      console.log(
+        "Refresh token after login:",
+        localStorage.getItem("refresh_token")
+      )
       return response
     } catch (error) {
+      console.error("Login error:", error)
       throw error
     }
   }

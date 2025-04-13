@@ -19,7 +19,7 @@ import { useState, useEffect } from "react"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useRouter } from "next/navigation"
-import { login } from "@/services/authService"
+import { useUser } from "@/hooks/use-user" // Import useUser
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },
@@ -49,18 +49,17 @@ interface LoginFormProps {
 const LoginForm = ({
   loginData,
   handleLoginChange,
-  handleLoginSubmit,
   showLoginPassword,
   setShowLoginPassword,
   openDialog,
   setOpenDialog,
 }: LoginFormProps) => {
   const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading, setIsLoading] = useState(false) // Thêm trạng thái loading
+  const [isLoading, setIsLoading] = useState(false)
 
-  const router = useRouter() // Khởi tạo router để chuyển hướng
+  const router = useRouter()
+  const { login } = useUser() // Sử dụng useUser
 
-  // Toast thông báo
   const successLoginToast = SuccessToast({
     title: "Success!",
     description: "You have successfully logged in.",
@@ -87,7 +86,6 @@ const LoginForm = ({
     e.preventDefault()
 
     if (rememberMe) {
-      // Chỉ lưu email, không lưu mật khẩu
       localStorage.setItem("rememberedEmail", loginData.email)
     } else {
       localStorage.removeItem("rememberedEmail")
@@ -95,20 +93,11 @@ const LoginForm = ({
 
     setIsLoading(true)
     try {
-      const response = await login({
+      await login({
         email: loginData.email,
         password: loginData.password,
       })
-
-      if (response.access_token) {
-        localStorage.setItem("access_token", response.access_token)
-      }
-      if (response.refresh_token) {
-        localStorage.setItem("refresh_token", response.refresh_token)
-      }
-
       successLoginToast.showToast()
-      handleLoginSubmit(e)
       router.push("/")
     } catch (error: any) {
       console.error("Login failed:", error)
@@ -224,7 +213,7 @@ const LoginForm = ({
             <Button
               type="submit"
               className="btn-signIU w-full text-white"
-              disabled={isLoading} // Vô hiệu hóa nút khi đang loading
+              disabled={isLoading}
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>

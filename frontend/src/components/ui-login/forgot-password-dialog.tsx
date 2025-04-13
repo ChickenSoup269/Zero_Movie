@@ -23,10 +23,15 @@ import {
 } from "@/components/ui/input-otp"
 import { useState, useEffect } from "react"
 import emailjs from "@emailjs/browser"
-import { EMAILJS_PUBLIC_KEY } from "@/api/key"
+import {
+  EMAILJS_PUBLIC_KEY,
+  EMAILJS_SERVICE_ID,
+  EMAILJS_TEMPLATE_PASSWORD_ID,
+} from "@/api/key"
 import PasswordInput from "./password-input"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
+import { sendOtp, resetPassword } from "@/services/authService" // Import sendOtp và resetPassword
 
 interface ForgotPasswordDialogProps {
   open: boolean
@@ -50,10 +55,9 @@ const ForgotPasswordDialog = ({
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState("")
-  const [otpExpiry, setOtpExpiry] = useState<number | null>(null) // Thời gian hết hạn OTP
-  const [countdown, setCountdown] = useState(90) // 1 phút 30 giây
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null)
+  const [countdown, setCountdown] = useState(90)
 
-  // Khởi tạo SuccessToast và ErrorToast
   const successToast = SuccessToast({
     title: "Success!",
     description: "Your password has been reset successfully.",
@@ -78,7 +82,12 @@ const ForgotPasswordDialog = ({
     duration: 3000,
   })
 
-  // Bộ đếm ngược
+  const errorResetToast = ErrorToast({
+    title: "Error",
+    description: "Failed to reset password. Please try again.",
+    duration: 3000,
+  })
+
   useEffect(() => {
     if (isEmailValid && otpExpiry) {
       const interval = setInterval(() => {
@@ -88,22 +97,13 @@ const ForgotPasswordDialog = ({
         )
         setCountdown(timeLeft)
         if (timeLeft === 0) {
-          setGeneratedOtp("") // Vô hiệu hóa OTP khi hết thời gian
+          setGeneratedOtp("")
           clearInterval(interval)
         }
       }, 1000)
       return () => clearInterval(interval)
     }
   }, [isEmailValid, otpExpiry])
-
-  const generateOTP = () => {
-    const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for (let i = digits.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[digits[i], digits[j]] = [digits[j], digits[i]]
-    }
-    return digits.slice(0, 6).join("")
-  }
 
   const validateEmail = () => {
     if (!forgotEmail) {
@@ -160,8 +160,8 @@ const ForgotPasswordDialog = ({
 
     try {
       const response = await emailjs.send(
-        "service_rcd6nxv",
-        "template_3ptxgn1",
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_PASSWORD_ID,
         templateParams,
         EMAILJS_PUBLIC_KEY
       )
@@ -170,14 +170,14 @@ const ForgotPasswordDialog = ({
         response.status,
         response.text
       )
-      successOtpSentToast.showToast() // Thông báo gửi OTP thành công
-      setOtpExpiry(Date.now() + 90 * 1000) // 90 giây từ bây giờ
-      setCountdown(90) // Reset countdown
+      successOtpSentToast.showToast()
+      setOtpExpiry(Date.now() + 90 * 1000)
+      setCountdown(90)
     } catch (error: any) {
       console.error("Failed to send OTP email:", error.text || error)
       errorEmailToast.showToast({
         description: "Failed to send OTP. Please try again.",
-      }) // Thông báo lỗi gửi email
+      })
       setEmailError("Failed to send OTP. Please try again.")
       throw error
     }
@@ -188,11 +188,25 @@ const ForgotPasswordDialog = ({
     setIsSubmitted(true)
     const isValid = validateEmail()
     if (isValid) {
-      const newOtp = generateOTP()
-      setGeneratedOtp(newOtp)
-      console.log("Generated OTP:", newOtp)
-      await sendOtpEmail(forgotEmail, newOtp)
-      setIsEmailValid(true)
+      try {
+        // Gọi API /auth/forgot-password để backend sinh và lưu OTP
+        const response = await sendOtp(forgotEmail)
+        console.log("OTP generated and saved:", response)
+
+        const newOtp = response.resetCode // Lấy OTP từ backend
+        setGeneratedOtp(newOtp)
+        console.log("Generated OTP:", newOtp)
+
+        // Gửi email OTP qua EmailJS
+        await sendOtpEmail(forgotEmail, newOtp)
+        setIsEmailValid(true)
+      } catch (error: any) {
+        console.error("Failed to generate OTP:", error)
+        errorEmailToast.showToast({
+          description:
+            error.message || "Failed to generate OTP. Please try again.",
+        })
+      }
     }
   }
 
@@ -210,11 +224,11 @@ const ForgotPasswordDialog = ({
     } else {
       console.log("Invalid OTP")
       setOtp("")
-      errorToast.showToast({ description: "Invalid OTP. Please try again." }) // Thông báo OTP sai
+      errorToast.showToast({ description: "Invalid OTP. Please try again." })
     }
   }
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword !== confirmPassword) {
       setPasswordError("Passwords do not match.")
@@ -225,28 +239,61 @@ const ForgotPasswordDialog = ({
       return
     }
     setPasswordError("")
-    console.log("New password set successfully:", newPassword)
 
-    successToast.showToast() // Thông báo reset thành công
+    try {
+      // Gọi API /auth/reset-password để cập nhật mật khẩu mới
+      console.log("Sending reset password request with:", {
+        email: forgotEmail,
+        otp,
+        newPassword,
+      })
+      await resetPassword({
+        email: forgotEmail,
+        otp,
+        newPassword,
+      })
 
-    setOpenDialog(false)
-    setForgotEmail("")
-    setOtp("")
-    setIsEmailValid(false)
-    setIsSubmitted(false)
-    setGeneratedOtp("")
-    setShowResetForm(false)
-    setNewPassword("")
-    setConfirmPassword("")
+      console.log("New password set successfully:", newPassword)
+      successToast.showToast()
+
+      // Xóa token cũ trong localStorage
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("refresh_token")
+
+      setOpenDialog(false)
+      setForgotEmail("")
+      setOtp("")
+      setIsEmailValid(false)
+      setIsSubmitted(false)
+      setGeneratedOtp("")
+      setShowResetForm(false)
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (error: any) {
+      console.error("Failed to reset password:", error)
+      errorResetToast.showToast({
+        description:
+          error.message || "Failed to reset password. Please try again.",
+      })
+    }
   }
 
   const handleResendOTP = async () => {
-    const newOtp = generateOTP()
-    setGeneratedOtp(newOtp)
     try {
+      // Gọi lại API /auth/forgot-password để sinh OTP mới
+      const response = await sendOtp(forgotEmail)
+      console.log("OTP generated and saved:", response)
+
+      const newOtp = response.resetCode
+      setGeneratedOtp(newOtp)
+      console.log("Generated OTP:", newOtp)
+
       await sendOtpEmail(forgotEmail, newOtp)
-    } catch (error) {
-      // Lỗi đã được xử lý bằng toast trong sendOtpEmail
+    } catch (error: any) {
+      console.error("Failed to resend OTP:", error)
+      errorEmailToast.showToast({
+        description: error.message || "Failed to resend OTP. Please try again.",
+      })
     }
   }
 
