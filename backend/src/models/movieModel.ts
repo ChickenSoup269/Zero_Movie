@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 
 export interface IMovie extends Document {
   tmdbId: number;
@@ -14,7 +14,8 @@ export interface IMovie extends Document {
   voteCount?: number;
   adult?: boolean;
   video?: boolean;
-  genreIds: number[]; 
+  genreIds: number[];
+  status?: 'upcoming' | 'nowPlaying' ; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,10 @@ const movieSchema = new mongoose.Schema<IMovie>(
     adult: { type: Boolean, default: false },
     video: { type: Boolean, default: false },
     genreIds: { type: [Number], required: true },
+    status: { 
+      type: String, 
+      enum: ['upcoming', 'nowPlaying'], 
+    },
   },
   { timestamps: true }
 );

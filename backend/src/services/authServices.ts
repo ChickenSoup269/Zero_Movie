@@ -55,7 +55,15 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    return { user: { id: user._id, username: user.username, email: user.email, fullName: user.fullName, role: user.role }, accessToken, refreshToken };
+    return { user: { 
+      id: user._id, 
+      username: user.username, 
+      email: user.email, 
+      fullName: user.fullName, 
+      role: user.role,
+      avatar: user.avatar, 
+      backgroundImage: user.backgroundImage 
+    }, accessToken, refreshToken };
   }
 
   static async refreshToken(refreshToken: string) {
