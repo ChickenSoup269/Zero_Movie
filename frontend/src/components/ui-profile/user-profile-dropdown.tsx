@@ -54,7 +54,7 @@ export default function UserProfileDropdown({
       }
     }
     fetchUserProfile()
-  }, [isLoggedIn, user])
+  }, [isLoggedIn])
 
   const handleProfileUpdate = (updatedProfile: any) => {
     setUserProfile(updatedProfile) // Cập nhật userProfile sau khi chỉnh sửa
