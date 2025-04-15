@@ -183,28 +183,33 @@ const LoginForm = ({
             </motion.div>
             <motion.div
               variants={childVariants}
-              className="flex items-center space-x-2"
+              className="flex justify-between items-center w-full"
             >
-              <Checkbox
-                id="rememberMe"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              />
-              <Label htmlFor="rememberMe" className="text-black text-sm">
-                Remember Me
-              </Label>
-            </motion.div>
-            <motion.div variants={childVariants} className="text-right">
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setOpenDialog(true)
-                }}
-                className="text-sm text-black hover:underline"
-              >
-                Forgot Password?
-              </a>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
+                />
+                <Label htmlFor="rememberMe" className="text-black text-sm">
+                  Remember Me
+                </Label>
+              </div>
+
+              <motion.div variants={childVariants}>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setOpenDialog(true)
+                  }}
+                  className="text-sm text-black hover:underline"
+                >
+                  Forgot Password?
+                </a>
+              </motion.div>
             </motion.div>
           </CardContent>
         </motion.div>
@@ -212,7 +217,7 @@ const LoginForm = ({
           <CardFooter>
             <Button
               type="submit"
-              className="btn-signIU w-full text-white"
+              className="btn-signIU w-full text-white bg-black"
               disabled={isLoading}
             >
               {isLoading ? "Signing In..." : "Sign In"}

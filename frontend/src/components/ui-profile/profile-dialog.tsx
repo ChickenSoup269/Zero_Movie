@@ -13,13 +13,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import { Camera, Key } from "lucide-react"
-import UserService from "@/services/userService" // Adjust the path based on your project structure
+import UserService from "@/services/userService"
 
 interface ProfileDialogProps {
   open: boolean
@@ -62,7 +61,9 @@ export default function ProfileDialog({
   })
 
   useEffect(() => {
-    // Không cần thêm API_URL nữa vì userService sẽ xử lý
+    console.log("ProfileDialog user:", user)
+    console.log("ProfileDialog userProfile:", userProfile)
+    console.log("ProfileDialog formData:", formData)
     setFormData({
       fullName: userProfile?.fullName || user?.fullName || "",
       username: userProfile?.username || user?.username || "",
@@ -105,7 +106,6 @@ export default function ProfileDialog({
       formDataToSend.append("fullName", formData.fullName)
       formDataToSend.append("username", formData.username)
 
-      // Chỉ append file nếu có thay đổi
       if (avatarFile) {
         formDataToSend.append("avatar", avatarFile)
       }
@@ -113,15 +113,24 @@ export default function ProfileDialog({
         formDataToSend.append("backgroundImage", backgroundFile)
       }
 
-      // Gửi cả FormData thay vì object thông thường
       const response = await UserService.updateProfile(user.id, formDataToSend)
+      console.log("Update profile response:", response.data)
 
       onProfileUpdate(response.data)
       successToast.showToast()
       onOpenChange(false)
     } catch (error: any) {
+      console.error(
+        "Error updating profile:",
+        error.response?.data,
+        error.response?.status,
+        error.message
+      )
       errorToast.showToast({
-        description: error.message || "Failed to update profile.",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update profile.",
       })
     } finally {
       setIsLoading(false)
@@ -132,16 +141,22 @@ export default function ProfileDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
-          <DialogHeader className="relative px-1 pt-1 ">
-            {/* Background Image với margin 5px */}
+          <DialogHeader className="relative px-1 pt-1">
             <div className="relative h-40 w-full">
               {formData.backgroundImage ? (
                 <Image
-                  src={formData.backgroundImage}
+                  src={formData.backgroundImage || "/default-background.png"}
                   alt="Background"
                   layout="fill"
-                  objectFit="cover" // Giữ nguyên tỷ lệ, co lại để vừa khung
+                  objectFit="cover"
                   className="rounded-2xl"
+                  onError={(e) =>
+                    console.error(
+                      "Failed to load background:",
+                      formData.backgroundImage,
+                      e
+                    )
+                  }
                 />
               ) : (
                 <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-black dark:border-white">
@@ -165,22 +180,26 @@ export default function ProfileDialog({
               </label>
             </div>
 
-            {/* Điều chỉnh vị trí avatar để phù hợp với margin mới */}
             <div className="absolute left-6 top-24 h-24 w-24 group">
-              {" "}
-              {/* Thêm class group */}
               <div className="relative h-full w-full rounded-full border-2 border-white overflow-hidden shadow-lg dark:shadow-gray-500/90">
                 {formData.avatar ? (
                   <Image
-                    src={formData.avatar}
+                    src={formData.avatar || "/default-avatar.png"}
                     alt={formData.fullName || "User"}
                     fill
                     sizes="96px"
                     style={{
-                      objectFit: "cover", // Nên dùng cover thay vì contain để đẹp hơn
+                      objectFit: "cover",
                       objectPosition: "center",
                     }}
-                    className="rounded-full transition-opacity group-hover:opacity-75 " /* Thêm hiệu ứng khi hover */
+                    className="rounded-full transition-opacity group-hover:opacity-75"
+                    onError={(e) =>
+                      console.error(
+                        "Failed to load avatar:",
+                        formData.avatar,
+                        e
+                      )
+                    }
                   />
                 ) : (
                   <Avatar className="h-full w-full">
@@ -221,7 +240,6 @@ export default function ProfileDialog({
             <TabsContent value="profile">
               <form onSubmit={handleSubmit} className="px-6 pb-6">
                 <div className="space-y-4">
-                  {/* Form Fields */}
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="fullName">Full Name</Label>
@@ -287,7 +305,6 @@ export default function ProfileDialog({
         </DialogContent>
       </Dialog>
 
-      {/* ForgotPasswordDialog */}
       <ForgotPasswordDialog
         open={isForgotPasswordDialogOpen}
         setOpenDialog={setIsForgotPasswordDialogOpen}

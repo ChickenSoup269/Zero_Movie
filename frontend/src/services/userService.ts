@@ -18,6 +18,7 @@ const api = axios.create({
 // Add request interceptor to include auth token in requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token")
+  console.log("Token in request:", token) // Debug
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -45,9 +46,12 @@ export interface UpdateProfileData {
 
 // Hàm để xử lý đường dẫn hình ảnh từ backend
 const formatImageUrl = (path: string | undefined): string => {
-  if (!path) return ""
-  if (path.startsWith("http")) return path
-  const formattedUrl = `${API_URL}${path.startsWith("/") ? "" : "/"}${path}`
+  if (!path) return "/default-avatar.png" // Return a default image if path is empty
+  if (path.startsWith("http") || path.startsWith("https")) return path // Return absolute URLs as-is
+  const formattedUrl = `${API_URL.replace(/\/$/, "")}/${path.replace(
+    /^\//,
+    ""
+  )}` // Normalize slashes
   console.log("Formatted Image URL:", formattedUrl) // Debug the output
   return formattedUrl
 }

@@ -13,14 +13,12 @@ interface User {
   email: string
   fullName: string
   role: string
-  avatar?: string // avatar là tùy chọn
+  avatar?: string
   backgroundImage?: string
 }
 
 // Create an axios instance for handling JWT
-const axiosJWT = axios.create({
-  timeout: 10000, // 10 giây timeout
-})
+const axiosJWT = axios.create({})
 
 export const useUser = () => {
   const [user, setUser] = useState<User | null>(null)

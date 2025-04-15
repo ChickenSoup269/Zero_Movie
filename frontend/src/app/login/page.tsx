@@ -76,16 +76,16 @@ const LoginPage = () => {
             onValueChange={(value) => setActiveTab(value)}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-200">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-200 ">
               <TabsTrigger
                 value="login"
-                className="text-black data-[state=active]:bg-white"
+                className="text-black  data-[state=active]:bg-white  data-[state=active]:text-black dark:data-[state=active]:text-white   dark:data-[state=active]:bg-black"
               >
                 Sign In
               </TabsTrigger>
               <TabsTrigger
                 value="register"
-                className="text-black data-[state=active]:bg-white"
+                className="text-black   data-[state=active]:bg-white  data-[state=active]:text-black  dark:data-[state=active]:text-white dark:data-[state=active]:bg-black"
               >
                 Sign Up
               </TabsTrigger>

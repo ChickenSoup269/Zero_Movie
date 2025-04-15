@@ -604,7 +604,7 @@ export default function MovieAdmin() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              movie "{selectedMovie?.title}".
+              movie &quot;{selectedMovie?.title}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
