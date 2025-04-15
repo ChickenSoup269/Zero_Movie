@@ -96,6 +96,7 @@ const LoginForm = ({
       await login({
         email: loginData.email,
         password: loginData.password,
+        rememberMe, // Include rememberMe as part of the object if supported
       })
       successLoginToast.showToast()
       router.push("/")
