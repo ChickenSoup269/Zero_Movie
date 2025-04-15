@@ -14,11 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { UserService } from "@/services/userService"
+
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useUser } from "@/hooks/use-user"
 import { User, Mail, Settings, Ticket, LogOut } from "lucide-react"
-import ProfileDialog from "./profile-dialog" // Import ProfileDialog
+import ProfileDialog from "./profile-dialog"
+import UserService from "@/services/userService"
 
 interface UserProfileDropdownProps {
   isLoggedIn: boolean
@@ -30,7 +31,7 @@ export default function UserProfileDropdown({
   user,
 }: UserProfileDropdownProps) {
   const [userProfile, setUserProfile] = useState<any>(null)
-  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false) // State để mở dialog
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const { logout } = useUser()
 
   const errorToast = ErrorToast({
@@ -40,24 +41,41 @@ export default function UserProfileDropdown({
   })
 
   useEffect(() => {
+    console.log(
+      "isLoggedIn:",
+      isLoggedIn,
+      "user:",
+      user,
+      "token:",
+      localStorage.getItem("token")
+    )
     const fetchUserProfile = async () => {
       if (isLoggedIn && user?.id) {
         try {
-          const response = await UserService.getUserProfile(user.id)
+          const response = await UserService.getMyProfile()
           console.log("User profile from API:", response.data)
           setUserProfile(response.data)
         } catch (error: any) {
+          console.error(
+            "Error fetching user profile:",
+            error.response?.data,
+            error.response?.status,
+            error.message
+          )
           errorToast.showToast({
-            description: error.message || "Failed to load user profile.",
+            description:
+              error.response?.data?.message ||
+              error.message ||
+              "Failed to load user profile.",
           })
         }
       }
     }
     fetchUserProfile()
-  }, [isLoggedIn])
+  }, [isLoggedIn, user])
 
   const handleProfileUpdate = (updatedProfile: any) => {
-    setUserProfile(updatedProfile) // Cập nhật userProfile sau khi chỉnh sửa
+    setUserProfile(updatedProfile)
   }
 
   return (
@@ -65,23 +83,37 @@ export default function UserProfileDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <div className="relative">
+            <div className="relative w-8 h-8">
               {userProfile?.avatar ? (
                 <>
                   <Image
-                    src={userProfile.avatar}
+                    src={userProfile.avatar || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
                     className="absolute rounded-full blur-md opacity-80 scale-110"
                     style={{ filter: "brightness(1.2)" }}
+                    onError={(e) =>
+                      console.error(
+                        "Failed to load blurred avatar:",
+                        userProfile.avatar,
+                        e
+                      )
+                    }
                   />
                   <Image
-                    src={userProfile.avatar}
+                    src={userProfile.avatar || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
                     className="relative rounded-full"
+                    onError={(e) =>
+                      console.error(
+                        "Failed to load avatar:",
+                        userProfile.avatar,
+                        e
+                      )
+                    }
                   />
                 </>
               ) : (
@@ -146,7 +178,6 @@ export default function UserProfileDropdown({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Thêm ProfileDialog */}
       <ProfileDialog
         open={isProfileDialogOpen}
         onOpenChange={setIsProfileDialogOpen}

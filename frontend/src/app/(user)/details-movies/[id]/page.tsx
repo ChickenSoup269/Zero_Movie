@@ -28,7 +28,6 @@ interface MovieUI {
   writers: string[]
   starring: string
 }
-
 interface Theater {
   id: number
   name: string
@@ -48,12 +47,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
   const [genreMap, setGenreMap] = useState<{ [key: number]: string }>({})
 
-  // Fetch genre map when component mounts
+  // Fetch genre map
   useEffect(() => {
     const fetchGenreMap = async () => {
       try {
         const map = await GenreService.getGenreMap()
-        console.log("Genre map in MovieDetail:", map)
         setGenreMap(map)
       } catch (err: any) {
         console.error("Error fetching genre map:", err.message)
@@ -62,19 +60,16 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     fetchGenreMap()
   }, [])
 
-  // Fetch movie data based on params.id
+  // Fetch movie data
   useEffect(() => {
     const fetchParamsAndMovie = async () => {
       try {
         const unwrappedParams = await params
         const movieId = unwrappedParams.id
-        console.log("Movie ID from params:", movieId)
 
         setLoading(true)
-        const response = await getMovieById(parseInt(movieId))
-        console.log("Fetched movie data:", response)
+        const movieData = await getMovieById(movieId) // Giả sử API trả về trực tiếp movie
 
-        const movieData = response.movie // Truy cập movie từ response
         if (!movieData) {
           throw new Error("Phim không tìm thấy trong cơ sở dữ liệu")
         }
@@ -84,18 +79,17 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           tmdbId: movieData.tmdbId || parseInt(movieId),
           title: movieData.title || "Không có tiêu đề",
           image: movieData.backdropPath
-            ? `https://image.tmdb.org/t/p/original${movieData.backdropPath}`
+            ? `https:image.tmdb.org/t/p/original${movieData.backdropPath}`
             : "/fallback-image.jpg",
           poster: movieData.posterPath
-            ? `https://image.tmdb.org/t/p/w500${movieData.posterPath}`
+            ? `https:image.tmdb.org/t/p/w500${movieData.posterPath}`
             : "/fallback-poster.jpg",
           genre: Array.isArray(movieData.genreIds)
             ? movieData.genreIds
-                .map((id) => {
-                  const genreName = genreMap[id] || "Không xác định"
-                  console.log(`Genre ID ${id}: ${genreName}`)
-                  return genreName
-                })
+                .map(
+                  (id: string | number) =>
+                    genreMap[Number(id)] || "Không xác định"
+                )
                 .filter(Boolean)
                 .join(", ")
             : "Không xác định",
@@ -108,7 +102,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           starring: movieData.starring || "Không xác định",
         }
 
-        console.log("Mapped movieUI:", movieUI)
         setMovie(movieUI)
         setLoading(false)
       } catch (err: any) {
@@ -133,7 +126,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     if (updatedTheatersData.length > 0 && !selectedTheater) {
       setSelectedTheater(updatedTheatersData[0])
     }
-  }, [updatedTheatersData, selectedTheater])
+  }, [updatedTheatersData])
 
   if (loading) {
     return <div className="text-white text-center py-10">Đang tải...</div>
@@ -168,7 +161,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
-  // Animation variants
+  // Animation variants (giữ nguyên từ mã gốc)
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -274,8 +267,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         <Image
           src={movie.image}
           alt={movie.title}
-          layout="fill"
-          objectFit="cover"
+          fill
+          style={{ objectFit: "cover" }}
           loading="lazy"
         />
         <div
@@ -309,15 +302,15 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 <Image
                   src={movie.poster}
                   alt={movie.title}
-                  layout="fill"
-                  objectFit="cover"
+                  fill
+                  style={{ objectFit: "cover" }}
                 />
               </div>
               <Image
                 src={movie.poster}
                 alt={movie.title}
                 width={250}
-                height={250}
+                height={375}
                 className="relative z-10 rounded-lg shadow-lg w-full h-auto object-cover"
                 loading="lazy"
               />
@@ -357,7 +350,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="w-4 h-4"
                     fill="currentColor"
                     viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns="http:www.w3.org/2000/svg"
                   >
                     <path
                       fillRule="evenodd"
@@ -419,7 +412,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns="http:www.w3.org/2000/svg"
                   >
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -436,7 +429,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns="http:www.w3.org/2000/svg"
                   >
                     <path
                       strokeLinecap="round"
@@ -476,7 +469,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
+                        xmlns="http:www.w3.org/2000/svg"
                       >
                         <path
                           strokeLinecap="round"
@@ -530,7 +523,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns="http:www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -592,7 +585,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               exit="hidden"
             >
               <button
-                onClick={closeTheaterPopup}
+                onClick={closeTrailerPopup}
                 className="absolute top-[-10px] right-[-10px] text-gray-300 hover:text-white z-10"
               >
                 <svg
@@ -600,7 +593,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns="http:www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -617,7 +610,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 >
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    src="https:www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="Trailer phim"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
@@ -636,7 +629,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 >
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    src="https:www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="Trailer phim (blurred)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"

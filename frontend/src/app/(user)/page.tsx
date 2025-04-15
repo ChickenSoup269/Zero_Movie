@@ -4,13 +4,13 @@
 import { useState, useEffect } from "react"
 import FullImageSlider from "@/components/ui-home/full-image-slider"
 import Movies from "@/components/ui-home/movies"
-import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 import actorAgeData from "@/data/actorAgeData"
+import { getAllMovies, searchMovies } from "@/services/movieService"
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
-interface Movie {
+export interface Movie {
   _id: string
   tmdbId: number
   title: string
@@ -30,6 +30,10 @@ interface Movie {
   createdAt: string
   updatedAt: string
   __v: number
+  runtime?: number
+  director?: string
+  writers?: string[]
+  starring?: string
 }
 
 interface Genre {
@@ -82,13 +86,13 @@ export default function Home() {
         let moviesArray: Movie[] = []
         if (searchQuery) {
           // Tìm kiếm phim theo tiêu đề
-          moviesArray = await MovieService.searchMovies(searchQuery)
+          moviesArray = await searchMovies(searchQuery)
         } else if (selectedGenre) {
           // Lấy phim theo thể loại
           moviesArray = await GenreService.getMoviesByGenre(selectedGenre)
         } else {
           // Lấy tất cả phim
-          moviesArray = await MovieService.getAllMovies()
+          moviesArray = await getAllMovies()
         }
 
         const genreMap = await GenreService.getGenreMap()

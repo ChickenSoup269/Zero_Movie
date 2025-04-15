@@ -8,6 +8,15 @@ const nextConfig = {
       "www.edigitalagency.com.au",
       "image.tmdb.org",
     ],
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3001",
+        pathname: "/Uploads/**",
+      },
+    ],
+
     // Cho phép tải ảnh từ Netflix CDN
   },
 }

@@ -9,6 +9,7 @@ import { Swiper as SwiperType } from "swiper"
 import "swiper/css"
 import "swiper/css/navigation"
 import PosterSlider from "./poster-slider"
+import { useRouter } from "next/navigation"
 
 interface Slide {
   id: number
@@ -39,6 +40,11 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
       swiperInstance.slideTo(index)
       setActiveSlide(index)
     }
+  }
+  const router = useRouter()
+
+  const handleViewDetails = (movie: Slide) => {
+    router.push(`details-movies/${movie.id}`)
   }
 
   const getFirstSentence = (description: string) => {
@@ -182,11 +188,14 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                         variants={textItemVariants}
                         className="flex space-x-4 mb-4"
                       >
-                        <button className="bg-[#4599e3] text-white px-4 py-2 rounded-lg font-semibold">
+                        <button
+                          className="bg-[#4599e3] text-white px-4 py-2 rounded-lg font-semibold"
+                          onClick={() => handleViewDetails(slide)}
+                        >
                           Book Now
                         </button>
                         <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                          View Details
+                          Add to Watchlist
                         </button>
                       </motion.div>
                       <motion.div

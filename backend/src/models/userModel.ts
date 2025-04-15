@@ -1,30 +1,36 @@
-import mongoose, { Schema, Document, model, Types } from "mongoose"
+import { Schema, Document, model, Types } from "mongoose"
 
-export interface IUser extends mongoose.Document {
+export interface IUser extends Document {
+  _id: Types.ObjectId
   username: string
   email: string
   password: string
   fullName: string
-  role: string
+  role: "user" | "admin"
   points: number
-  avatar: string
-  backgroundImage: string
   resetPasswordCode?: string
   resetPasswordExpires?: Date
+  avatar?: string
+  backgroundImage?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  fullName: { type: String, required: true },
-  role: { type: String, default: "user" },
-  points: { type: Number, default: 0 },
-  avatar: { type: String, default: "" },
-  backgroundImage: { type: String, default: "" },
-  resetPasswordCode: { type: String, select: false },
-  resetPasswordExpires: { type: Date, select: false },
-})
+const userSchema = new Schema<IUser>(
+  {
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    fullName: { type: String, required: true },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
+    points: { type: Number, default: 0 },
+    resetPasswordCode: { type: String },
+    resetPasswordExpires: { type: Date },
+    avatar: { type: String },
+    backgroundImage: { type: String },
+  },
+  { timestamps: true }
+)
 
 userSchema.index({ email: 1 }, { unique: true })
 

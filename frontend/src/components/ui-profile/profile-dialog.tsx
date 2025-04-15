@@ -13,12 +13,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { UserService } from "@/services/userService"
+
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import { Camera, Key } from "lucide-react"
+import UserService from "@/services/userService" // Adjust the path based on your project structure
 
 interface ProfileDialogProps {
   open: boolean
@@ -61,6 +62,7 @@ export default function ProfileDialog({
   })
 
   useEffect(() => {
+    // Không cần thêm API_URL nữa vì userService sẽ xử lý
     setFormData({
       fullName: userProfile?.fullName || user?.fullName || "",
       username: userProfile?.username || user?.username || "",
@@ -112,10 +114,7 @@ export default function ProfileDialog({
       }
 
       // Gửi cả FormData thay vì object thông thường
-      const response = await UserService.updateUserProfile(
-        user.id,
-        formDataToSend // Sửa lại thành formDataToSend
-      )
+      const response = await UserService.updateProfile(user.id, formDataToSend)
 
       onProfileUpdate(response.data)
       successToast.showToast()
