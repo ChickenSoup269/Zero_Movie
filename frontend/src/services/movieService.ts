@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios, { AxiosError } from "axios"
-
-const axiosJWT = axios.create()
+import axios from "axios"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -9,95 +7,105 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
-// Lấy danh sách tất cả phim
-export const getAllMovies = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/movies/`)
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
+interface Movie {
+  _id: string
+  tmdbId: number
+  title: string
+  originalTitle: string
+  overview: string
+  posterPath: string | null
+  backdropPath: string | null
+  genreIds: number[]
+  releaseDate: string
+  voteAverage: number
+  voteCount: number
+  popularity: number
+  originalLanguage: string
+  adult: boolean
+  video: boolean
+  status?: "upcoming" | "nowPlaying"
+  createdAt: string
+  updatedAt: string
+  __v: number
 }
 
-// Lấy thông tin phim theo tmdbId
-export const getMovieById = async (tmdbId: number) => {
-  try {
-    const res = await axios.get(`${API_URL}/movies/${tmdbId}`)
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
+interface MovieInput {
+  tmdbId?: number
+  title: string
+  originalTitle?: string
+  overview?: string
+  posterPath?: string | null
+  backdropPath?: string | null
+  genreIds?: number[]
+  releaseDate?: string
+  voteAverage?: number
+  voteCount?: number
+  popularity?: number
+  originalLanguage?: string
+  adult?: boolean
+  video?: boolean
+  status?: "upcoming" | "nowPlaying"
 }
 
-// Tìm kiếm phim theo tiêu đề
-export const searchMoviesByTitle = async (title: string) => {
-  try {
-    const res = await axios.get(
-      `${API_URL}/movies/search/${encodeURIComponent(title)}`
-    )
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
-}
-
-// Thêm phim mới (yêu cầu quyền admin)
-export const addMovie = async (movieData: any, access_token: string) => {
-  try {
-    const res = await axiosJWT.post(`${API_URL}/movies/`, movieData, {
-      headers: {
-        token: `Bearer ${access_token}`,
-      },
-    })
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+export class MovieService {
+  // Lấy tất cả phim
+  static async getAllMovies(): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/movies`)
+      return response.data.movies || response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch movies")
     }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
   }
-}
 
-// Cập nhật phim theo tmdbId (yêu cầu quyền admin)
-export const updateMovie = async (
-  tmdbId: number,
-  movieData: any,
-  access_token: string
-) => {
-  try {
-    const res = await axiosJWT.put(`${API_URL}/movies/${tmdbId}`, movieData, {
-      headers: {
-        token: `Bearer ${access_token}`,
-      },
-    })
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+  // Lấy phim theo ID
+  static async getMovieById(id: string): Promise<Movie> {
+    try {
+      const response = await axios.get(`${API_URL}/movies/${id}`)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch movie")
     }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
   }
-}
 
-// Xóa phim theo tmdbId (yêu cầu quyền admin)
-export const deleteMovie = async (tmdbId: number, access_token: string) => {
-  try {
-    const res = await axiosJWT.delete(`${API_URL}/movies/${tmdbId}`, {
-      headers: {
-        token: `Bearer ${access_token}`,
-      },
-    })
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+  // Tìm kiếm phim theo tiêu đề
+  static async searchMovies(title: string): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/movies/search/${title}`)
+      return response.data.movies || response.data
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to search movies"
+      )
     }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+
+  // Thêm phim mới
+  static async addMovie(movie: MovieInput): Promise<Movie> {
+    try {
+      const response = await axios.post(`${API_URL}/movies`, movie)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to add movie")
+    }
+  }
+
+  // Cập nhật phim
+  static async updateMovie(id: string, movie: MovieInput): Promise<Movie> {
+    try {
+      const response = await axios.put(`${API_URL}/movies/${id}`, movie)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to update movie")
+    }
+  }
+
+  // Xóa phim
+  static async deleteMovie(id: string): Promise<void> {
+    try {
+      await axios.delete(`${API_URL}/movies/${id}`)
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to delete movie")
+    }
   }
 }

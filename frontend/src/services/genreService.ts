@@ -1,99 +1,119 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
-export interface IGenre {
+interface Genre {
   id: number
   name: string
 }
 
+interface Movie {
+  _id: string
+  tmdbId: number
+  title: string
+  originalTitle: string
+  overview: string
+  posterPath: string | null
+  backdropPath: string | null
+  genreIds: number[]
+  releaseDate: string
+  voteAverage: number
+  voteCount: number
+  popularity: number
+  originalLanguage: string
+  adult: boolean
+  video: boolean
+  status?: "upcoming" | "nowPlaying"
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
 export class GenreService {
-  static async getAllGenres(): Promise<IGenre[]> {
+  // Lấy danh sách tất cả thể loại
+  static async getGenres(): Promise<Genre[]> {
     try {
       const response = await axios.get(`${API_URL}/genres`)
-      console.log("Genres API response:", response.data)
-      if (!response.data || !Array.isArray(response.data.genres)) {
-        console.error("Genres response is not an array:", response.data)
-        return []
-      }
-      // Ánh xạ và loại bỏ từ "Phim" khỏi name
-      const genres: IGenre[] = response.data.genres.map((genre: any) => ({
-        id: genre.id,
-        name: genre.name.replace(/^Phim\s+/i, "").trim(), // Loại bỏ "Phim" ở đầu, không phân biệt hoa thường
-      }))
-      console.log("Processed genres:", genres)
-      return genres
-    } catch (error: any) {
-      console.error("Error fetching genres:", error.message)
-      return []
-    }
-  }
-
-  static async getGenreMap(): Promise<{ [key: number]: string }> {
-    try {
-      const genres = await this.getAllGenres()
-      console.log("Genres for map:", genres)
-      if (!Array.isArray(genres)) {
-        console.error("Genres is not an array:", genres)
-        return {}
-      }
-      return genres.reduce((map, genre) => {
-        if (typeof genre.id === "number" && typeof genre.name === "string") {
-          map[genre.id] = genre.name
-        }
-        return map
-      }, {} as { [key: number]: string })
-    } catch (error: any) {
-      console.error("Error creating genre map:", error.message)
-      return {}
-    }
-  }
-
-  static async searchGenres(keyword: string): Promise<IGenre[]> {
-    try {
-      const response = await axios.get(`${API_URL}/genres/search`, {
-        params: { keyword },
-      })
-      console.log("Search genres response:", response.data)
-      if (!response.data || !Array.isArray(response.data.genres)) {
-        console.error("Search genres response is not an array:", response.data)
-        return []
-      }
-      // Ánh xạ và loại bỏ từ "Phim"
-      const genres: IGenre[] = response.data.genres.map((genre: any) => ({
-        id: genre.id,
-        name: genre.name.replace(/^Phim\s+/i, "").trim(),
-      }))
-      console.log("Processed search genres:", genres)
-      return genres
-    } catch (error: any) {
-      console.error("Error searching genres:", error.message)
-      return []
-    }
-  }
-
-  static async getMoviesByGenre(genreName: string): Promise<any[]> {
-    try {
-      const response = await axios.get(
-        `${API_URL}/genres/movies/${encodeURIComponent(genreName)}`
-      )
-      console.log("Movies by genre response:", response.data)
-      if (!Array.isArray(response.data)) {
-        console.error(
-          "Movies by genre response is not an array:",
-          response.data
-        )
-        return []
-      }
       return response.data
     } catch (error: any) {
-      console.error("Error fetching movies by genre:", error.message)
-      return []
+      throw new Error(error.response?.data?.message || "Failed to fetch genres")
+    }
+  }
+
+  // Thêm thể loại mới
+  static async addGenre(name: string): Promise<Genre> {
+    try {
+      const response = await axios.post(`${API_URL}/genres`, { name })
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to add genre")
+    }
+  }
+
+  // Cập nhật thể loại
+  static async updateGenre(id: string, name: string): Promise<Genre> {
+    try {
+      const response = await axios.put(`${API_URL}/genres/${id}`, { name })
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to update genre")
+    }
+  }
+
+  // Xóa thể loại
+  static async deleteGenre(id: string): Promise<void> {
+    try {
+      await axios.delete(`${API_URL}/genres/${id}`)
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to delete genre")
+    }
+  }
+
+  // Tìm kiếm thể loại
+  static async searchGenre(query: string): Promise<Genre[]> {
+    try {
+      const response = await axios.get(`${API_URL}/genres/search`, {
+        params: { q: query },
+      })
+      return response.data
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to search genres"
+      )
+    }
+  }
+
+  // Lấy phim theo tên thể loại
+  static async getMoviesByGenre(genreName: string): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/genres/${genreName}/movies`)
+      return response.data.movies || response.data
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch movies by genre"
+      )
+    }
+  }
+
+  // Giữ nguyên getGenreMap hiện tại (giả sử nó ánh xạ genreId sang tên)
+  static async getGenreMap(): Promise<Record<number, string>> {
+    try {
+      const genres = await this.getGenres()
+      const genreMap: Record<number, string> = {}
+      genres.forEach((genre) => {
+        // Ánh xạ genre.id sang tên thể loại, loại bỏ "Phim" ở đầu
+        return (genreMap[genre.id] = genre.name.replace(/^Phim\s+/i, "").trim())
+      })
+      return genreMap
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch genre map"
+      )
     }
   }
 }

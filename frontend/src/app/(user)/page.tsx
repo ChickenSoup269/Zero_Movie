@@ -4,9 +4,9 @@
 import { useState, useEffect } from "react"
 import FullImageSlider from "@/components/ui-home/full-image-slider"
 import Movies from "@/components/ui-home/movies"
-import { getAllMovies } from "@/services/movieService"
+import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
-import actorAgeData from "@/data/actorAgeData" // Import dữ liệu ageRating và director
+import actorAgeData from "@/data/actorAgeData"
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
@@ -26,15 +26,15 @@ interface Movie {
   originalLanguage: string
   adult: boolean
   video: boolean
-  status?: "upcoming" | "nowPlaying" // Added status field from schema
+  status?: "upcoming" | "nowPlaying"
   createdAt: string
   updatedAt: string
   __v: number
 }
 
-interface ApiResponse {
-  message: string
-  movies: Movie[]
+interface Genre {
+  id: number
+  name: string
 }
 
 interface Slide {
@@ -53,7 +53,6 @@ interface Slide {
   rating: number
 }
 
-// Interface cho dữ liệu bên ngoài
 interface ActorAgeInfo {
   id: number
   ageRating: string
@@ -64,61 +63,52 @@ interface ActorAgeInfo {
 
 export default function Home() {
   const [slides, setSlides] = useState<Slide[]>([])
+  const [, setGenres] = useState<Genre[]>([])
+  const [selectedGenre] = useState<string | null>(null)
+  const [searchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchMoviesAndGenres = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const movieResponse = await getAllMovies()
+
+        // Lấy danh sách thể loại
+        const genresData = await GenreService.getGenres()
+        setGenres(genresData)
+
+        // Lấy phim
         let moviesArray: Movie[] = []
-        if (
-          movieResponse &&
-          typeof movieResponse === "object" &&
-          "movies" in movieResponse
-        ) {
-          moviesArray = (movieResponse as ApiResponse).movies
-        } else if (Array.isArray(movieResponse)) {
-          moviesArray = movieResponse as Movie[]
+        if (searchQuery) {
+          // Tìm kiếm phim theo tiêu đề
+          moviesArray = await MovieService.searchMovies(searchQuery)
+        } else if (selectedGenre) {
+          // Lấy phim theo thể loại
+          moviesArray = await GenreService.getMoviesByGenre(selectedGenre)
         } else {
-          throw new Error("API response is not an array or valid object")
+          // Lấy tất cả phim
+          moviesArray = await MovieService.getAllMovies()
         }
 
         const genreMap = await GenreService.getGenreMap()
-        console.log("Genre map:", genreMap)
-        console.log(
-          "Sample movie:",
-          moviesArray[0]?.title,
-          moviesArray[0]?.genreIds
-        )
 
-        // Tạo map từ actorAgeData để tìm kiếm nhanh hơn
+        // Tạo map từ actorAgeData
         const actorAgeMap = new Map<number, ActorAgeInfo>()
         actorAgeData.movies.forEach((movie) => {
           actorAgeMap.set(movie.id, movie)
         })
 
+        // Ánh xạ phim thành slides
         const mappedSlides: Slide[] = moviesArray.map((movie) => {
           const releaseDate = new Date(movie.releaseDate)
           const genreNames =
             movie.genreIds
-              .map((id) => {
-                const name = genreMap[id]
-                console.log(
-                  `Movie ${movie.title} - Genre ID ${id}: ${
-                    name || "Not found"
-                  }`
-                )
-                return name
-              })
+              .map((id) => genreMap[id])
               .filter((name): name is string => !!name)
               .join(", ") || "No genres available"
 
-          // Tìm thông tin ageRating và director từ dữ liệu bên ngoài
           const extraInfo = actorAgeMap.get(movie.tmdbId)
-
-          // Prioritize the status from the database, fallback to date-based logic if not available
           const status =
             movie.status ||
             (releaseDate <= new Date() ? "nowPlaying" : "upcoming")
@@ -142,34 +132,23 @@ export default function Home() {
                 ? "public/images/ageRating/pegi_18"
                 : "public/images/ageRating/pegi_12"),
             starring: "Unknown",
-            status: status as "nowPlaying" | "upcoming", // Use the status from database or fallback
+            status: status === "nowPlaying" ? "nowPlaying" : "upcoming",
             director: extraInfo?.director || "Unknown",
             rating: movie.voteAverage || 0,
           }
         })
 
-        console.log(
-          "Mapped slides:",
-          mappedSlides.map((slide) => ({
-            id: slide.id,
-            title: slide.title,
-            genre: slide.genre,
-            director: slide.director,
-            ageRating: slide.ageRating,
-            status: slide.status, // Log status to verify
-          }))
-        )
         setSlides(mappedSlides)
         setLoading(false)
       } catch (err: any) {
         console.error("Error fetching data:", err)
-        setError(err.message || "Failed to fetch movies or genres")
+        setError(err.message || "Failed to fetch data")
         setLoading(false)
       }
     }
 
-    fetchMoviesAndGenres()
-  }, [])
+    fetchData()
+  }, [selectedGenre, searchQuery]) // Chạy lại khi selectedGenre hoặc searchQuery thay đổi
 
   if (loading) {
     return (
