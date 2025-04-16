@@ -17,7 +17,7 @@ import {
 
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useUser } from "@/hooks/use-user"
-import { User, Mail, Settings, Ticket, LogOut } from "lucide-react"
+import { User, Mail, Settings, Ticket, LogOut, Shield } from "lucide-react"
 import ProfileDialog from "./profile-dialog"
 import UserService from "@/services/userService"
 
@@ -78,6 +78,8 @@ export default function UserProfileDropdown({
     setUserProfile(updatedProfile)
   }
 
+  const isAdmin = userProfile?.role === "admin"
+
   return (
     <>
       <DropdownMenu>
@@ -87,7 +89,7 @@ export default function UserProfileDropdown({
               {userProfile?.avatar ? (
                 <>
                   <Image
-                    src={userProfile || "/default-avatar.png"}
+                    src={userProfile.avatar || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
@@ -102,7 +104,7 @@ export default function UserProfileDropdown({
                     }
                   />
                   <Image
-                    src={userProfile || "/default-avatar.png"}
+                    src={userProfile.avatar || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
@@ -166,6 +168,14 @@ export default function UserProfileDropdown({
                 <span>My Tickets</span>
               </Link>
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4" />
+                  <span>Admin Page</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem

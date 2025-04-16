@@ -1,8 +1,9 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
   Card,
@@ -54,6 +55,20 @@ interface User {
   avatar?: string
 }
 
+// Mảng các màu nền cho avatar
+const AVATAR_COLORS = [
+  "bg-red-500",
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-yellow-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-cyan-500",
+]
+
 export default function UserAdmin() {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -75,6 +90,26 @@ export default function UserAdmin() {
   })
   const { toast } = useToast()
   const router = useRouter()
+
+  // Hàm tạo màu ngẫu nhiên cho avatar dựa trên ID của người dùng
+  const getAvatarColor = useCallback((userId: string) => {
+    const index =
+      Math.abs(
+        userId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      ) % AVATAR_COLORS.length
+    return AVATAR_COLORS[index]
+  }, [])
+
+  // Hàm lấy ký tự đầu tiên từ username hoặc fullName
+  const getInitial = useCallback((user: User) => {
+    if (user.fullName && user.fullName.trim().length > 0) {
+      return user.fullName.trim()[0].toUpperCase()
+    }
+    if (user.username && user.username.trim().length > 0) {
+      return user.username.trim()[0].toUpperCase()
+    }
+    return "?"
+  }, [])
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
@@ -367,21 +402,13 @@ export default function UserAdmin() {
                     users.map((user) => (
                       <TableRow key={user._id}>
                         <TableCell>
-                          {user.avatar ? (
-                            <img
-                              src={user.avatar}
-                              alt={user.username}
-                              className="w-12 h-12 object-cover rounded-full"
-                              onError={(e) => {
-                                ;(e.target as HTMLImageElement).src =
-                                  "/api/placeholder/48/48"
-                              }}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-xs">
-                              No Image
-                            </div>
-                          )}
+                          <div
+                            className={`w-12 h-12 ${getAvatarColor(
+                              user._id
+                            )} rounded-full flex items-center justify-center text-white font-medium text-lg`}
+                          >
+                            {getInitial(user)}
+                          </div>
                         </TableCell>
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.fullName}</TableCell>
@@ -477,7 +504,7 @@ export default function UserAdmin() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              user "{selectedUser?.username}".
+              user "{selectedUser?.username}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

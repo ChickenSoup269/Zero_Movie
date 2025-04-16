@@ -567,7 +567,7 @@ export default function MovieAdmin() {
                                 <img
                                   src={`https://image.tmdb.org/t/p/w92${movie.posterPath}`}
                                   alt={movie.title}
-                                  className="w-12 h-16 object-cover rounded"
+                                  className="w-12 h-12 object-cover rounded"
                                   onError={(e) => {
                                     ;(e.target as HTMLImageElement).src =
                                       "/api/placeholder/92/138"
@@ -600,7 +600,7 @@ export default function MovieAdmin() {
                               <Badge
                                 className={
                                   movie.status === "nowPlaying"
-                                    ? "bg-green-600 text-white"
+                                    ? "bg-blue-400 text-white"
                                     : "bg-gray-400 text-white"
                                 }
                               >
@@ -623,7 +623,6 @@ export default function MovieAdmin() {
                                 Edit
                               </Button>
                               <Button
-                                variant="destructive"
                                 size="sm"
                                 onClick={() => handleDeleteMovieClick(movie)}
                               >
