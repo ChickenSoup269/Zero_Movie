@@ -20,6 +20,9 @@ import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import { Camera, Key } from "lucide-react"
 import UserService from "@/services/userService"
 
+// Lấy URL cơ sở từ biến môi trường
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 interface ProfileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -47,6 +50,8 @@ export default function ProfileDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [isForgotPasswordDialogOpen, setIsForgotPasswordDialogOpen] =
     useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+  const [backgroundError, setBackgroundError] = useState(false)
 
   const errorToast = ErrorToast({
     title: "Error",
@@ -60,10 +65,30 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
+  // Tạo các URL đầy đủ cho avatar và background
+  const getFullImageUrl = (path: string | null | undefined) => {
+    if (!path) return ""
+    // Kiểm tra nếu path đã là URL đầy đủ (bắt đầu bằng http hoặc data)
+    if (path.startsWith("http") || path.startsWith("data:")) return path
+
+    // Thử xóa phần /api/ nếu có (điều chỉnh tùy theo cấu hình API của bạn)
+    const cleanPath = path.startsWith("/") ? path : `/${path}`
+
+    // Log để debug
+    console.log("API_BASE_URL:", API_BASE_URL)
+    console.log("Original path:", path)
+    console.log("Final URL:", `${API_BASE_URL}${cleanPath}`)
+
+    return `${API_BASE_URL}${cleanPath}`
+  }
   useEffect(() => {
     console.log("ProfileDialog user:", user)
     console.log("ProfileDialog userProfile:", userProfile)
-    console.log("ProfileDialog formData:", formData)
+
+    // Reset trạng thái lỗi khi dữ liệu thay đổi
+    setAvatarError(false)
+    setBackgroundError(false)
+
     setFormData({
       fullName: userProfile?.fullName || user?.fullName || "",
       username: userProfile?.username || user?.username || "",
@@ -71,6 +96,7 @@ export default function ProfileDialog({
       backgroundImage:
         userProfile?.backgroundImage || user?.backgroundImage || "",
     })
+    console.log("ProfileDialog formData updated:", formData)
   }, [user, userProfile])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,6 +108,7 @@ export default function ProfileDialog({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       setAvatarFile(file)
+      setAvatarError(false)
       setFormData((prev) => ({ ...prev, avatar: URL.createObjectURL(file) }))
     }
   }
@@ -90,6 +117,7 @@ export default function ProfileDialog({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       setBackgroundFile(file)
+      setBackgroundError(false)
       setFormData((prev) => ({
         ...prev,
         backgroundImage: URL.createObjectURL(file),
@@ -113,7 +141,7 @@ export default function ProfileDialog({
         formDataToSend.append("backgroundImage", backgroundFile)
       }
 
-      const response = await UserService.updateProfile(user.id, formDataToSend)
+      const response = await UserService.updateProfile(formDataToSend)
       console.log("Update profile response:", response.data)
 
       onProfileUpdate(response.data)
@@ -137,27 +165,46 @@ export default function ProfileDialog({
     }
   }
 
+  // Xác định URL đầy đủ cho avatar và background
+  const avatarUrl = avatarFile
+    ? formData.avatar // Sử dụng URL.createObjectURL khi có file mới
+    : getFullImageUrl(formData.avatar)
+
+  const backgroundUrl = backgroundFile
+    ? formData.backgroundImage // Sử dụng URL.createObjectURL khi có file mới
+    : getFullImageUrl(formData.backgroundImage)
+
+  console.log("Avatar URL:", avatarUrl)
+  console.log("Background URL:", backgroundUrl)
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
           <DialogHeader className="relative px-1 pt-1">
             <div className="relative h-40 w-full">
-              {formData.backgroundImage ? (
-                <Image
-                  src={formData.backgroundImage || "/default-background.png"}
-                  alt="Background"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-2xl"
-                  onError={(e) =>
-                    console.error(
-                      "Failed to load background:",
-                      formData.backgroundImage,
-                      e
-                    )
-                  }
-                />
+              {formData.backgroundImage && !backgroundError ? (
+                <div className="relative h-40 w-full">
+                  <Image
+                    src={backgroundUrl || "/default-background.png"}
+                    alt="Background"
+                    fill
+                    sizes="100%"
+                    style={{
+                      objectFit: "cover",
+                    }}
+                    className="rounded-2xl"
+                    onError={(e) => {
+                      console.error(
+                        "Failed to load background:",
+                        backgroundUrl,
+                        e
+                      )
+                      setBackgroundError(true)
+                    }}
+                    priority
+                  />
+                </div>
               ) : (
                 <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-black dark:border-white">
                   <span className="text-black dark:text-white font-mono text-lg">
@@ -182,9 +229,9 @@ export default function ProfileDialog({
 
             <div className="absolute left-6 top-24 h-24 w-24 group">
               <div className="relative h-full w-full rounded-full border-2 border-white overflow-hidden shadow-lg dark:shadow-gray-500/90">
-                {formData.avatar ? (
+                {formData.avatar && !avatarError ? (
                   <Image
-                    src={formData.avatar || "/default-avatar.png"}
+                    src={avatarUrl || "/default-avatar.png"}
                     alt={formData.fullName || "User"}
                     fill
                     sizes="96px"
@@ -193,13 +240,11 @@ export default function ProfileDialog({
                       objectPosition: "center",
                     }}
                     className="rounded-full transition-opacity group-hover:opacity-75"
-                    onError={(e) =>
-                      console.error(
-                        "Failed to load avatar:",
-                        formData.avatar,
-                        e
-                      )
-                    }
+                    onError={(e) => {
+                      console.error("Failed to load avatar:", avatarUrl, e)
+                      setAvatarError(true)
+                    }}
+                    priority
                   />
                 ) : (
                   <Avatar className="h-full w-full">

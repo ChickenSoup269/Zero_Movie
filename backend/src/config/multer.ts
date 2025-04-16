@@ -2,17 +2,21 @@ import multer from "multer"
 import path from "path"
 import fs from "fs"
 
-const uploadDir = path.join(__dirname, "../uploads")
+// Đường dẫn đến thư mục uploads (thư mục gốc backend)
+const uploadDir = path.join(__dirname, "..", "..", "uploads")
 
-// create uploads nếu chưa tồn tại
+// Tạo thư mục uploads nếu chưa tồn tại
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true })
 }
 
+// Log để kiểm tra đường dẫn
+console.log("Multer uploadDir:", uploadDir)
+
 // Config file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir) // Dùng đường dẫn tuyệt đối
+    cb(null, uploadDir)
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9)

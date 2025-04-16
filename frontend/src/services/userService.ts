@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// userService.ts
-
 import axios from "axios"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -8,6 +6,15 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
+// Helper function để lấy token từ localStorage - sửa để lấy 'token' thay vì 'authToken'
+const getAuthToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("token")
+  }
+  return null
+}
+
+// Tạo instance axios với config mặc định
 const api = axios.create({
   baseURL: `${API_URL}/users`,
   headers: {
@@ -15,111 +22,72 @@ const api = axios.create({
   },
 })
 
-// Add request interceptor to include auth token in requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
-  console.log("Token in request:", token) // Debug
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-export interface UserProfile {
-  data(data: any): unknown
-  id: string
-  username: string
-  email: string
-  fullName: string
-  avatar?: string
-  backgroundImage?: string
-  role?: string
-}
-
-export interface UpdateProfileData {
-  username?: string
-  email?: string
-  fullName?: string
-  avatar?: string
-  backgroundImage?: string
-}
-
-// Hàm để xử lý đường dẫn hình ảnh từ backend
-const formatImageUrl = (path: string | undefined): string => {
-  if (!path) return "/default-avatar.png" // Return a default image if path is empty
-  if (path.startsWith("http") || path.startsWith("https")) return path // Return absolute URLs as-is
-  const formattedUrl = `${API_URL.replace(/\/$/, "")}/${path.replace(
-    /^\//,
-    ""
-  )}` // Normalize slashes
-  console.log("Formatted Image URL:", formattedUrl) // Debug the output
-  return formattedUrl
-}
-
-// Hàm xử lý dữ liệu user trả về từ API
-const formatUserData = (userData: any): UserProfile => {
-  if (!userData) return userData
-
-  return {
-    ...userData,
-    avatar: formatImageUrl(userData.avatar),
-    backgroundImage: formatImageUrl(userData.backgroundImage),
-  }
-}
-
-const userService = {
-  // Lấy thông tin profile của user theo ID
-  getUserProfile: async (userId: string): Promise<UserProfile> => {
-    const response = await api.get(`/profile/${userId}`)
-    return formatUserData(response.data)
+// Request interceptor để thêm token vào mỗi request
+api.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    } else {
+      throw new Error("Không có token")
+    }
+    return config
   },
+  (error) => Promise.reject(error)
+)
 
-  // Lấy thông tin profile của user hiện tại
-  getMyProfile: async (): Promise<UserProfile> => {
-    const response = await api.get("/profile")
-    return formatUserData(response.data)
-  },
-
-  // Cập nhật profile của user
-  updateProfile: async (
-    userId: string,
-    data: UpdateProfileData | FormData
-  ): Promise<any> => {
-    // Xử lý header phù hợp nếu là FormData
-    const isFormData = data instanceof FormData
-    const config = isFormData
-      ? {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      : {}
-
-    const response = await api.put(`/profile/${userId}`, data, config)
-    return {
-      data: formatUserData(response.data),
+const UserService = {
+  // Lấy thông tin profile của user đã đăng nhập
+  getProfile: async () => {
+    try {
+      const response = await api.get("/profile")
+      return response // Trả về response đầy đủ để có thể truy cập response.data
+    } catch (error) {
+      throw error
     }
   },
 
-  // Xóa một user theo ID
-  deleteUser: async (userId: string): Promise<any> => {
-    const response = await api.delete(`/${userId}`)
-    return response.data
+  // Cập nhật thông tin profile
+  updateProfile: async (profileData: any) => {
+    try {
+      const response = await api.put("/profile", profileData)
+      return response
+    } catch (error) {
+      throw error
+    }
   },
 
-  // Lấy danh sách tất cả users
-  getAllUsers: async (): Promise<UserProfile[]> => {
-    const response = await api.get("/")
-    return response.data.map(formatUserData)
+  // Xóa người dùng theo ID
+  deleteUser: async (userId: any) => {
+    try {
+      const response = await api.delete(`/${userId}`)
+      return response
+    } catch (error) {
+      throw error
+    }
   },
 
-  // Tìm kiếm users
-  searchUsers: async (query: string): Promise<UserProfile[]> => {
-    const response = await api.get("/search", {
-      params: { q: query },
-    })
-    return response.data.map(formatUserData)
+  // Lấy danh sách tất cả người dùng
+  getAllUsers: async () => {
+    try {
+      const response = await api.get("/")
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Tìm kiếm người dùng theo query
+  searchUsers: async (searchQuery: any) => {
+    try {
+      const response = await api.get("/search", {
+        params: { q: searchQuery },
+      })
+      return response
+    } catch (error) {
+      throw error
+    }
   },
 }
 
-export default userService
+export default UserService

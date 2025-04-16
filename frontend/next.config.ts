@@ -7,13 +7,14 @@ const nextConfig = {
       "cdn-icons-png.flaticon.com",
       "www.edigitalagency.com.au",
       "image.tmdb.org",
+      "localhost",
     ],
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
         port: "3001",
-        pathname: "/Uploads/**",
+        pathname: "/api/uploads/**",
       },
     ],
 
