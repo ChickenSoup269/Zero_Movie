@@ -87,7 +87,7 @@ export default function UserProfileDropdown({
               {userProfile?.avatar ? (
                 <>
                   <Image
-                    src={userProfile.avatar || "/default-avatar.png"}
+                    src={userProfile || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
@@ -102,7 +102,7 @@ export default function UserProfileDropdown({
                     }
                   />
                   <Image
-                    src={userProfile.avatar || "/default-avatar.png"}
+                    src={userProfile || "/default-avatar.png"}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}

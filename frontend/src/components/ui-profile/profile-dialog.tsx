@@ -173,7 +173,7 @@ export default function ProfileDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
-          <DialogHeader className="relative px-1 pt-1">
+          <DialogHeader className="relative ">
             <div className="relative h-40 w-full">
               {formData.backgroundImage && !backgroundError ? (
                 <div className="relative h-40 w-full">
@@ -183,7 +183,6 @@ export default function ProfileDialog({
                     fill
                     sizes="100%"
                     style={{ objectFit: "cover" }}
-                    className="rounded-2xl"
                     onError={() => setBackgroundError(true)}
                     priority
                   />
