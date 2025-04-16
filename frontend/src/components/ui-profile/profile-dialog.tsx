@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/ProfileDialog.jsx
 "use client"
 import { useState, useEffect } from "react"
 import Image from "next/image"
@@ -20,9 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import { Camera, Key } from "lucide-react"
 import UserService from "@/services/userService"
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
 
 interface ProfileDialogProps {
   open: boolean
@@ -78,14 +74,12 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
-  // Sửa hàm getFullImageUrl để bỏ /api
+  // Hàm chuyển đổi đường dẫn ảnh thành URL đầy đủ
   const getFullImageUrl = (path: string) => {
     if (!path) return "/default-avatar.png"
     if (path.startsWith("http") || path.startsWith("data:")) return path
     const cleanPath = path.startsWith("/") ? path : `/${path}`
-    // Sử dụng base URL không có /api
-    const imageBaseUrl = API_BASE_URL.replace("/api", "")
-    return `${imageBaseUrl}${cleanPath}`
+    return `http://localhost:3001${cleanPath}`
   }
 
   useEffect(() => {
@@ -98,6 +92,8 @@ export default function ProfileDialog({
       backgroundImage:
         userProfile?.backgroundImage || user?.backgroundImage || "",
     })
+    setAvatarFile(null)
+    setBackgroundFile(null)
   }, [user, userProfile])
 
   const handleInputChange = (e: { target: { name: any; value: any } }) => {
@@ -142,19 +138,20 @@ export default function ProfileDialog({
         backgroundFile,
       }
 
+      console.log("Submitting profile data:", profileData)
       const response = await UserService.updateProfile(profileData)
       console.log("Profile update response:", response.data)
       onProfileUpdate(response.data)
       successToast.showToast()
+      setAvatarFile(null)
+      setBackgroundFile(null)
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error)
       errorToast.showToast({
         description:
-          (error as any)?.response?.data?.message ||
-          (error instanceof Error
-            ? error.message
-            : "An unknown error occurred") ||
+          error.response?.data?.message ||
+          error.message ||
           "Failed to update profile.",
       })
     } finally {
@@ -169,11 +166,14 @@ export default function ProfileDialog({
     ? formData.backgroundImage
     : getFullImageUrl(formData.backgroundImage)
 
+  console.log("Avatar URL:", avatarUrl)
+  console.log("Background URL:", backgroundUrl)
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
-          <DialogHeader className="relative ">
+          <DialogHeader className="relative">
             <div className="relative h-40 w-full">
               {formData.backgroundImage && !backgroundError ? (
                 <div className="relative h-40 w-full">
@@ -183,7 +183,11 @@ export default function ProfileDialog({
                     fill
                     sizes="100%"
                     style={{ objectFit: "cover" }}
-                    onError={() => setBackgroundError(true)}
+                    className="rounded-2xl"
+                    onError={() => {
+                      console.error("Background load error:", backgroundUrl)
+                      setBackgroundError(true)
+                    }}
                     priority
                   />
                 </div>
@@ -219,7 +223,10 @@ export default function ProfileDialog({
                     sizes="96px"
                     style={{ objectFit: "cover", objectPosition: "center" }}
                     className="rounded-full transition-opacity group-hover:opacity-75"
-                    onError={() => setAvatarError(true)}
+                    onError={() => {
+                      console.error("Avatar load error:", avatarUrl)
+                      setAvatarError(true)
+                    }}
                     priority
                   />
                 ) : (

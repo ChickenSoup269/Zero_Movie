@@ -25,27 +25,39 @@ export const updateProfile = async (
     try {
       if (err) throw new Error(err.message || "Lỗi khi upload file")
 
-      const userId = req.user!.id
+      const userId = (req as any).user.id
       const { username, email, fullName } = req.body
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+      const files = req.files as
+        | { [fieldname: string]: Express.Multer.File[] }
+        | undefined
 
       const updateData: {
         username?: string
         email?: string
         fullName?: string
-        avatar?: string
-        backgroundImage?: string
+        avatar?: string | null // Cho phép null
+        backgroundImage?: string | null // Cho phép null
       } = { username, email, fullName }
 
-      if (files && files["avatar"]) {
-        updateData.avatar = `/uploads/${files["avatar"][0].filename}`
-      }
-      if (files && files["backgroundImage"]) {
-        updateData.backgroundImage = `/uploads/${files["backgroundImage"][0].filename}`
-      }
+      // Nếu không gửi file avatar, đặt avatar thành null
+      updateData.avatar =
+        files && files["avatar"]
+          ? `/uploads/${files["avatar"][0].filename}`
+          : null
 
-      const user = await UserService.updateUserProfile(userId, updateData)
-      res.status(200).json({ message: "Cập nhật thông tin thành công", user })
+      // Nếu không gửi file backgroundImage, đặt backgroundImage thành null
+      updateData.backgroundImage =
+        files && files["backgroundImage"]
+          ? `/uploads/${files["backgroundImage"][0].filename}`
+          : null
+
+      const updatedUser = await UserService.updateUserProfile(
+        userId,
+        updateData
+      )
+      res
+        .status(200)
+        .json({ message: "Cập nhật thông tin thành công", user: updatedUser })
     } catch (error) {
       res
         .status(400)

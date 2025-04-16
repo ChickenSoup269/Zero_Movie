@@ -13,8 +13,8 @@ export class UserService {
       username?: string
       email?: string
       fullName?: string
-      avatar?: string
-      backgroundImage?: string
+      avatar?: string | null
+      backgroundImage?: string | null
     }
   ) {
     const updatedUser = await User.findByIdAndUpdate(
