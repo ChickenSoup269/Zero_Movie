@@ -50,13 +50,6 @@ export default function UserProfileDropdown({
       localStorage.getItem("token")
     )
     const fetchUserProfile = async () => {
-      // Kiểm tra xem có token hay không trước khi gọi API
-      const token = localStorage.getItem("token")
-      if (!token) {
-        console.warn("No token found, skipping profile fetch")
-        return
-      }
-
       if (isLoggedIn && user?.id) {
         try {
           const response = await UserService.getProfile()

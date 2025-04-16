@@ -1,3 +1,4 @@
+// services/authService.js
 import axios, { AxiosError } from "axios"
 
 const axiosJWT = axios.create()
@@ -29,6 +30,7 @@ export const register = async (data: {
 export const login = async (data: { email: string; password: string }) => {
   try {
     const res = await axiosJWT.post(`${API_URL}/auth/login`, data)
+    console.log("Login API response:", res.data)
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }
@@ -47,7 +49,7 @@ export const refreshToken = async (refreshToken: string) => {
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }
-    return res.data
+    return res.data // Backend trả về { accessToken, refreshToken }
   } catch (error) {
     const axiosError = error as AxiosError
     throw axiosError.response ? axiosError.response.data : axiosError

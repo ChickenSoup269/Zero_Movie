@@ -1,3 +1,4 @@
+// hooks/use-user.js
 import { useState, useEffect } from "react"
 import {
   login,
@@ -6,7 +7,6 @@ import {
 } from "@/services/authService"
 import axios from "axios"
 
-// Định nghĩa kiểu User
 interface User {
   id: string
   username: string
@@ -17,8 +17,7 @@ interface User {
   backgroundImage?: string
 }
 
-// Create an axios instance for handling JWT
-const axiosJWT = axios.create({})
+const axiosJWT = axios.create()
 
 export const useUser = () => {
   const [user, setUser] = useState<User | null>(null)
@@ -28,14 +27,13 @@ export const useUser = () => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Kiểm tra access token trong localStorage
         const accessToken = localStorage.getItem("access_token")
         const storedRefreshToken = localStorage.getItem("refresh_token")
         const userData = localStorage.getItem("user")
 
-        console.log("Access token:", accessToken) // Thêm log
-        console.log("Refresh token:", storedRefreshToken) // Thêm log
-        console.log("User data:", userData) // Thêm log
+        console.log("Access token:", accessToken)
+        console.log("Refresh token:", storedRefreshToken)
+        console.log("User data:", userData)
 
         if (userData) {
           const parsedUser = JSON.parse(userData)
@@ -49,8 +47,8 @@ export const useUser = () => {
         } else if (storedRefreshToken) {
           try {
             const response = await refreshToken(storedRefreshToken)
-            localStorage.setItem("access_token", response.access_token)
-            localStorage.setItem("refresh_token", response.refresh_token)
+            localStorage.setItem("access_token", response.accessToken) // Sửa thành accessToken
+            localStorage.setItem("refresh_token", response.refreshToken) // Sửa thành refreshToken
             setIsLoggedIn(true)
             console.log("User is logged in (refresh token successful)")
           } catch (error) {
@@ -70,7 +68,6 @@ export const useUser = () => {
 
     initializeAuth()
 
-    // Thiết lập interceptor để tự động refresh token
     const interceptor = axiosJWT.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -81,13 +78,14 @@ export const useUser = () => {
           if (storedRefreshToken) {
             try {
               const response = await refreshToken(storedRefreshToken)
-              localStorage.setItem("access_token", response.access_token)
-              localStorage.setItem("refresh_token", response.refresh_token)
+              localStorage.setItem("access_token", response.accessToken) // Sửa thành accessToken
+              localStorage.setItem("refresh_token", response.refreshToken) // Sửa thành refreshToken
               originalRequest.headers[
                 "Authorization"
-              ] = `Bearer ${response.access_token}`
+              ] = `Bearer ${response.accessToken}`
               return axiosJWT(originalRequest)
             } catch (refreshError) {
+              console.error("Refresh token error:", refreshError)
               clearAuthData()
               window.location.href = "/login"
               return Promise.reject(refreshError)
@@ -118,12 +116,12 @@ export const useUser = () => {
   }) => {
     try {
       const response = await login(credentials)
-      localStorage.setItem("access_token", response.access_token)
-      localStorage.setItem("refresh_token", response.refresh_token)
+      console.log("Login response in useUser:", response)
+      localStorage.setItem("access_token", response.accessToken) // Sửa thành accessToken
+      localStorage.setItem("refresh_token", response.refreshToken) // Sửa thành refreshToken
       localStorage.setItem("user", JSON.stringify(response.user))
       setUser(response.user)
       setIsLoggedIn(true)
-      console.log("Logged in user:", response.user)
       console.log(
         "Access token after login:",
         localStorage.getItem("access_token")
@@ -132,6 +130,7 @@ export const useUser = () => {
         "Refresh token after login:",
         localStorage.getItem("refresh_token")
       )
+      console.log("User saved:", localStorage.getItem("user"))
       return response
     } catch (error) {
       console.error("Login error:", error)
