@@ -10,6 +10,8 @@ import userRoutes from "./userRoutes"
 import authRoutes from "./authRoutes"
 import bookingRoutes from "./bookingRoutes";
 import paymentRoutes from "./paymentRoutes"
+import commentRoutes from "./commentRoutes"
+
 
 export default function setupRoutes(app: Application) {
   app.use("/api/auth", authRoutes);      
@@ -19,6 +21,7 @@ export default function setupRoutes(app: Application) {
   app.use("/api/cinemas", cinemaRoutes);
   app.use("/api/movies", moviesRoutes);
   app.use("/api/genres", genresRoutes)
+  app.use("/api/comments", commentRoutes);
   app.use("/api/room", roomRoutes)
   app.use("/api/seats", seatRoutes)
   app.use("/api/showtime", showtimeRoutes)

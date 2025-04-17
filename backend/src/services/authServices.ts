@@ -6,63 +6,48 @@ import Session from "../models/Auth/sessionModel"
 import GuestSession from "../models/Auth/guestsessionModel"
 
 export class AuthService {
-  static async register({
-    username,
-    email,
-    password,
-    fullName,
-  }: {
-    username: string
-    email: string
-    password: string
-    fullName: string
+  static async register({ username, email, password, fullName }: {
+    username: string;
+    email: string;
+    password: string;
+    fullName: string;
   }) {
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] })
-    if (existingUser) throw new Error("Email hoặc username đã tồn tại")
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) throw new Error('Email hoặc username đã tồn tại');
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
       username,
       email,
       password: hashedPassword,
       fullName,
-      role: "user",
+      role: 'user', 
       points: 0,
-      avatar: "",
-      backgroundImage: "",
-    })
-    await user.save()
+    });
+    await user.save();
 
-    const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "1h" }
-    )
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
-    )
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' });
 
     await Session.create({
       userId: user._id,
       refreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    })
+    });
 
-    return {
-      user: {
-        id: user._id,
-        username,
-        email,
-        fullName,
+    return { 
+      user: { 
+        id: user._id, 
+        username, 
+        email, 
+        fullName, 
         role: user.role,
-        avatar: user.avatar,
-        backgroundImage: user.backgroundImage,
-      },
-      accessToken,
-      refreshToken,
-    }
+        avatar: user.avatar, 
+        backgroundImage: user.backgroundImage 
+      }, 
+      accessToken, 
+      refreshToken 
+    };
   }
 
   static async login({ email, password }: { email: string; password: string }) {
