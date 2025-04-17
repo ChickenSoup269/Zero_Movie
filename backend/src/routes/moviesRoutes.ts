@@ -1,20 +1,13 @@
-import { Router } from "express";
-import {
-  getMovies,
-  getMovieById,
-  searchMovies,
-  addMovie,
-  updateMovie,
-  deleteMovie,
-} from "../controllers/movieController";
+import { Router } from 'express';
+import { MovieController } from '../controllers/movieController';
 
 const router = Router();
 
-router.get("/", getMovies);                
-router.get("/:id", getMovieById);          
-router.get("/search/:title", searchMovies);
-router.post("/", addMovie);               
-router.put("/:id", updateMovie);          
-router.delete("/:id", deleteMovie);        
+router.get('/', MovieController.getAllMovies);
+router.get('/:tmdbId', MovieController.getMovieById);
+router.get('/search', MovieController.searchMovies);
+router.post('/', MovieController.addMovie);
+router.put('/:tmdbId', MovieController.updateMovie);
+router.delete('/:tmdbId', MovieController.deleteMovie);
 
 export default router;
