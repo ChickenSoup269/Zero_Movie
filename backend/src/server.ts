@@ -20,7 +20,9 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 app.use(morgan("combined"))
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadPath = path.join(__dirname, '..', 'uploads'); // Lên một cấp từ src đến backend
+console.log('Express static uploadPath:', uploadPath);
+app.use('/uploads', express.static(uploadPath));
 connectDB().then(async () => {
   console.log("Kết nối MongoDB thành công!");
   // await fetchMoviesFromTMDB();
