@@ -7,7 +7,7 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
-interface Genre {
+export interface Genre {
   id: number
   name: string
 }

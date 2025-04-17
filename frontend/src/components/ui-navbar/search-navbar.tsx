@@ -1,36 +1,24 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import { moviesData } from "@/data/moviesData"
+import { useToast } from "@/hooks/use-toast"
+import { getAllMovies, searchMovies, Movie } from "@/services/movieService"
 import SearchPopup from "@/components/ui-navbar/search-popup"
-
-// Định nghĩa kiểu cho một phim
-interface Movie {
-  title: string
-  description: string
-  image: string
-  poster: string
-  duration: string
-  genre: string
-  releaseYear: number
-  ageRating: string
-  starring: string
-}
 
 export default function SearchBar() {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false)
   const [searchText, setSearchText] = useState<string>("")
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("")
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([])
+  const { toast } = useToast()
+  const router = useRouter()
 
-  // Lọc phim dựa trên từ khóa tìm kiếm
-  const filteredMovies: Movie[] = moviesData.filter((movie) =>
-    movie.title.toLowerCase().includes(debouncedSearchText.toLowerCase())
-  )
-
-  // Animation variants cho search box
+  // Animation variants for search box
   const searchVariants = {
     closed: {
       width: "40px",
@@ -47,30 +35,77 @@ export default function SearchBar() {
   // Debounce search text
   useEffect(() => {
     if (isSearchOpen && searchText) {
-      // Chỉ debounce khi có text
       setIsLoading(true)
       const timer = setTimeout(() => {
         setDebouncedSearchText(searchText)
         setIsLoading(false)
-      }, 1000) // Chờ 1 giây trước khi hiển thị kết quả
+      }, 1000)
       return () => clearTimeout(timer)
     } else {
-      setIsLoading(false) // Đảm bảo isLoading là false khi mở nhưng chưa nhập
+      setDebouncedSearchText("")
+      setIsLoading(false)
     }
   }, [searchText, isSearchOpen])
 
-  // Hàm xóa text
+  // Fetch movies based on debounced search text
+  useEffect(() => {
+    const fetchMovies = async () => {
+      setIsLoading(true)
+      try {
+        const token = localStorage.getItem("access_token")
+        if (!token && debouncedSearchText) {
+          toast({
+            title: "Unauthorized",
+            description: "Please log in to search movies.",
+            variant: "destructive",
+          })
+          router.push("/login")
+          return
+        }
+
+        const response: Movie[] = debouncedSearchText
+          ? await searchMovies(debouncedSearchText)
+          : await getAllMovies()
+
+        setFilteredMovies(response)
+      } catch (error: any) {
+        console.error("Search movies error:", error.response || error)
+        toast({
+          title: "Error",
+          description:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to fetch movies.",
+          variant: "destructive",
+        })
+        if (error.response?.status === 401) {
+          router.push("/login")
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (isSearchOpen) {
+      fetchMovies()
+    } else {
+      setFilteredMovies([])
+    }
+  }, [debouncedSearchText, isSearchOpen, toast, router])
+
+  // Clear search text
   const clearSearch = () => {
     setSearchText("")
     setDebouncedSearchText("")
   }
 
-  // Hàm toggle search
+  // Toggle search
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen)
     if (!isSearchOpen) {
       setSearchText("")
       setDebouncedSearchText("")
+      setFilteredMovies([])
     }
   }
 
@@ -102,7 +137,6 @@ export default function SearchBar() {
                 <Search className="h-4 w-4 text-white" />
               </Button>
 
-              {/* Đường phân cách */}
               <div className="h-4 w-px bg-white/50 mx-2"></div>
 
               {isSearchOpen && (
@@ -141,7 +175,6 @@ export default function SearchBar() {
             </div>
           </div>
 
-          {/* Sử dụng component SearchPopup */}
           <SearchPopup
             filteredMovies={filteredMovies}
             isSearchOpen={isSearchOpen}

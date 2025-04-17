@@ -2,16 +2,8 @@
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 
-// Định nghĩa kiểu cho một phim
-interface Movie {
-  title: string
-  description: string
-  image: string
-  poster: string
-  duration: string
-  genre: string
-  releaseYear: number
-}
+// Import Movie interface từ service của bạn
+import { Movie } from "@/services/movieService"
 
 // Định nghĩa kiểu cho props của SearchPopup
 interface SearchPopupProps {
@@ -51,12 +43,16 @@ const SearchPopup = ({
         >
           {filteredMovies.map((movie) => (
             <div
-              key={movie.title}
+              key={movie._id} // Sử dụng _id từ API
               className="flex items-center p-2 hover:bg-gray-500 hover:cursor-pointer transition-colors"
             >
-              {/* Poster */}
+              {/* Poster phim - sử dụng posterPath từ API */}
               <Image
-                src={movie.poster}
+                src={
+                  movie.posterPath
+                    ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+                    : "/placeholder-image.jpg"
+                }
                 alt={movie.title}
                 width={50}
                 height={75}
@@ -66,7 +62,11 @@ const SearchPopup = ({
               <div className="flex-1 text-black dark:text-white">
                 <h3 className="font-semibold">{movie.title}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {movie.duration} • {movie.genre} • {movie.releaseYear}
+                  {movie.runtime ? `${movie.runtime} min` : ""}
+                  {movie.genreIds?.join(", ")}
+                  {movie.releaseDate
+                    ? ` • ${new Date(movie.releaseDate).getFullYear()}`
+                    : ""}
                 </p>
               </div>
             </div>
