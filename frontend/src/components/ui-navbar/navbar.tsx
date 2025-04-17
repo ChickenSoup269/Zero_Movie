@@ -56,11 +56,12 @@ export default function Navbar() {
   ]
 
   useEffect(() => {
+    console.log("isLoggedIn:", isLoggedIn, "user:", user) // Debug login state
     const storedTickets = JSON.parse(
       localStorage.getItem("purchasedTickets") || "[]"
     )
     setCartItems(storedTickets)
-  }, [])
+  }, [isLoggedIn, user])
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -199,7 +200,7 @@ export default function Navbar() {
 
         <div className="flex items-center space-x-2 sm:space-x-4">
           <SearchBar />
-          <LanguageSelector />
+          {!isLoggedIn && <LanguageSelector />}
           <CustomSwitch checked={darkMode} onCheckedChange={setDarkMode} />
 
           <div
