@@ -88,11 +88,21 @@ export default function MovieAdmin() {
     posterPath: "",
     backdropPath: "",
     adult: false,
+    ageRating: "",
+    director: "",
   })
   const [genreFormData, setGenreFormData] = useState<{ name: string }>({
     name: "",
   })
   const { toast } = useToast()
+
+  // Age rating options based on the data provided
+  const ageRatingOptions = [
+    { value: "images/ageRating/pegi_3", label: "PEGI 3" },
+    { value: "images/ageRating/pegi_7", label: "PEGI 7" },
+    { value: "images/ageRating/pegi_12", label: "PEGI 12" },
+    { value: "images/ageRating/pegi_18", label: "PEGI 18" },
+  ]
 
   useEffect(() => {
     const fetchData = async () => {
@@ -187,6 +197,8 @@ export default function MovieAdmin() {
       backdropPath: movie.backdropPath || "",
       adult: movie.adult,
       genreIds: movie.genreIds,
+      ageRating: movie.ageRating || "",
+      director: movie.director || "",
     })
     setIsEditMovieDialogOpen(true)
   }
@@ -245,6 +257,8 @@ export default function MovieAdmin() {
       posterPath: "",
       backdropPath: "",
       adult: false,
+      ageRating: "",
+      director: "",
     })
     setSelectedMovie(null)
   }
@@ -264,6 +278,13 @@ export default function MovieAdmin() {
     setMovieFormData((prev) => ({
       ...prev,
       status: value as "upcoming" | "nowPlaying",
+    }))
+  }
+
+  const handleAgeRatingChange = (value: string) => {
+    setMovieFormData((prev) => ({
+      ...prev,
+      ageRating: value,
     }))
   }
 
@@ -391,6 +412,12 @@ export default function MovieAdmin() {
     setGenreFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Function to get age rating display name
+  const getAgeRatingLabel = (path: string) => {
+    const option = ageRatingOptions.find((opt) => opt.value === path)
+    return option ? option.label : "Unknown"
+  }
+
   return (
     <div className="container mx-auto py-8">
       <Toaster />
@@ -510,6 +537,38 @@ export default function MovieAdmin() {
                           />
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="ageRating">Age Rating</Label>
+                          <Select
+                            value={movieFormData.ageRating || ""}
+                            onValueChange={handleAgeRatingChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select age rating" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ageRatingOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="director">Director</Label>
+                          <Input
+                            id="director"
+                            name="director"
+                            value={movieFormData.director || ""}
+                            onChange={handleMovieInputChange}
+                          />
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
@@ -548,14 +607,13 @@ export default function MovieAdmin() {
                         <TableHead>Release Date</TableHead>
                         <TableHead>Genres</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Rating</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {movies.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4">
+                          <TableCell colSpan={8} className="text-center py-4">
                             No movies found
                           </TableCell>
                         </TableRow>
@@ -608,11 +666,6 @@ export default function MovieAdmin() {
                                   ? "Now Playing"
                                   : "Upcoming"}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {movie.voteAverage
-                                ? movie.voteAverage.toFixed(1)
-                                : "N/A"}
                             </TableCell>
                             <TableCell className="text-right space-x-2">
                               <Button
@@ -830,6 +883,35 @@ export default function MovieAdmin() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-ageRating">Age Rating</Label>
+                <Select
+                  value={movieFormData.ageRating || ""}
+                  onValueChange={handleAgeRatingChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select age rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ageRatingOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-director">Director</Label>
+                <Input
+                  id="edit-director"
+                  name="director"
+                  value={movieFormData.director || ""}
+                  onChange={handleMovieInputChange}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -903,18 +985,6 @@ export default function MovieAdmin() {
               onChange={handleGenreInputChange}
             />
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditGenreDialogOpen(false)
-                resetGenreForm()
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateGenre}>Update Genre</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import { Camera, Key } from "lucide-react"
 import UserService from "@/services/userService"
+import { getFullImageUrl } from "@/utils/getFullImageUrl"
 
 interface ProfileDialogProps {
   open: boolean
@@ -74,14 +75,6 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
-  // Hàm chuyển đổi đường dẫn ảnh thành URL đầy đủ
-  const getFullImageUrl = (path: string) => {
-    if (!path) return "/default-avatar.png"
-    if (path.startsWith("http") || path.startsWith("data:")) return path
-    const cleanPath = path.startsWith("/") ? path : `/${path}`
-    return `http://localhost:3001${cleanPath}`
-  }
-
   useEffect(() => {
     setAvatarError(false)
     setBackgroundError(false)
@@ -96,7 +89,7 @@ export default function ProfileDialog({
     setBackgroundFile(null)
   }, [user, userProfile])
 
-  const handleInputChange = (e: { target: { name: any; value: any } }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -105,6 +98,19 @@ export default function ProfileDialog({
     const files = e.target.files
     if (files && files[0]) {
       const file = files[0]
+      const validTypes = ["image/jpeg", "image/png", "image/gif"]
+      if (!validTypes.includes(file.type)) {
+        errorToast.showToast({
+          description: "Only JPEG, PNG, or GIF images are allowed.",
+        })
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        errorToast.showToast({
+          description: "Image size must be less than 5MB.",
+        })
+        return
+      }
       console.log("Selected avatar file:", file)
       setAvatarFile(file)
       setAvatarError(false)
@@ -116,6 +122,19 @@ export default function ProfileDialog({
     const files = e.target.files
     if (files && files[0]) {
       const file = files[0]
+      const validTypes = ["image/jpeg", "image/png", "image/gif"]
+      if (!validTypes.includes(file.type)) {
+        errorToast.showToast({
+          description: "Only JPEG, PNG, or GIF images are allowed.",
+        })
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        errorToast.showToast({
+          description: "Image size must be less than 5MB.",
+        })
+        return
+      }
       console.log("Selected background file:", file)
       setBackgroundFile(file)
       setBackgroundError(false)
@@ -126,7 +145,7 @@ export default function ProfileDialog({
     }
   }
 
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -134,25 +153,44 @@ export default function ProfileDialog({
       const profileData = {
         fullName: formData.fullName,
         username: formData.username,
-        avatarFile,
-        backgroundFile,
+        avatarFile: avatarFile || undefined,
+        backgroundFile: backgroundFile || undefined,
       }
 
       console.log("Submitting profile data:", profileData)
       const response = await UserService.updateProfile(profileData)
       console.log("Profile update response:", response.data)
-      onProfileUpdate(response.data)
+
+      // Lấy profile mới nhất
+      const profileResponse = await UserService.getProfile()
+      const updatedProfile = profileResponse.data
+      console.log("Fetched profile:", updatedProfile)
+
+      // Cập nhật formData
+      setFormData({
+        fullName: updatedProfile.fullName || "",
+        username: updatedProfile.username || "",
+        avatar: updatedProfile.avatar || "",
+        backgroundImage: updatedProfile.backgroundImage || "",
+      })
+
+      onProfileUpdate(updatedProfile)
       successToast.showToast()
       setAvatarFile(null)
       setBackgroundFile(null)
       onOpenChange(false)
     } catch (error: any) {
-      console.error("Error updating profile:", error)
+      console.error("Error updating profile:", {
+        message: error.message || "Unknown error",
+        response: error.response?.data || null,
+        status: error.response?.status || null,
+        config: error.config || null,
+      })
       errorToast.showToast({
         description:
           error.response?.data?.message ||
           error.message ||
-          "Failed to update profile.",
+          "Failed to update profile. Please try again.",
       })
     } finally {
       setIsLoading(false)
@@ -165,9 +203,6 @@ export default function ProfileDialog({
   const backgroundUrl = backgroundFile
     ? formData.backgroundImage
     : getFullImageUrl(formData.backgroundImage)
-
-  console.log("Avatar URL:", avatarUrl)
-  console.log("Background URL:", backgroundUrl)
 
   return (
     <>
@@ -183,7 +218,6 @@ export default function ProfileDialog({
                     fill
                     sizes="100%"
                     style={{ objectFit: "cover" }}
-                    className="rounded-2xl"
                     onError={() => {
                       console.error("Background load error:", backgroundUrl)
                       setBackgroundError(true)

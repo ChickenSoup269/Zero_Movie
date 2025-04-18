@@ -1,19 +1,16 @@
+// config/multerConfig.js
 import multer from "multer"
 import path from "path"
 import fs from "fs"
 
-// Đường dẫn đến thư mục uploads (thư mục gốc backend)
-const uploadDir = path.join(__dirname, "..", "..", "uploads")
+const uploadDir = path.join(__dirname, "..", "..", "uploads") // Đổi thành chữ thường
 
-// Tạo thư mục uploads nếu chưa tồn tại
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true })
 }
 
-// Log để kiểm tra đường dẫn
 console.log("Multer uploadDir:", uploadDir)
 
-// Config file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir)
@@ -27,7 +24,6 @@ const storage = multer.diskStorage({
   },
 })
 
-// Cấu hình multer
 export const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
@@ -41,7 +37,7 @@ export const upload = multer({
     }
     cb(new Error("Chỉ hỗ trợ file ảnh JPG, JPEG, PNG!"))
   },
-  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
+  limits: { fileSize: 6 * 1024 * 1024 }, // Tăng lên 6MB
 }).fields([
   { name: "avatar", maxCount: 1 },
   { name: "backgroundImage", maxCount: 1 },

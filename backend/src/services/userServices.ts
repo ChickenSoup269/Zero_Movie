@@ -17,20 +17,31 @@ export class UserService {
       backgroundImage?: string | null
     }
   ) {
+    console.log("Updating user with data:", updateData)
+    const updateFields: any = {}
+    if (updateData.username !== undefined)
+      updateFields.username = updateData.username
+    if (updateData.email !== undefined) updateFields.email = updateData.email
+    if (updateData.fullName !== undefined)
+      updateFields.fullName = updateData.fullName
+    if (updateData.avatar !== undefined) updateFields.avatar = updateData.avatar
+    if (updateData.backgroundImage !== undefined)
+      updateFields.backgroundImage = updateData.backgroundImage
+
+    if (Object.keys(updateFields).length === 0) {
+      throw new Error("No valid fields provided for update")
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      {
-        username: updateData.username,
-        email: updateData.email,
-        fullName: updateData.fullName,
-        avatar: updateData.avatar,
-        backgroundImage: updateData.backgroundImage,
-      },
+      { $set: updateFields },
       { new: true, runValidators: true }
     ).select("-password")
     if (!updatedUser) throw new Error("Không tìm thấy người dùng để cập nhật")
+    console.log("Updated user:", updatedUser)
     return updatedUser
   }
+
   static async deleteUser(userId: string) {
     const user = await User.findByIdAndDelete(userId)
     if (!user) throw new Error("Không tìm thấy người dùng để xóa")

@@ -226,8 +226,8 @@ export default function UserAdmin() {
       await UserService.updateProfile({
         username: formData.username,
         fullName: formData.fullName,
-        avatarFile: null,
-        backgroundFile: null,
+        avatarFile: undefined,
+        backgroundFile: undefined,
       })
       toast({
         title: "Success",
