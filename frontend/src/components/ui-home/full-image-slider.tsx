@@ -11,7 +11,7 @@ import "swiper/css/navigation"
 import PosterSlider from "./poster-slider"
 import { useRouter } from "next/navigation"
 
-interface Slide {
+export interface Slide {
   id: number
   image: string
   title: string
@@ -22,7 +22,7 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
-  status: "nowShowing" | "upcoming"
+  status: "nowPlaying" | "upcoming"
   director: string
   rating: number
 }
@@ -44,6 +44,10 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   const router = useRouter()
 
   const handleViewDetails = (movie: Slide) => {
+    // Lưu thông tin phim vào localStorage trước khi chuyển trang
+    localStorage.setItem("selectedMovie", JSON.stringify(movie))
+
+    // Điều hướng đến trang chi tiết phim
     router.push(`details-movies/${movie.id}`)
   }
 
@@ -228,7 +232,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                               Status:
                             </span>{" "}
                             <span className="font-mono text-green-400">
-                              {slide.status === "nowShowing"
+                              {slide.status === "nowPlaying"
                                 ? "Now Showing"
                                 : "Coming Soon"}
                             </span>

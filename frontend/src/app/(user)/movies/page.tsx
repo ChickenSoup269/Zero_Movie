@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
-import { Movie, getAllMovies, searchMovies } from "@/services/movieService"
+import { MovieService, Movie } from "@/services/movieService"
 import { GenreService, Genre } from "@/services/genreService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,12 +44,12 @@ const Movies = () => {
       setError(null)
       try {
         const [movieData, genreData] = await Promise.all([
-          getAllMovies(),
+          MovieService.getAllMovies(),
           GenreService.getGenres(),
         ])
 
         // Map genreIds to genre names
-        const displayedMovies = movieData.map((movie) => ({
+        const displayedMovies: DisplayedMovie[] = movieData.map((movie) => ({
           ...movie,
           genreNames: movie.genreIds
             .map((id) => genreData.find((g) => g.id === id)?.name || "")
@@ -59,7 +59,7 @@ const Movies = () => {
 
         setMovies(displayedMovies)
         setFilteredMovies(displayedMovies)
-        setGenres([{ id: 0, name: "All" }, ...genreData])
+        setGenres([{ id: 0, name: "All Genres" }, ...genreData])
       } catch (err) {
         setError("Failed to fetch movies or genres")
         console.error(err)
@@ -76,20 +76,14 @@ const Movies = () => {
       setIsLoading(true)
       setError(null)
       try {
-        let result = movies
+        let result: DisplayedMovie[] = movies
 
         // Apply search filter
         if (searchText.trim()) {
-          const searchResults = await searchMovies(searchText.trim())
+          const searchResults = await MovieService.searchMovies(
+            searchText.trim()
+          )
           result = searchResults.map((movie) => ({
-            ...movie,
-            genreNames: movie.genreIds
-              .map((id) => genres.find((g) => g.id === id)?.name || "")
-              .filter(Boolean)
-              .join(", "),
-          }))
-          // Recompute genreNames for search results
-          result = result.map((movie) => ({
             ...movie,
             genreNames: movie.genreIds
               .map((id) => genres.find((g) => g.id === id)?.name || "")
@@ -124,12 +118,14 @@ const Movies = () => {
     return () => clearTimeout(debounceTimer)
   }, [searchText, selectedGenre, selectedTab, movies, genres])
 
+  // Pagination
   const moviesPerPage = 8
   const totalPages = Math.ceil(filteredMovies.length / moviesPerPage)
   const startIndex = (currentPage - 1) * moviesPerPage
   const endIndex = startIndex + moviesPerPage
   const currentMovies = filteredMovies.slice(startIndex, endIndex)
 
+  // Animation variants
   const movieVariants = {
     hidden: { opacity: 0, x: -30 },
     visible: {
@@ -182,33 +178,36 @@ const Movies = () => {
     },
   }
 
-  const handlePreviousPage = () => {
+  // Event handlers
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1)
       setHoveredIndex(null)
     }
-  }
+  }, [currentPage])
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1)
       setHoveredIndex(null)
     }
-  }
+  }, [currentPage, totalPages])
 
-  const handleViewDetails = (movie: DisplayedMovie) => {
-    router.push(`details-movies/${movie._id}`)
-  }
+  const handleViewDetails = useCallback(
+    (movie: DisplayedMovie) => {
+      router.push(`/movies/${movie.tmdbId}`)
+    },
+    [router]
+  )
 
-  const getShortDescription = (description: string) => {
+  const getShortDescription = useCallback((description: string) => {
     const firstPeriodIndex = description.indexOf(".")
-    if (firstPeriodIndex !== -1) {
-      return description.substring(0, firstPeriodIndex + 1)
-    }
-    return description
-  }
+    return firstPeriodIndex !== -1
+      ? description.substring(0, firstPeriodIndex + 1)
+      : description.substring(0, 100) + "..."
+  }, [])
 
-  const renderStars = (rating: number) => {
+  const renderStars = useCallback((rating: number) => {
     const maxStars = 5
     const scaledRating = (rating / 10) * maxStars
     const stars = []
@@ -228,23 +227,24 @@ const Movies = () => {
       )
     }
     return stars
-  }
+  }, [])
 
   return (
-    <div className="container mx-auto px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 pt-44 sm:pt-32 md:pt-40 lg:pt-48 xl:pt-44">
+    <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 pt-32 sm:pt-28 md:pt-36 lg:pt-40 xl:pt-44">
       {/* Tabs */}
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center mb-8 space-x-2">
         <Button
           onClick={() => {
             setSelectedTab("nowPlaying")
             setCurrentPage(1)
             setHoveredIndex(null)
           }}
-          className={`px-6 py-2 text-lg font-semibold rounded-l-lg transition-colors duration-300 ${
+          className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
             selectedTab === "nowPlaying"
               ? "bg-[#4599e3] text-white"
               : "bg-gray-700 text-gray-300 hover:bg-gray-600"
           }`}
+          aria-pressed={selectedTab === "nowPlaying"}
         >
           Now Playing
         </Button>
@@ -254,11 +254,12 @@ const Movies = () => {
             setCurrentPage(1)
             setHoveredIndex(null)
           }}
-          className={`px-6 py-2 text-lg font-semibold rounded-r-lg transition-colors duration-300 ${
+          className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
             selectedTab === "upcoming"
               ? "bg-[#4599e3] text-white"
               : "bg-gray-700 text-gray-300 hover:bg-gray-600"
           }`}
+          aria-pressed={selectedTab === "upcoming"}
         >
           Upcoming
         </Button>
@@ -267,25 +268,32 @@ const Movies = () => {
       {/* Search and Filter Section */}
       <div className="flex flex-col md:flex-row gap-4 mb-8 max-w-[54rem] mx-auto">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
             type="text"
             placeholder="Search movies..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="pl-10"
+            className="pl-10 text-sm md:text-base"
+            aria-label="Search movies"
           />
         </div>
         <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] text-sm md:text-base">
             <SelectValue placeholder="Select genre" />
           </SelectTrigger>
           <SelectContent>
-            {genres.map((genre) => (
-              <SelectItem key={genre.id} value={genre.id.toString()}>
-                {genre.name}
+            {genres.length > 0 ? (
+              genres.map((genre) => (
+                <SelectItem key={genre.id} value={genre.id.toString()}>
+                  {genre.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="0" disabled>
+                No genres available
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -325,12 +333,13 @@ const Movies = () => {
       {!isLoading && (
         <div
           ref={moviesContainerRef}
-          className="relative w-full max-w-[54rem] mx-auto flex justify-center items-center"
+          className="relative w-full max-w-[54rem] mx-auto"
         >
           <div className="absolute top-[-20px] right-0 z-10">
             <a
               href="#"
               className="text-white text-sm font-light hover:underline"
+              aria-label="See more movies"
             >
               See more
             </a>
@@ -341,12 +350,13 @@ const Movies = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full"
+              role="grid"
             >
               {currentMovies.length > 0 ? (
                 currentMovies.map((movie, index) => (
                   <motion.div
-                    key={index}
+                    key={movie._id}
                     variants={movieVariants}
                     initial="hidden"
                     animate="visible"
@@ -354,6 +364,7 @@ const Movies = () => {
                     className="relative rounded-lg overflow-hidden shadow-lg w-[200px] max-w-[200px] min-w-[200px] mx-auto"
                     onMouseEnter={() => setHoveredIndex(index)}
                     onMouseLeave={() => setHoveredIndex(null)}
+                    role="gridcell"
                   >
                     <motion.div
                       variants={scaleVariants}
@@ -374,8 +385,9 @@ const Movies = () => {
                               : "/placeholder-image.jpg"
                           }
                           alt={movie.title}
-                          layout="fill"
-                          objectFit="cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover"
                         />
                       </motion.div>
                     </motion.div>
@@ -387,7 +399,7 @@ const Movies = () => {
                           initial="hidden"
                           animate="visible"
                           exit="hidden"
-                          className="absolute bottom-0 left-0 right-0 top-0 p-2 bg-gray-800 bg-opacity-50 text-white flex flex-col justify-center items-center"
+                          className="absolute bottom-0 left-0 right-0 top-0 p-2 bg-gray-800 bg-opacity-70 text-white flex flex-col justify-center items-center"
                         >
                           <motion.h3
                             variants={childVariants}
@@ -419,7 +431,7 @@ const Movies = () => {
                           </motion.div>
                           <motion.p
                             variants={childVariants}
-                            className="text-xs mb-2 text-center"
+                            className="text-xs mb-2 text-center line-clamp-3"
                           >
                             {getShortDescription(movie.overview)}
                           </motion.p>
@@ -427,6 +439,7 @@ const Movies = () => {
                             variants={childVariants}
                             onClick={() => handleViewDetails(movie)}
                             className="w-full max-w-[150px] py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
+                            aria-label={`View details for ${movie.title}`}
                           >
                             View Details
                           </motion.button>
@@ -452,6 +465,7 @@ const Movies = () => {
         </div>
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && !isLoading && (
         <div className="flex justify-center mt-8 space-x-4 max-w-[54rem] mx-auto">
           <Button
@@ -462,10 +476,11 @@ const Movies = () => {
                 ? "bg-gray-500 cursor-not-allowed"
                 : "bg-[#4599e3] hover:bg-[#357abd]"
             }`}
+            aria-label="Previous page"
           >
             Previous
           </Button>
-          <span className="text-white self-center">
+          <span className="text-white self-center" aria-live="polite">
             Page {currentPage} of {totalPages}
           </span>
           <Button
@@ -476,6 +491,7 @@ const Movies = () => {
                 ? "bg-gray-500 cursor-not-allowed"
                 : "bg-[#4599e3] hover:bg-[#357abd]"
             }`}
+            aria-label="Next page"
           >
             Next
           </Button>

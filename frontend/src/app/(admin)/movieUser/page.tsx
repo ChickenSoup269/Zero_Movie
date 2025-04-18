@@ -46,6 +46,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 import UserService from "@/services/userService"
 import { register } from "@/services/authService"
+import { getFullImageUrl } from "@/utils/getFullImageUrl"
 
 interface User {
   _id: string
@@ -291,6 +292,34 @@ export default function UserAdmin() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const renderUserAvatar = useCallback(
+    (user: User) => {
+      // Check if user has an avatar
+      if (user.avatar) {
+        const avatarUrl = getFullImageUrl(user.avatar)
+        return (
+          <img
+            src={avatarUrl}
+            alt={`${user.username}'s avatar`}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        )
+      }
+
+      // Generate avatar with initials and background color
+      return (
+        <div
+          className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${getAvatarColor(
+            user._id
+          )}`}
+        >
+          {getInitial(user)}
+        </div>
+      )
+    },
+    [getAvatarColor, getInitial]
+  )
+
   return (
     <div className="container mx-auto py-8">
       <Toaster />
@@ -401,15 +430,7 @@ export default function UserAdmin() {
                   ) : (
                     users.map((user) => (
                       <TableRow key={user._id}>
-                        <TableCell>
-                          <div
-                            className={`w-12 h-12 ${getAvatarColor(
-                              user._id
-                            )} rounded-full flex items-center justify-center text-white font-medium text-lg`}
-                          >
-                            {getInitial(user)}
-                          </div>
-                        </TableCell>
+                        <TableCell>{renderUserAvatar(user)}</TableCell>
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.fullName}</TableCell>
                         <TableCell>{user.email}</TableCell>

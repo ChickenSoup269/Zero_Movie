@@ -6,7 +6,7 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { theatersData } from "@/data/theatersData"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
-import { getMovieById } from "@/services/movieService"
+import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 
 interface MovieDetailProps {
@@ -65,27 +65,31 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     const fetchParamsAndMovie = async () => {
       try {
         const unwrappedParams = await params
+        console.log("Params:", unwrappedParams) // Log params
+
         const movieId = unwrappedParams.id
+        console.log("Movie ID:", movieId) // Log ID
 
         setLoading(true)
-        const movieData = await getMovieById(movieId) // Giả sử API trả về trực tiếp movie
+        const response = await MovieService.getMovieById(movieId)
+        console.log("API Response:", response) // Log response từ API
 
-        if (!movieData) {
+        if (!response || !response.title) {
           throw new Error("Phim không tìm thấy trong cơ sở dữ liệu")
         }
 
         const movieUI: MovieUI = {
-          id: movieData.tmdbId || parseInt(movieId),
-          tmdbId: movieData.tmdbId || parseInt(movieId),
-          title: movieData.title || "Không có tiêu đề",
-          image: movieData.backdropPath
-            ? `https:image.tmdb.org/t/p/original${movieData.backdropPath}`
+          id: response.tmdbId || parseInt(movieId),
+          tmdbId: response.tmdbId || parseInt(movieId),
+          title: response.title || "Không có tiêu đề",
+          image: response.backdropPath
+            ? `https:image.tmdb.org/t/p/original${response.backdropPath}`
             : "/fallback-image.jpg",
-          poster: movieData.posterPath
-            ? `https:image.tmdb.org/t/p/w500${movieData.posterPath}`
+          poster: response.posterPath
+            ? `https:image.tmdb.org/t/p/w500${response.posterPath}`
             : "/fallback-poster.jpg",
-          genre: Array.isArray(movieData.genreIds)
-            ? movieData.genreIds
+          genre: Array.isArray(response.genreIds)
+            ? response.genreIds
                 .map(
                   (id: string | number) =>
                     genreMap[Number(id)] || "Không xác định"
@@ -93,20 +97,24 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 .filter(Boolean)
                 .join(", ")
             : "Không xác định",
-          rating: movieData.voteAverage || 0,
-          ageRating: movieData.adult ? "R" : "PG-13",
-          duration: movieData.runtime ? `${movieData.runtime} phút` : "N/A",
-          description: movieData.overview || "Không có mô tả.",
-          director: movieData.director || "Không xác định",
-          writers: movieData.writers || [],
-          starring: movieData.starring || "Không xác định",
+          rating: response.voteAverage || 0,
+          ageRating: response.adult ? "R" : "PG-13",
+          duration: response.runtime ? `${response.runtime} phút` : "N/A",
+          description: response.overview || "Không có mô tả.",
+          director: response.director || "Không xác định",
+          writers: response.writers || [],
+          starring: response.starring || "Không xác định",
         }
 
         setMovie(movieUI)
         setLoading(false)
-      } catch (err: any) {
-        console.error("Error fetching movie:", err.message)
-        setError(err.message || "Lỗi khi lấy chi tiết phim")
+      } catch (err) {
+        console.error("Detailed error:", err) // Log chi tiết lỗi
+        if (err instanceof Error) {
+          setError(err.message || "Lỗi khi lấy chi tiết phim")
+        } else {
+          setError("Lỗi khi lấy chi tiết phim")
+        }
         setLoading(false)
       }
     }

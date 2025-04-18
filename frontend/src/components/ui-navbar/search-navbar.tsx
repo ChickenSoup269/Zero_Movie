@@ -6,7 +6,7 @@ import { Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
-import { getAllMovies, searchMovies, Movie } from "@/services/movieService"
+import { MovieService, Movie } from "@/services/movieService"
 import SearchPopup from "@/components/ui-navbar/search-popup"
 
 export default function SearchBar() {
@@ -64,10 +64,18 @@ export default function SearchBar() {
         }
 
         const response: Movie[] = debouncedSearchText
-          ? await searchMovies(debouncedSearchText)
-          : await getAllMovies()
+          ? await MovieService.searchMovies(debouncedSearchText)
+          : await MovieService.getAllMovies()
 
         setFilteredMovies(response)
+
+        if (response.length === 0 && debouncedSearchText) {
+          toast({
+            title: "No Results",
+            description: `No movies found for "${debouncedSearchText}".`,
+            variant: "default",
+          })
+        }
       } catch (error: any) {
         console.error("Search movies error:", error.response || error)
         toast({
@@ -120,7 +128,7 @@ export default function SearchBar() {
           className="relative"
         >
           <div
-            className="ml-2 bg-transparent shadow-xl border border-white backdrop-blur-lg rounded-md"
+            className="ml-2 bg-transparent shadow-xl border border-white/30 backdrop-blur-lg rounded-md"
             style={{
               backgroundImage: "url('/path-to-your-pattern.png')",
               backgroundSize: "cover",
@@ -132,7 +140,7 @@ export default function SearchBar() {
                 variant="ghost"
                 size="sm"
                 onClick={toggleSearch}
-                className="h-8 w-8 hover:bg-gray-500"
+                className="h-8 w-8 hover:bg-gray-500/50"
               >
                 <Search className="h-4 w-4 text-white" />
               </Button>
@@ -143,10 +151,11 @@ export default function SearchBar() {
                 <>
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search movies..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="w-full ml-1 bg-transparent border-none focus:outline-none text-white pr-12"
+                    className="w-full ml-1 bg-transparent border-none focus:outline-none text-white placeholder-white/70 pr-12 text-sm md:text-base"
+                    autoFocus
                   />
                   <div className="relative">
                     {isLoading && (
@@ -163,7 +172,7 @@ export default function SearchBar() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 p-0 hover:bg-gray-500 flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 p-0 hover:bg-gray-500/50 flex items-center justify-center"
                         onClick={clearSearch}
                       >
                         <X className="h-4 w-4 text-white" />

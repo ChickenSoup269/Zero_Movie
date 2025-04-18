@@ -20,7 +20,7 @@ interface Slide {
   releaseYear: number
   ageRating: string
   starring: string
-  status: "nowShowing" | "upcoming"
+  status: "nowPlaying" | "upcoming"
   director: string
   rating: number
 }

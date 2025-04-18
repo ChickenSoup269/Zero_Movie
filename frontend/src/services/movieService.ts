@@ -2,10 +2,14 @@
 import axios from "axios"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
+
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
+
 export interface Movie {
+  genreNames: any
+  ageRating: string
   _id: string
   tmdbId: number
   title: string
@@ -32,6 +36,7 @@ export interface Movie {
 }
 
 export interface MovieInput {
+  ageRating: string
   tmdbId?: number
   title: string
   originalTitle?: string
@@ -53,58 +58,61 @@ export interface MovieInput {
   starring?: string
 }
 
-export const getAllMovies = async (): Promise<Movie[]> => {
-  try {
-    const response = await axios.get(`${API_URL}/movies`)
-    return response.data.movies || response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch movies")
+export class MovieService {
+  static async getAllMovies(): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/movies`)
+      return response.data.movies || response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch movies")
+    }
   }
-}
 
-export const getMovieById = async (id: string): Promise<Movie> => {
-  try {
-    const response = await axios.get(`${API_URL}/movies/${id}`)
-    return response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch movie")
+  static async getMovieById(id: string): Promise<Movie> {
+    try {
+      const response = await axios.get(`${API_URL}/movies/${id}`)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch movie")
+    }
   }
-}
 
-export const searchMovies = async (title: string): Promise<Movie[]> => {
-  try {
-    const response = await axios.get(`${API_URL}/movies/search/${title}`)
-    return response.data.movies || response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to search movies")
+  static async searchMovies(title: string): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/movies/search`, {
+        params: { q: title },
+      })
+      return response.data.movies || response.data
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to search movies"
+      )
+    }
   }
-}
 
-export const addMovie = async (movie: MovieInput): Promise<Movie> => {
-  try {
-    const response = await axios.post(`${API_URL}/movies`, movie)
-    return response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to add movie")
+  static async addMovie(movie: MovieInput): Promise<Movie> {
+    try {
+      const response = await axios.post(`${API_URL}/movies`, movie)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to add movie")
+    }
   }
-}
 
-export const updateMovie = async (
-  id: string,
-  movie: MovieInput
-): Promise<Movie> => {
-  try {
-    const response = await axios.put(`${API_URL}/movies/${id}`, movie)
-    return response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to update movie")
+  static async updateMovie(id: string, movie: MovieInput): Promise<Movie> {
+    try {
+      const response = await axios.put(`${API_URL}/movies/${id}`, movie)
+      return response.data
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to update movie")
+    }
   }
-}
 
-export const deleteMovie = async (id: string): Promise<void> => {
-  try {
-    await axios.delete(`${API_URL}/movies/${id}`)
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to delete movie")
+  static async deleteMovie(id: string): Promise<void> {
+    try {
+      await axios.delete(`${API_URL}/movies/${id}`)
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to delete movie")
+    }
   }
 }

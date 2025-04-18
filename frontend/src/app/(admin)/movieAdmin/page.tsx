@@ -52,12 +52,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster } from "@/components/ui/toaster"
 import {
-  getAllMovies,
-  getMovieById,
-  searchMovies,
-  addMovie,
-  updateMovie,
-  deleteMovie,
+  MovieService,
   type Movie,
   type MovieInput,
 } from "@/services/movieService"
@@ -109,7 +104,7 @@ export default function MovieAdmin() {
       setIsLoading(true)
       try {
         const [movieData, genreData, genreMapData] = await Promise.all([
-          getAllMovies(),
+          MovieService.getAllMovies(),
           GenreService.getGenres(),
           GenreService.getGenreMap(),
         ])
@@ -133,7 +128,7 @@ export default function MovieAdmin() {
   const fetchMovies = async () => {
     setIsLoading(true)
     try {
-      const data = await getAllMovies()
+      const data = await MovieService.getAllMovies()
       setMovies(data)
     } catch (error) {
       toast({
@@ -153,7 +148,7 @@ export default function MovieAdmin() {
     }
     setIsLoading(true)
     try {
-      const results = await searchMovies(movieSearchTerm)
+      const results = await MovieService.searchMovies(movieSearchTerm)
       setMovies(results)
     } catch (error) {
       toast({
@@ -168,7 +163,7 @@ export default function MovieAdmin() {
 
   const handleAddMovie = async () => {
     try {
-      await addMovie(movieFormData)
+      await MovieService.addMovie(movieFormData)
       toast({
         title: "Success",
         description: "Movie added successfully",
@@ -206,7 +201,7 @@ export default function MovieAdmin() {
   const handleUpdateMovie = async () => {
     if (!selectedMovie) return
     try {
-      await updateMovie(selectedMovie._id, movieFormData)
+      await MovieService.updateMovie(selectedMovie._id, movieFormData)
       toast({
         title: "Success",
         description: "Movie updated successfully",
@@ -231,7 +226,7 @@ export default function MovieAdmin() {
   const handleDeleteMovie = async () => {
     if (!selectedMovie) return
     try {
-      await deleteMovie(selectedMovie._id)
+      await MovieService.deleteMovie(selectedMovie._id)
       toast({
         title: "Success",
         description: "Movie deleted successfully",

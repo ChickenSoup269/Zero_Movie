@@ -6,11 +6,12 @@ import FullImageSlider from "@/components/ui-home/full-image-slider"
 import Movies from "@/components/ui-home/movies"
 import { GenreService } from "@/services/genreService"
 import actorAgeData from "@/data/actorAgeData"
-import { getAllMovies, searchMovies } from "@/services/movieService"
+import { MovieService } from "@/services/movieService"
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
 export interface Movie {
+  id: any
   _id: string
   tmdbId: number
   title: string
@@ -37,7 +38,7 @@ export interface Movie {
 }
 
 interface Genre {
-  id: number
+  id: string
   name: string
 }
 
@@ -80,19 +81,34 @@ export default function Home() {
 
         // Lấy danh sách thể loại
         const genresData = await GenreService.getGenres()
-        setGenres(genresData)
+        setGenres(
+          genresData.map((genre) => ({ ...genre, id: genre.id.toString() }))
+        )
 
         // Lấy phim
         let moviesArray: Movie[] = []
         if (searchQuery) {
           // Tìm kiếm phim theo tiêu đề
-          moviesArray = await searchMovies(searchQuery)
+          moviesArray = (await MovieService.searchMovies(searchQuery)).map(
+            (movie) => ({
+              ...movie,
+              id: movie._id, // Map _id to id
+            })
+          )
         } else if (selectedGenre) {
           // Lấy phim theo thể loại
-          moviesArray = await GenreService.getMoviesByGenre(selectedGenre)
+          moviesArray = (
+            await GenreService.getMoviesByGenre(selectedGenre)
+          ).map((movie) => ({
+            ...movie,
+            id: movie._id, // Map _id to id
+          }))
         } else {
           // Lấy tất cả phim
-          moviesArray = await getAllMovies()
+          moviesArray = (await MovieService.getAllMovies()).map((movie) => ({
+            ...movie,
+            id: movie._id, // Map _id to id
+          }))
         }
 
         const genreMap = await GenreService.getGenreMap()
@@ -118,7 +134,8 @@ export default function Home() {
             (releaseDate <= new Date() ? "nowPlaying" : "upcoming")
 
           return {
-            id: movie.tmdbId,
+            id: movie.id, // Convert _id to a number
+            tmdbId: movie.tmdbId,
             image: movie.backdropPath
               ? `${TMDB_IMAGE_BASE_URL}${movie.backdropPath}`
               : "/fallback-image.jpg",
@@ -141,7 +158,6 @@ export default function Home() {
             rating: movie.voteAverage || 0,
           }
         })
-
         setSlides(mappedSlides)
         setLoading(false)
       } catch (err: any) {

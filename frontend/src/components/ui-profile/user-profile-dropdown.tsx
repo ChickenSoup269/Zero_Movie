@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -56,6 +55,7 @@ export default function UserProfileDropdown({
           const response = await UserService.getProfile()
           console.log("User profile from API:", response.data)
           setUserProfile(response.data)
+          setAvatarError(false)
         } catch (error: any) {
           console.error(
             "Error fetching user profile:",
@@ -77,43 +77,53 @@ export default function UserProfileDropdown({
 
   const handleProfileUpdate = (updatedProfile: any) => {
     setUserProfile(updatedProfile)
+    setAvatarError(false)
   }
 
   const isAdmin = userProfile?.role === "admin"
 
   // Tính toán avatarUrl
   const avatarUrl = getFullImageUrl(userProfile?.avatar || user?.avatar || "")
+  console.log("Avatar URL:", avatarUrl, "Avatar Error:", avatarError)
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <div className="relative w-8 h-8">
+          <div className="relative h-8 w-8 ">
+            <div className="relative w-8 h-8 rounded-full cursor-pointer">
               {avatarUrl && !avatarError ? (
                 <>
-                  {/* <Image
+                  <Image
                     src={avatarUrl}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
                     className="absolute rounded-full blur-md opacity-80 scale-110"
                     style={{ filter: "brightness(1.2)" }}
-                    onError={() => {
-                      console.error("Failed to load blurred avatar:", avatarUrl)
+                    onError={(e) => {
+                      console.error(
+                        "Failed to load blurred avatar:",
+                        avatarUrl,
+                        e
+                      )
                       setAvatarError(true)
                     }}
-                  /> */}
+                    onLoad={() =>
+                      console.log("Blurred avatar loaded:", avatarUrl)
+                    }
+                  />
                   <Image
                     src={avatarUrl}
                     alt={userProfile?.fullName || user?.fullName || "User"}
                     width={32}
                     height={32}
-                    className="relative rounded-full"
-                    onError={() => {
-                      console.error("Failed to load avatar:", avatarUrl)
+                    className="relative rounded-full z-10" // Thêm z-index để đảm bảo ảnh chính không bị che
+                    onError={(e) => {
+                      console.error("Failed to load avatar:", avatarUrl, e)
                       setAvatarError(true)
                     }}
+                    onLoad={() => console.log("Avatar loaded:", avatarUrl)}
                   />
                 </>
               ) : (
@@ -126,7 +136,7 @@ export default function UserProfileDropdown({
                 </Avatar>
               )}
             </div>
-          </Button>
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">

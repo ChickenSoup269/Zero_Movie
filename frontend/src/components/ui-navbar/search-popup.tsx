@@ -1,11 +1,11 @@
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
-
-// Import Movie interface từ service của bạn
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Movie } from "@/services/movieService"
+import { GenreService } from "@/services/genreService"
 
-// Định nghĩa kiểu cho props của SearchPopup
 interface SearchPopupProps {
   filteredMovies: Movie[]
   isSearchOpen: boolean
@@ -17,7 +17,23 @@ const SearchPopup = ({
   isSearchOpen,
   debouncedSearchText,
 }: SearchPopupProps) => {
-  // Animation variants cho popup
+  const router = useRouter()
+  const [genreMap, setGenreMap] = useState<Record<number, string>>({})
+
+  // Fetch genre map to convert genreIds to names
+  useEffect(() => {
+    const fetchGenreMap = async () => {
+      try {
+        const map = await GenreService.getGenreMap()
+        setGenreMap(map)
+      } catch (error) {
+        console.error("Failed to fetch genre map:", error)
+      }
+    }
+    fetchGenreMap()
+  }, [])
+
+  // Animation variants for popup
   const popupVariants = {
     hidden: {
       opacity: 0,
@@ -39,14 +55,14 @@ const SearchPopup = ({
           initial="hidden"
           animate="visible"
           exit="hidden"
-          className="absolute top-full left-0 mt-2 w-full bg-white/50 dark:bg-gray-700 shadow-lg rounded-lg z-10 max-h-60 overflow-y-auto"
+          className="absolute top-full left-0 mt-2 w-full bg-white/90 dark:bg-gray-800/90 shadow-lg rounded-lg z-10 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700"
         >
           {filteredMovies.map((movie) => (
             <div
-              key={movie._id} // Sử dụng _id từ API
-              className="flex items-center p-2 hover:bg-gray-500 hover:cursor-pointer transition-colors"
+              key={movie._id}
+              onClick={() => router.push(`/movies/${movie.tmdbId}`)}
+              className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer transition-colors"
             >
-              {/* Poster phim - sử dụng posterPath từ API */}
               <Image
                 src={
                   movie.posterPath
@@ -56,14 +72,18 @@ const SearchPopup = ({
                 alt={movie.title}
                 width={50}
                 height={75}
-                className="rounded-md mr-3"
+                className="rounded-md mr-3 object-cover"
               />
-              {/* Thông tin phim */}
               <div className="flex-1 text-black dark:text-white">
-                <h3 className="font-semibold">{movie.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {movie.runtime ? `${movie.runtime} min` : ""}
-                  {movie.genreIds?.join(", ")}
+                <h3 className="font-semibold text-sm md:text-base">
+                  {movie.title}
+                </h3>
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                  {movie.runtime ? `${movie.runtime} min` : "N/A"}
+                  {movie.genreIds?.length > 0 &&
+                    ` • ${movie.genreIds
+                      .map((id) => genreMap[id] || "Unknown")
+                      .join(", ")}`}
                   {movie.releaseDate
                     ? ` • ${new Date(movie.releaseDate).getFullYear()}`
                     : ""}
