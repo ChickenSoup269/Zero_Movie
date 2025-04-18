@@ -134,7 +134,7 @@ export default function Home() {
             (releaseDate <= new Date() ? "nowPlaying" : "upcoming")
 
           return {
-            id: movie.id, // Convert _id to a number
+            id: movie.tmdbId,
             tmdbId: movie.tmdbId,
             image: movie.backdropPath
               ? `${TMDB_IMAGE_BASE_URL}${movie.backdropPath}`

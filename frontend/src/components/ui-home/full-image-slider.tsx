@@ -25,6 +25,7 @@ export interface Slide {
   status: "nowPlaying" | "upcoming"
   director: string
   rating: number
+  tmdbId: string
 }
 
 interface FullImageSliderProps {
@@ -44,11 +45,8 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   const router = useRouter()
 
   const handleViewDetails = (movie: Slide) => {
-    // Lưu thông tin phim vào localStorage trước khi chuyển trang
-    localStorage.setItem("selectedMovie", JSON.stringify(movie))
-
-    // Điều hướng đến trang chi tiết phim
-    router.push(`details-movies/${movie.id}`)
+    console.log("Navigating to details with tmdbId:", movie.tmdbId) // Debug
+    router.push(`/details-movies/${movie.tmdbId}`)
   }
 
   const getFirstSentence = (description: string) => {

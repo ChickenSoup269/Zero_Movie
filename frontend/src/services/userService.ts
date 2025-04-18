@@ -6,12 +6,9 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
-console.log("API_URL:", API_URL)
-
 const getAuthToken = () => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token")
-    console.log("Access token:", token ? "Found" : "Not found")
     return token
   }
   return null
@@ -142,7 +139,7 @@ const UserService = {
   getProfile: async () => {
     try {
       const response = await api.get("/profile")
-      console.log("Get profile response:", response.data)
+
       return response
     } catch (error: any) {
       console.error("Get profile error:", {

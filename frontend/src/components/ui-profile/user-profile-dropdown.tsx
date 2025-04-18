@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useEffect } from "react"
@@ -19,6 +20,10 @@ import { User, Mail, Settings, Ticket, LogOut, Shield } from "lucide-react"
 import ProfileDialog from "./profile-dialog"
 import UserService from "@/services/userService"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
+import axios from "axios"
+
+// Create an axios instance for JWT handling
+const axiosJWT = axios.create()
 
 interface UserProfileDropdownProps {
   isLoggedIn: boolean
@@ -41,19 +46,10 @@ export default function UserProfileDropdown({
   })
 
   useEffect(() => {
-    console.log(
-      "isLoggedIn:",
-      isLoggedIn,
-      "user:",
-      user,
-      "token:",
-      localStorage.getItem("token")
-    )
     const fetchUserProfile = async () => {
       if (isLoggedIn && user?.id) {
         try {
           const response = await UserService.getProfile()
-          console.log("User profile from API:", response.data)
           setUserProfile(response.data)
           setAvatarError(false)
         } catch (error: any) {
@@ -80,11 +76,45 @@ export default function UserProfileDropdown({
     setAvatarError(false)
   }
 
+  useEffect(() => {
+    const responseInterceptor = axiosJWT.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 401) {
+          // Token hết hạn, thực hiện logout
+          await handleAutoLogout()
+        }
+        return Promise.reject(error)
+      }
+    )
+
+    return () => {
+      // Cleanup interceptor khi component unmount
+      axiosJWT.interceptors.response.eject(responseInterceptor)
+    }
+  }, [logout]) // Thêm logout vào dependencies
+
+  const handleAutoLogout = async () => {
+    try {
+      // Gọi hàm logout từ useUser hook
+      await logout()
+
+      // Có thể thêm thông báo hoặc redirect nếu cần
+      console.log("Tự động logout do token hết hạn")
+
+      // Redirect về trang login
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
+    } catch (error) {
+      console.error("Lỗi khi tự động logout:", error)
+    }
+  }
+
   const isAdmin = userProfile?.role === "admin"
 
   // Tính toán avatarUrl
   const avatarUrl = getFullImageUrl(userProfile?.avatar || user?.avatar || "")
-  console.log("Avatar URL:", avatarUrl, "Avatar Error:", avatarError)
 
   return (
     <>

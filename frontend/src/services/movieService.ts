@@ -8,7 +8,8 @@ if (!API_URL) {
 }
 
 export interface Movie {
-  genreNames: any
+  id: number
+  genreNames: string[]
   ageRating: string
   _id: string
   tmdbId: number
@@ -71,9 +72,35 @@ export class MovieService {
   static async getMovieById(id: string): Promise<Movie> {
     try {
       const response = await axios.get(`${API_URL}/movies/${id}`)
+      if (!response.data) {
+        throw new Error("Phim không tồn tại trong database")
+      }
       return response.data
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to fetch movie")
+      console.error("Error fetching movie:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+      throw new Error(error.response?.data?.message || "Không tìm thấy phim")
+    }
+  }
+
+  static async getMovieByTmdbId(tmdbId: string): Promise<Movie> {
+    try {
+      console.log(`Fetching movie with tmdbId: ${tmdbId}`)
+      const response = await axios.get(`${API_URL}/movies/${tmdbId}`)
+      if (!response.data || !response.data.movie) {
+        throw new Error("Phim không tồn tại trong database")
+      }
+      console.log("API response:", response.data)
+      return response.data.movie // Backend trả về { message, movie }
+    } catch (error: any) {
+      console.error("Error fetching movie by tmdbId:", {
+        tmdbId,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+      throw new Error(error.response?.data?.message || "Không tìm thấy phim")
     }
   }
 

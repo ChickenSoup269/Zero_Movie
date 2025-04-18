@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 
 interface Slide {
   id: number
+  _id: string // Added _id property
   image: string
   title: string
   description: string
@@ -19,6 +20,7 @@ interface Slide {
   status: "nowPlaying" | "upcoming"
   director: string
   rating: number
+  tmdbId: string // Added tmdbId property
 }
 
 interface MoviesProps {
@@ -114,7 +116,8 @@ const Movies = ({ slides }: MoviesProps) => {
   }
 
   const handleViewDetails = (movie: Slide) => {
-    router.push(`details-movies/${movie.id}`)
+    console.log("Navigating to details with tmdbId:", movie.tmdbId) // Debug
+    router.push(`/details-movies/${movie.tmdbId}`)
   }
 
   const getShortDescription = (description: string) => {
@@ -125,10 +128,9 @@ const Movies = ({ slides }: MoviesProps) => {
     return description
   }
 
-  // Hàm để tạo ngôi sao rating (chỉ hiển thị 5 ngôi sao)
   const renderStars = (rating: number) => {
-    const maxStars = 5 // Giảm từ 10 xuống 5 ngôi sao
-    const scaledRating = (rating / 10) * maxStars // Quy đổi rating từ thang 10 sang thang 5
+    const maxStars = 5
+    const scaledRating = (rating / 10) * maxStars
     const stars = []
     for (let i = 1; i <= maxStars; i++) {
       stars.push(
@@ -136,7 +138,7 @@ const Movies = ({ slides }: MoviesProps) => {
           key={i}
           className={`w-3 h-3 inline-block ${
             i <= scaledRating ? "text-yellow-400" : "text-gray-400"
-          }`} // Giảm kích thước từ w-4 h-4 xuống w-3 h-3
+          }`}
           fill="currentColor"
           viewBox="0 0 20 20"
           xmlns="http://www.w3.org/2000/svg"

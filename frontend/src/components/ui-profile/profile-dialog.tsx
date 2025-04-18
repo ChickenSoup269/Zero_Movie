@@ -338,7 +338,9 @@ export default function ProfileDialog({
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setIsForgotPasswordDialogOpen(true)}
+                          onClick={() => {
+                            setIsForgotPasswordDialogOpen(true)
+                          }}
                           className="flex items-center space-x-1"
                         >
                           <Key className="h-4 w-4" />
@@ -370,6 +372,7 @@ export default function ProfileDialog({
       <ForgotPasswordDialog
         open={isForgotPasswordDialogOpen}
         setOpenDialog={setIsForgotPasswordDialogOpen}
+        userEmail={userProfile?.email || user?.email} // Thêm prop này
       />
     </>
   )

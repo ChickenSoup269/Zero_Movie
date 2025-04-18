@@ -36,13 +36,15 @@ import { sendOtp, resetPassword } from "@/services/authService" // Import sendOt
 interface ForgotPasswordDialogProps {
   open: boolean
   setOpenDialog: (value: boolean) => void
+  userEmail?: string // Thêm prop mới
 }
 
 const ForgotPasswordDialog = ({
   open,
   setOpenDialog,
+  userEmail, // Nhận prop
 }: ForgotPasswordDialogProps) => {
-  const [forgotEmail, setForgotEmail] = useState("")
+  const [forgotEmail, setForgotEmail] = useState(userEmail || "") // Khởi tạo với userEmail
   const [otp, setOtp] = useState("")
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [emailError, setEmailError] = useState("")

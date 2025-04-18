@@ -1,4 +1,5 @@
 /* eslint-disable prefer-const */
+"use client"
 import { useToast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
 import React, {

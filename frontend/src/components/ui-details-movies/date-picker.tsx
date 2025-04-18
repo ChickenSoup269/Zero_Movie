@@ -1,3 +1,4 @@
+"use client"
 import { useState } from "react"
 import { format, addDays, subDays, isSameDay, startOfWeek } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"

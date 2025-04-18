@@ -28,6 +28,7 @@ interface MovieUI {
   writers: string[]
   starring: string
 }
+
 interface Theater {
   id: number
   name: string
@@ -45,7 +46,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
-  const [genreMap, setGenreMap] = useState<{ [key: number]: string }>({})
+  const [genreMap, setGenreMap] = useState<Record<number, string>>({})
 
   // Fetch genre map
   useEffect(() => {
@@ -53,8 +54,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
       try {
         const map = await GenreService.getGenreMap()
         setGenreMap(map)
-      } catch (err: any) {
-        console.error("Error fetching genre map:", err.message)
+      } catch (err: unknown) {
+        console.error("Error fetching genre map:", err)
       }
     }
     fetchGenreMap()
@@ -65,56 +66,48 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     const fetchParamsAndMovie = async () => {
       try {
         const unwrappedParams = await params
-        console.log("Params:", unwrappedParams) // Log params
-
-        const movieId = unwrappedParams.id
-        console.log("Movie ID:", movieId) // Log ID
+        const tmdbId = unwrappedParams.id
 
         setLoading(true)
-        const response = await MovieService.getMovieById(movieId)
-        console.log("API Response:", response) // Log response từ API
+        const movieData = await MovieService.getMovieByTmdbId(tmdbId)
 
-        if (!response || !response.title) {
+        if (!movieData || !movieData.title) {
           throw new Error("Phim không tìm thấy trong cơ sở dữ liệu")
         }
 
         const movieUI: MovieUI = {
-          id: response.tmdbId || parseInt(movieId),
-          tmdbId: response.tmdbId || parseInt(movieId),
-          title: response.title || "Không có tiêu đề",
-          image: response.backdropPath
-            ? `https:image.tmdb.org/t/p/original${response.backdropPath}`
+          id: movieData.tmdbId,
+          tmdbId: movieData.tmdbId,
+          title: movieData.title || "Không có tiêu đề",
+          image: movieData.backdropPath
+            ? `https://image.tmdb.org/t/p/original${movieData.backdropPath}`
             : "/fallback-image.jpg",
-          poster: response.posterPath
-            ? `https:image.tmdb.org/t/p/w500${response.posterPath}`
+          poster: movieData.posterPath
+            ? `https://image.tmdb.org/t/p/w500${movieData.posterPath}`
             : "/fallback-poster.jpg",
-          genre: Array.isArray(response.genreIds)
-            ? response.genreIds
-                .map(
-                  (id: string | number) =>
-                    genreMap[Number(id)] || "Không xác định"
-                )
+          genre: Array.isArray(movieData.genreIds)
+            ? movieData.genreIds
+                .map((id) => genreMap[id] || "Không xác định")
                 .filter(Boolean)
                 .join(", ")
             : "Không xác định",
-          rating: response.voteAverage || 0,
-          ageRating: response.adult ? "R" : "PG-13",
-          duration: response.runtime ? `${response.runtime} phút` : "N/A",
-          description: response.overview || "Không có mô tả.",
-          director: response.director || "Không xác định",
-          writers: response.writers || [],
-          starring: response.starring || "Không xác định",
+          rating: movieData.voteAverage || 0,
+          ageRating: movieData.ageRating || (movieData.adult ? "R" : "PG-13"),
+          duration: movieData.runtime ? `${movieData.runtime} phút` : "N/A",
+          description: movieData.overview || "Không có mô tả.",
+          director: movieData.director || "Không xác định",
+          writers: movieData.writers || [],
+          starring: movieData.starring || "Không xác định",
         }
 
+        console.log("Mapped movieUI:", movieUI) // Debug
         setMovie(movieUI)
         setLoading(false)
-      } catch (err) {
-        console.error("Detailed error:", err) // Log chi tiết lỗi
-        if (err instanceof Error) {
-          setError(err.message || "Lỗi khi lấy chi tiết phim")
-        } else {
-          setError("Lỗi khi lấy chi tiết phim")
-        }
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Lỗi không xác định"
+        console.error("Error fetching movie:", errorMessage)
+        setError(errorMessage || "Lỗi khi lấy chi tiết phim")
         setLoading(false)
       }
     }
@@ -169,7 +162,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
 
   const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
 
-  // Animation variants (giữ nguyên từ mã gốc)
+  // Animation variants
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -278,6 +271,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           fill
           style={{ objectFit: "cover" }}
           loading="lazy"
+          sizes="100vw"
         />
         <div
           className="absolute inset-0"
@@ -321,6 +315,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 height={375}
                 className="relative z-10 rounded-lg shadow-lg w-full h-auto object-cover"
                 loading="lazy"
+                placeholder="blur"
+                blurDataURL="/fallback-poster.jpg"
               />
             </motion.div>
 
@@ -358,7 +354,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="w-4 h-4"
                     fill="currentColor"
                     viewBox="0 0 20 20"
-                    xmlns="http:www.w3.org/2000/svg"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
                       fillRule="evenodd"
@@ -420,7 +416,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 24 24"
-                    xmlns="http:www.w3.org/2000/svg"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -437,7 +433,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
-                    xmlns="http:www.w3.org/2000/svg"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
                       strokeLinecap="round"
@@ -477,7 +473,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
-                        xmlns="http:www.w3.org/2000/svg"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
                         <path
                           strokeLinecap="round"
@@ -525,13 +521,14 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               <button
                 onClick={closeTheaterPopup}
                 className="absolute top-4 right-4 text-gray-300 hover:text-white"
+                aria-label="Đóng popup rạp chiếu"
               >
                 <svg
                   className="w-6 h-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http:www.w3.org/2000/svg"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -595,13 +592,14 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               <button
                 onClick={closeTrailerPopup}
                 className="absolute top-[-10px] right-[-10px] text-gray-300 hover:text-white z-10"
+                aria-label="Đóng trailer"
               >
                 <svg
                   className="w-6 h-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http:www.w3.org/2000/svg"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -618,7 +616,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 >
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    src="https:www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="Trailer phim"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
@@ -637,7 +635,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 >
                   <iframe
                     className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    src="https:www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
+                    src="https://www.youtube.com/embed/t1f0kBkSQs8?si=f1dZbWrN33p1NjlT"
                     title="Trailer phim (blurred)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"

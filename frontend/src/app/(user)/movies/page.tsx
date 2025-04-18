@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select"
 
 interface DisplayedMovie extends Movie {
-  genreNames: string
+  genreNames: string[]
 }
 
 const Movies = () => {
@@ -53,8 +53,7 @@ const Movies = () => {
           ...movie,
           genreNames: movie.genreIds
             .map((id) => genreData.find((g) => g.id === id)?.name || "")
-            .filter(Boolean)
-            .join(", "),
+            .filter(Boolean),
         }))
 
         setMovies(displayedMovies)
@@ -87,8 +86,7 @@ const Movies = () => {
             ...movie,
             genreNames: movie.genreIds
               .map((id) => genres.find((g) => g.id === id)?.name || "")
-              .filter(Boolean)
-              .join(", "),
+              .filter(Boolean),
           }))
         }
 
@@ -420,7 +418,7 @@ const Movies = () => {
                             variants={childVariants}
                             className="flex flex-wrap gap-1 mb-1 justify-center"
                           >
-                            {movie.genreNames.split(", ").map((genre, idx) => (
+                            {movie.genreNames.map((genre, idx) => (
                               <span
                                 key={idx}
                                 className="px-2 py-1 text-xs bg-white text-black rounded cursor-default"
