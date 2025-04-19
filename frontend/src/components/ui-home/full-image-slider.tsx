@@ -240,7 +240,13 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                             <span className="font-semibold text-white">
                               Status:
                             </span>{" "}
-                            <span className="font-mono text-green-400">
+                            <span
+                              className={`font-mono ${
+                                slide.status === "nowPlaying"
+                                  ? "text-green-400"
+                                  : "text-yellow-400"
+                              }`}
+                            >
                               {slide.status === "nowPlaying"
                                 ? "Now Showing"
                                 : "Coming Soon"}

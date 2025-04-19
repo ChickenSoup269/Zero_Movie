@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -16,10 +15,12 @@ import { Button } from "@/components/ui/button"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
-import { Camera, Key } from "lucide-react"
-import UserService from "@/services/userService"
+// import { motion, AnimatePresence } from "framer-motion"
+import { Camera, Key, Pencil, Check, X } from "lucide-react"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
+import UserService from "@/services/userService"
+import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
+import SettingsTabContent from "./settings-tab-content"
 
 interface ProfileDialogProps {
   open: boolean
@@ -30,6 +31,7 @@ interface ProfileDialogProps {
     avatar?: string
     backgroundImage?: string
     email?: string
+    isOnline?: boolean
   }
   userProfile?: {
     fullName?: string
@@ -37,6 +39,7 @@ interface ProfileDialogProps {
     avatar?: string
     backgroundImage?: string
     email?: string
+    isOnline?: boolean
   }
   onProfileUpdate: (updatedProfile: any) => void
 }
@@ -62,6 +65,11 @@ export default function ProfileDialog({
     useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const [backgroundError, setBackgroundError] = useState(false)
+  const [isEditingFullName, setIsEditingFullName] = useState(false)
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
+  const [activeTab, setActiveTab] = useState("profile")
+  // Giả định user đang online
+  const isOnline = userProfile?.isOnline || user?.isOnline || true
 
   const errorToast = ErrorToast({
     title: "Error",
@@ -87,6 +95,8 @@ export default function ProfileDialog({
     })
     setAvatarFile(null)
     setBackgroundFile(null)
+    setIsEditingFullName(false)
+    setIsEditingUsername(false)
   }, [user, userProfile])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,6 +207,24 @@ export default function ProfileDialog({
     }
   }
 
+  // const tabVariants = {
+  //   hidden: {
+  //     opacity: 0,
+  //     y: 20,
+  //     transition: { duration: 0.2 },
+  //   },
+  //   visible: {
+  //     opacity: 1,
+  //     y: 0,
+  //     transition: { duration: 0.3, ease: "easeOut" },
+  //   },
+  //   exit: {
+  //     opacity: 0,
+  //     y: -20,
+  //     transition: { duration: 0.2 },
+  //   },
+  // }
+
   const avatarUrl = avatarFile
     ? formData.avatar
     : getFullImageUrl(formData.avatar)
@@ -247,8 +275,9 @@ export default function ProfileDialog({
               </label>
             </div>
 
+            {/* Avatar với hiệu ứng online */}
             <div className="absolute left-6 top-24 h-24 w-24 group">
-              <div className="relative h-full w-full rounded-full border-2 border-white overflow-hidden shadow-lg dark:shadow-gray-500/90">
+              <div className="relative h-full w-full rounded-full border-2 border-white  shadow-lg dark:shadow-gray-500/90">
                 {formData.avatar && !avatarError ? (
                   <Image
                     src={avatarUrl || "/default-avatar.png"}
@@ -285,13 +314,47 @@ export default function ProfileDialog({
                     onChange={handleAvatarChange}
                   />
                 </label>
+
+                {/* Hiệu ứng online (chấm xanh) */}
+                {isOnline && (
+                  <div className="absolute bottom-1 right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                )}
               </div>
             </div>
 
-            <DialogTitle className="pt-16 px-6">Edit Profile</DialogTitle>
+            {/* Username và title cùng hàng */}
+            <div className="flex items-end justify-between pt-16 px-6">
+              <div className="flex flex-col">
+                <h3 className="text-xl font-semibold">
+                  {formData.fullName || "User"}
+                </h3>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">
+                    @{formData.username || "username"}
+                  </span>
+                  {isOnline && (
+                    <span className="flex items-center gap-1 text-green-500">
+                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      Online
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <h3 className="text-sm font-mono text-green-500 pr-5">
+                {activeTab === "profile" && "Edit Profile"}
+                {activeTab === "settings" && "Edit Settings"}
+                {activeTab === "tickets" && "My Tickets"}
+                {activeTab === "movies" && "My Movies"}
+              </h3>
+            </div>
           </DialogHeader>
 
-          <Tabs defaultValue="profile" className="w-full px-6">
+          <Tabs
+            defaultValue="profile"
+            className="w-full px-6"
+            onValueChange={setActiveTab}
+          >
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -303,26 +366,138 @@ export default function ProfileDialog({
               <form onSubmit={handleSubmit} className="px-6 pb-6">
                 <div className="space-y-4">
                   <div className="space-y-4">
+                    {/* Full Name với icon bút chỉnh sửa */}
                     <div>
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="Enter your full name"
-                      />
+                      <Label
+                        htmlFor="fullName"
+                        className="flex items-center gap-1"
+                      >
+                        Full Name
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="fullName"
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          placeholder="Enter your full name"
+                          disabled={!isEditingFullName}
+                          className={
+                            !isEditingFullName
+                              ? "pr-10 bg-gray-50 dark:bg-gray-800"
+                              : "pr-20"
+                          }
+                        />
+                        {!isEditingFullName ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 h-8 w-8"
+                            onClick={() => setIsEditingFullName(true)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 w-8 text-green-600"
+                              onClick={() => setIsEditingFullName(false)}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 w-8 text-red-600"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fullName:
+                                    userProfile?.fullName ||
+                                    user?.fullName ||
+                                    "",
+                                }))
+                                setIsEditingFullName(false)
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Username với icon bút chỉnh sửa */}
                     <div>
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        placeholder="Enter your username"
-                      />
+                      <Label
+                        htmlFor="username"
+                        className="flex items-center gap-1"
+                      >
+                        Username
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="username"
+                          name="username"
+                          value={formData.username}
+                          onChange={handleInputChange}
+                          placeholder="Enter your username"
+                          disabled={!isEditingUsername}
+                          className={
+                            !isEditingUsername
+                              ? "pr-10 bg-gray-50 dark:bg-gray-800"
+                              : "pr-20"
+                          }
+                        />
+                        {!isEditingUsername ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 h-8 w-8"
+                            onClick={() => setIsEditingUsername(true)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 w-8 text-green-600"
+                              onClick={() => setIsEditingUsername(false)}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 w-8 text-red-600"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  username:
+                                    userProfile?.username ||
+                                    user?.username ||
+                                    "",
+                                }))
+                                setIsEditingUsername(false)
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
                     <div>
                       <Label htmlFor="email">Email (Cannot be changed)</Label>
                       <div className="flex items-center space-x-2">
@@ -365,6 +540,7 @@ export default function ProfileDialog({
                 </DialogFooter>
               </form>
             </TabsContent>
+            <SettingsTabContent />
           </Tabs>
         </DialogContent>
       </Dialog>
@@ -372,7 +548,7 @@ export default function ProfileDialog({
       <ForgotPasswordDialog
         open={isForgotPasswordDialogOpen}
         setOpenDialog={setIsForgotPasswordDialogOpen}
-        userEmail={userProfile?.email || user?.email} // Thêm prop này
+        userEmail={userProfile?.email || user?.email}
       />
     </>
   )
