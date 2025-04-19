@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client"
 
 import { useState } from "react"
@@ -10,6 +11,8 @@ import "swiper/css"
 import "swiper/css/navigation"
 import PosterSlider from "./poster-slider"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 export interface Slide {
   id: number
@@ -25,7 +28,7 @@ export interface Slide {
   status: "nowPlaying" | "upcoming"
   director: string
   rating: number
-  tmdbId: string
+  tmdbId: number
 }
 
 interface FullImageSliderProps {
@@ -35,6 +38,8 @@ interface FullImageSliderProps {
 const FullImageSlider = ({ slides }: FullImageSliderProps) => {
   const [activeSlide, setActiveSlide] = useState(0)
   const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null)
+  const router = useRouter()
+  const { toast } = useToast()
 
   const handlePosterClick = (index: number) => {
     if (swiperInstance) {
@@ -42,11 +47,19 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
       setActiveSlide(index)
     }
   }
-  const router = useRouter()
 
   const handleViewDetails = (movie: Slide) => {
     console.log("Navigating to details with tmdbId:", movie.tmdbId) // Debug
-    router.push(`/details-movies/${movie.tmdbId}`)
+    if (movie.status === "upcoming") {
+      toast({
+        title: "Hey!",
+        description: "The movie has no release date yet :(",
+        variant: "default",
+        action: <ToastAction altText="Try again">I'm cook</ToastAction>,
+      })
+    } else {
+      router.push(`/details-movies/${movie.tmdbId}`)
+    }
   }
 
   const getFirstSentence = (description: string) => {
@@ -149,7 +162,6 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                       >
                         {slide.title || "Untitled"}
                       </motion.h1>
-
                       <motion.div
                         variants={textItemVariants}
                         className="text-sm text-white mb-2"
@@ -204,7 +216,6 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                         variants={textItemVariants}
                         className="text-sm text-gray-300 border-t border-gray-500 pt-2 flex flex-col space-y-1"
                       >
-                        {/* Dòng 1: Director, Age Rating, now showing */}
                         <div className="flex space-x-4">
                           <div>
                             <span className="font-semibold text-white">
