@@ -23,11 +23,7 @@ import {
 } from "@/components/ui/input-otp"
 import { useState, useEffect } from "react"
 import emailjs from "@emailjs/browser"
-import {
-  EMAILJS_PUBLIC_KEY,
-  EMAILJS_SERVICE_ID,
-  EMAILJS_TEMPLATE_PASSWORD_ID,
-} from "@/api/key"
+
 import PasswordInput from "./password-input"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
@@ -162,11 +158,12 @@ const ForgotPasswordDialog = ({
 
     try {
       const response = await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_PASSWORD_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "",
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_PASSWORD_ID || "",
         templateParams,
-        EMAILJS_PUBLIC_KEY
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ""
       )
+
       console.log(
         "OTP email sent successfully!",
         response.status,
@@ -298,7 +295,6 @@ const ForgotPasswordDialog = ({
       })
     }
   }
-
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={setOpenDialog}>

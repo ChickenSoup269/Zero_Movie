@@ -1,48 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react/no-unescaped-entities */
 "use client"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// import { motion, AnimatePresence } from "framer-motion"
-import { Camera, Key, Pencil, Check, X } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { motion, AnimatePresence } from "framer-motion"
+import { Camera, X } from "lucide-react"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import UserService from "@/services/userService"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import SettingsTabContent from "./settings-tab-content"
+import ProfileTabContent from "./profile-tab-content"
 
-interface ProfileDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  user: {
-    fullName?: string
-    username?: string
-    avatar?: string
-    backgroundImage?: string
-    email?: string
-    isOnline?: boolean
-  }
-  userProfile?: {
-    fullName?: string
-    username?: string
-    avatar?: string
-    backgroundImage?: string
-    email?: string
-    isOnline?: boolean
-  }
-  onProfileUpdate: (updatedProfile: any) => void
-}
+// Other code remains the same...
 
 export default function ProfileDialog({
   open,
@@ -50,7 +25,14 @@ export default function ProfileDialog({
   user,
   userProfile,
   onProfileUpdate,
-}: ProfileDialogProps) {
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  user: any
+  userProfile: any
+  onProfileUpdate: (updatedProfile: any) => void
+}) {
+  // Your existing state declarations remain the same...
   const [formData, setFormData] = useState({
     fullName: userProfile?.fullName || user?.fullName || "",
     username: userProfile?.username || user?.username || "",
@@ -68,9 +50,9 @@ export default function ProfileDialog({
   const [isEditingFullName, setIsEditingFullName] = useState(false)
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
-  // Giả định user đang online
   const isOnline = userProfile?.isOnline || user?.isOnline || true
 
+  // Your existing toast and methods remain the same...
   const errorToast = ErrorToast({
     title: "Error",
     description: "Failed to update profile.",
@@ -83,6 +65,29 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
+  // Enhanced tab animation variants
+  const tabVariants = {
+    hidden: {
+      opacity: 0,
+      y: 20,
+      scale: 0.95,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.4, ease: "easeOut" },
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      scale: 0.95,
+      transition: { duration: 0.3, ease: "easeIn" },
+    },
+  }
+
+  // Your existing methods remain the same...
   useEffect(() => {
     setAvatarError(false)
     setBackgroundError(false)
@@ -207,23 +212,25 @@ export default function ProfileDialog({
     }
   }
 
-  // const tabVariants = {
-  //   hidden: {
-  //     opacity: 0,
-  //     y: 20,
-  //     transition: { duration: 0.2 },
-  //   },
-  //   visible: {
-  //     opacity: 1,
-  //     y: 0,
-  //     transition: { duration: 0.3, ease: "easeOut" },
-  //   },
-  //   exit: {
-  //     opacity: 0,
-  //     y: -20,
-  //     transition: { duration: 0.2 },
-  //   },
-  // }
+  const handleEditFullName = (isEditing: boolean) => {
+    setIsEditingFullName(isEditing)
+    if (!isEditing) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: userProfile?.fullName || user?.fullName || "",
+      }))
+    }
+  }
+
+  const handleEditUsername = (isEditing: boolean) => {
+    setIsEditingUsername(isEditing)
+    if (!isEditing) {
+      setFormData((prev) => ({
+        ...prev,
+        username: userProfile?.username || user?.username || "",
+      }))
+    }
+  }
 
   const avatarUrl = avatarFile
     ? formData.avatar
@@ -237,7 +244,8 @@ export default function ProfileDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
           <DialogHeader className="relative">
-            <div className="relative h-40 w-full">
+            <div className="relative h-40 w-full group">
+              {/* Background image với overlay */}
               {formData.backgroundImage && !backgroundError ? (
                 <div className="relative h-40 w-full">
                   <Image
@@ -246,25 +254,29 @@ export default function ProfileDialog({
                     fill
                     sizes="100%"
                     style={{ objectFit: "cover" }}
-                    onError={() => {
-                      console.error("Background load error:", backgroundUrl)
-                      setBackgroundError(true)
-                    }}
+                    onError={() => setBackgroundError(true)}
                     priority
+                    className="transition-opacity group-hover:opacity-70" // Giảm opacity khi hover
                   />
+                  {/* Overlay đen khi hover */}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               ) : (
-                <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-black dark:border-white">
-                  <span className="text-black dark:text-white font-mono text-lg">
+                <div className="h-full w-full flex items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 group">
+                  <span className="text-gray-500 dark:text-gray-400 font-mono text-lg group-hover:hidden">
                     No Background
                   </span>
                 </div>
               )}
+
+              {/* Camera icon chỉ hiện khi hover */}
               <label
                 htmlFor="background-upload"
-                className="absolute bottom-2 right-2 p-1.5 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors"
+                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
               >
-                <Camera className="h-4 w-4 text-white" />
+                <div className="p-3 bg-black/50 rounded-full hover:bg-black/70 transition-colors">
+                  <Camera className="h-6 w-6 text-white" />
+                </div>
                 <input
                   id="background-upload"
                   type="file"
@@ -273,11 +285,25 @@ export default function ProfileDialog({
                   onChange={handleBackgroundChange}
                 />
               </label>
+
+              {/* Button X để xóa background (chỉ hiện khi có ảnh) */}
+              {formData.backgroundImage && !backgroundError && (
+                <button
+                  type="button"
+                  className="absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white"
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, backgroundImage: "" }))
+                    setBackgroundFile(null)
+                  }}
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              )}
             </div>
 
             {/* Avatar với hiệu ứng online */}
             <div className="absolute left-6 top-24 h-24 w-24 group">
-              <div className="relative h-full w-full rounded-full border-2 border-white  shadow-lg dark:shadow-gray-500/90">
+              <div className="relative h-full w-full rounded-full border-2 border-white shadow-lg dark:shadow-gray-500/90">
                 {formData.avatar && !avatarError ? (
                   <Image
                     src={avatarUrl || "/default-avatar.png"}
@@ -317,7 +343,7 @@ export default function ProfileDialog({
 
                 {/* Hiệu ứng online (chấm xanh) */}
                 {isOnline && (
-                  <div className="absolute bottom-1 right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                  <div className="absolute bottom-1 right-1 h-4 w-4 bg-blue-400 rounded-full border-2 border-white animate-pulse"></div>
                 )}
               </div>
             </div>
@@ -333,214 +359,132 @@ export default function ProfileDialog({
                     @{formData.username || "username"}
                   </span>
                   {isOnline && (
-                    <span className="flex items-center gap-1 text-green-500">
-                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="flex items-center gap-1 text-blue-400">
+                      <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
                       Online
                     </span>
                   )}
                 </div>
               </div>
 
-              <h3 className="text-sm font-mono text-green-500 pr-5">
+              <motion.h3
+                className="text-sm font-mono text-blue-400 pr-5"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={activeTab}
+                transition={{ duration: 0.3 }}
+              >
                 {activeTab === "profile" && "Edit Profile"}
                 {activeTab === "settings" && "Edit Settings"}
                 {activeTab === "tickets" && "My Tickets"}
                 {activeTab === "movies" && "My Movies"}
-              </h3>
+              </motion.h3>
             </div>
           </DialogHeader>
 
           <Tabs
             defaultValue="profile"
-            className="w-full px-6"
+            className="w-full px-6 relative"
             onValueChange={setActiveTab}
           >
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-              <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              <TabsTrigger value="movies">List Movies</TabsTrigger>
+            <TabsList className="flex relative bg-transparent mb-4 capitalize cursor-pointer">
+              {["profile", "settings", "tickets", "movies"].map((tab) => (
+                <TabsTrigger key={tab} value={tab} asChild>
+                  <div className="relative px-4 py-2 ">
+                    {tab}
+                    {activeTab === tab && (
+                      <motion.div
+                        layoutId="tabIndicator"
+                        className="absolute bottom-0 left-4 right-4 h-1 bg-blue-400 rounded-full shadow-xl "
+                        transition={{
+                          type: "spring",
+                          bounce: 0.2,
+                          duration: 0.6,
+                        }}
+                      />
+                    )}
+                  </div>
+                </TabsTrigger>
+              ))}
             </TabsList>
 
-            <TabsContent value="profile">
-              <form onSubmit={handleSubmit} className="px-6 pb-6">
-                <div className="space-y-4">
-                  <div className="space-y-4">
-                    {/* Full Name với icon bút chỉnh sửa */}
-                    <div>
-                      <Label
-                        htmlFor="fullName"
-                        className="flex items-center gap-1"
-                      >
-                        Full Name
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="fullName"
-                          name="fullName"
-                          value={formData.fullName}
-                          onChange={handleInputChange}
-                          placeholder="Enter your full name"
-                          disabled={!isEditingFullName}
-                          className={
-                            !isEditingFullName
-                              ? "pr-10 bg-gray-50 dark:bg-gray-800"
-                              : "pr-20"
-                          }
-                        />
-                        {!isEditingFullName ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 h-8 w-8"
-                            onClick={() => setIsEditingFullName(true)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="p-1 h-8 w-8 text-green-600"
-                              onClick={() => setIsEditingFullName(false)}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="p-1 h-8 w-8 text-red-600"
-                              onClick={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  fullName:
-                                    userProfile?.fullName ||
-                                    user?.fullName ||
-                                    "",
-                                }))
-                                setIsEditingFullName(false)
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Username với icon bút chỉnh sửa */}
-                    <div>
-                      <Label
-                        htmlFor="username"
-                        className="flex items-center gap-1"
-                      >
-                        Username
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="username"
-                          name="username"
-                          value={formData.username}
-                          onChange={handleInputChange}
-                          placeholder="Enter your username"
-                          disabled={!isEditingUsername}
-                          className={
-                            !isEditingUsername
-                              ? "pr-10 bg-gray-50 dark:bg-gray-800"
-                              : "pr-20"
-                          }
-                        />
-                        {!isEditingUsername ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 h-8 w-8"
-                            onClick={() => setIsEditingUsername(true)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="p-1 h-8 w-8 text-green-600"
-                              onClick={() => setIsEditingUsername(false)}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="p-1 h-8 w-8 text-red-600"
-                              onClick={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  username:
-                                    userProfile?.username ||
-                                    user?.username ||
-                                    "",
-                                }))
-                                setIsEditingUsername(false)
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">Email (Cannot be changed)</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="email"
-                          name="email"
-                          value={
-                            userProfile?.email || user?.email || "No email"
-                          }
-                          disabled
-                          className="bg-gray-100 dark:bg-gray-700"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setIsForgotPasswordDialogOpen(true)
-                          }}
-                          className="flex items-center space-x-1"
-                        >
-                          <Key className="h-4 w-4" />
-                          <span>Reset Password</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter className="mt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    disabled={isLoading}
+            <div className="relative overflow-scroll min-h-[275px]">
+              <AnimatePresence mode="wait">
+                {activeTab === "profile" && (
+                  <motion.div
+                    key="profile-tab"
+                    variants={tabVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute w-full"
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Saving..." : "Save"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </TabsContent>
-            <SettingsTabContent />
+                    <ProfileTabContent
+                      formData={formData}
+                      user={user}
+                      userProfile={userProfile}
+                      isEditingFullName={isEditingFullName}
+                      isEditingUsername={isEditingUsername}
+                      isLoading={isLoading}
+                      onInputChange={handleInputChange}
+                      onEditFullName={handleEditFullName}
+                      onEditUsername={handleEditUsername}
+                      onResetPassword={() =>
+                        setIsForgotPasswordDialogOpen(true)
+                      }
+                      onSubmit={handleSubmit}
+                      onCancel={() => onOpenChange(false)}
+                    />
+                  </motion.div>
+                )}
+                {activeTab === "settings" && (
+                  <motion.div
+                    key="settings-tab"
+                    variants={tabVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute w-full"
+                  >
+                    <SettingsTabContent />
+                  </motion.div>
+                )}
+                {activeTab === "tickets" && (
+                  <motion.div
+                    key="tickets-tab"
+                    variants={tabVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute w-full"
+                  >
+                    <div className="py-6">
+                      <h3 className="text-lg font-medium">My Tickets</h3>
+                      <p className="text-muted-foreground mt-2">
+                        You don't have any tickets yet.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                {activeTab === "movies" && (
+                  <motion.div
+                    key="movies-tab"
+                    variants={tabVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute w-full"
+                  >
+                    <div className="py-6">
+                      <h3 className="text-lg font-medium">My Movie List</h3>
+                      <p className="text-muted-foreground mt-2">
+                        Your movie list is empty.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </Tabs>
         </DialogContent>
       </Dialog>
