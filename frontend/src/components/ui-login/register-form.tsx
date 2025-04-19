@@ -23,11 +23,6 @@ import OTPDialog from "./OTP-dialog"
 import { useState, useEffect } from "react"
 import zxcvbn from "zxcvbn"
 import emailjs from "@emailjs/browser"
-import {
-  EMAILJS_PUBLIC_KEY,
-  EMAILJS_SERVICE_ID,
-  EMAILJS_TEMPLATE_PASSWORD_ID,
-} from "@/api/key"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useRouter } from "next/navigation"
@@ -105,7 +100,14 @@ const RegisterForm = ({
   const router = useRouter()
 
   useEffect(() => {
-    emailjs.init(EMAILJS_PUBLIC_KEY)
+    const emailJsPublicKey = process.env.EMAILJS_PUBLIC_KEY ?? ""
+    if (!emailJsPublicKey) {
+      console.error(
+        "EMAILJS_PUBLIC_KEY is not defined in the environment variables."
+      )
+      return
+    }
+    emailjs.init(emailJsPublicKey)
   }, [])
 
   useEffect(() => {
@@ -173,10 +175,10 @@ const RegisterForm = ({
 
     try {
       const response = await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_PASSWORD_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "",
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_PASSWORD_ID || "",
         templateParams,
-        EMAILJS_PUBLIC_KEY
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ""
       )
       console.log(
         "OTP email sent successfully!",

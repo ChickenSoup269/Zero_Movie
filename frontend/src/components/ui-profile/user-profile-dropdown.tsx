@@ -120,45 +120,31 @@ export default function UserProfileDropdown({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="relative h-8 w-8 ">
-            <div className="relative w-8 h-8 rounded-full cursor-pointer">
+          <div className="relative h-8 w-8">
+            <div className="relative w-full h-full rounded-full overflow-hidden cursor-pointer">
               {avatarUrl && !avatarError ? (
-                <>
-                  <Image
-                    src={avatarUrl}
-                    alt={userProfile?.fullName || user?.fullName || "User"}
-                    width={32}
-                    height={32}
-                    className="absolute rounded-full blur-md opacity-80 scale-110"
-                    style={{ filter: "brightness(1.2)" }}
-                    onError={(e) => {
-                      console.error(
-                        "Failed to load blurred avatar:",
-                        avatarUrl,
-                        e
-                      )
-                      setAvatarError(true)
-                    }}
-                    onLoad={() =>
-                      console.log("Blurred avatar loaded:", avatarUrl)
-                    }
-                  />
-                  <Image
-                    src={avatarUrl}
-                    alt={userProfile?.fullName || user?.fullName || "User"}
-                    width={32}
-                    height={32}
-                    className="relative rounded-full z-10" // Thêm z-index để đảm bảo ảnh chính không bị che
-                    onError={(e) => {
-                      console.error("Failed to load avatar:", avatarUrl, e)
-                      setAvatarError(true)
-                    }}
-                    onLoad={() => console.log("Avatar loaded:", avatarUrl)}
-                  />
-                </>
+                <Image
+                  src={avatarUrl}
+                  alt={userProfile?.fullName || user?.fullName || "User"}
+                  width={32}
+                  height={32}
+                  className="object-cover w-full h-full" // Quan trọng
+                  style={{
+                    borderRadius: "50%", // Đảm bảo bo tròn
+                    aspectRatio: "1/1", // Giữ tỉ lệ vuông
+                  }}
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
-                <Avatar className="h-8 w-8 duration-300 cursor-pointer shadow-lg">
-                  <AvatarFallback className="bg-[#4599e3] text-white">
+                <Avatar className="h-full w-full">
+                  <AvatarFallback
+                    className="bg-[#4599e3] text-white flex items-center justify-center"
+                    style={{
+                      fontSize: "0.75rem", // Kích thước chữ phù hợp
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  >
                     {(userProfile?.fullName || user?.fullName)
                       ?.charAt(0)
                       .toUpperCase() || "U"}
