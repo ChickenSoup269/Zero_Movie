@@ -1,10 +1,12 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client"
 
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
-
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 interface Slide {
   id: number
   _id: string // Added _id property
@@ -20,7 +22,7 @@ interface Slide {
   status: "nowPlaying" | "upcoming"
   director: string
   rating: number
-  tmdbId: string // Added tmdbId property
+  tmdbId: number
 }
 
 interface MoviesProps {
@@ -48,6 +50,7 @@ const Movies = ({ slides }: MoviesProps) => {
   const startIndex = (currentPage - 1) * moviesPerPage
   const endIndex = startIndex + moviesPerPage
   const currentMovies = displayedMovies.slice(startIndex, endIndex)
+  const { toast } = useToast()
 
   const movieVariants = {
     hidden: { opacity: 0, x: -30 },
@@ -117,7 +120,16 @@ const Movies = ({ slides }: MoviesProps) => {
 
   const handleViewDetails = (movie: Slide) => {
     console.log("Navigating to details with tmdbId:", movie.tmdbId) // Debug
-    router.push(`/details-movies/${movie.tmdbId}`)
+    if (movie.status === "upcoming") {
+      toast({
+        title: "Hey!",
+        description: "The movie has no release date yet :(",
+        variant: "default",
+        action: <ToastAction altText="Try again">I'm cook</ToastAction>,
+      })
+    } else {
+      router.push(`/details-movies/${movie.tmdbId}`)
+    }
   }
 
   const getShortDescription = (description: string) => {

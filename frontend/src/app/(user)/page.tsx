@@ -44,6 +44,8 @@ interface Genre {
 
 interface Slide {
   id: number
+  _id: string
+  tmdbId: number
   image: string
   title: string
   description: string
@@ -132,9 +134,9 @@ export default function Home() {
           const status =
             movie.status ||
             (releaseDate <= new Date() ? "nowPlaying" : "upcoming")
-
           return {
             id: movie.tmdbId,
+            _id: movie._id,
             tmdbId: movie.tmdbId,
             image: movie.backdropPath
               ? `${TMDB_IMAGE_BASE_URL}${movie.backdropPath}`
