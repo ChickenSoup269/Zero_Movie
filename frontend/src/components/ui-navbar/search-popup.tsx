@@ -1,7 +1,10 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import { useEffect, useState } from "react"
 import { Movie } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
@@ -17,10 +20,40 @@ const SearchPopup = ({
   isSearchOpen,
   debouncedSearchText,
 }: SearchPopupProps) => {
-  const router = useRouter()
   const [genreMap, setGenreMap] = useState<Record<number, string>>({})
+  const router = useRouter()
+  const { toast } = useToast()
 
-  // Fetch genre map to convert genreIds to names
+  // Client-side filtering
+  const filteredResults = debouncedSearchText
+    ? filteredMovies
+        .filter((movie) =>
+          movie.title.toLowerCase().includes(debouncedSearchText.toLowerCase())
+        )
+        .sort((a, b) => {
+          const aTitle = a.title.toLowerCase()
+          const bTitle = b.title.toLowerCase()
+          const query = debouncedSearchText.toLowerCase()
+          if (aTitle.startsWith(query) && !bTitle.startsWith(query)) return -1
+          if (!aTitle.startsWith(query) && bTitle.startsWith(query)) return 1
+          return aTitle.localeCompare(bTitle)
+        })
+    : filteredMovies
+
+  const handleViewDetails = (movie: Movie) => {
+    console.log("Navigating to details with tmdbId:", movie.tmdbId)
+    if (movie.status === "upcoming") {
+      toast({
+        title: "Hey!",
+        description: "The movie has no release date yet :(",
+        variant: "default",
+        action: <ToastAction altText="Try again">I'm cook</ToastAction>,
+      })
+    } else {
+      router.push(`/details-movies/${movie.tmdbId}`)
+    }
+  }
+
   useEffect(() => {
     const fetchGenreMap = async () => {
       try {
@@ -33,34 +66,25 @@ const SearchPopup = ({
     fetchGenreMap()
   }, [])
 
-  // Animation variants for popup
   const popupVariants = {
-    hidden: {
-      opacity: 0,
-      y: -10,
-      transition: { duration: 0.2 },
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.2 },
-    },
+    hidden: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   }
 
   return (
     <AnimatePresence>
-      {isSearchOpen && debouncedSearchText && filteredMovies.length > 0 && (
+      {isSearchOpen && debouncedSearchText && filteredResults.length > 0 && (
         <motion.div
           variants={popupVariants}
           initial="hidden"
           animate="visible"
           exit="hidden"
-          className="absolute top-full left-0 mt-2 w-full bg-white/90 dark:bg-gray-800/90 shadow-lg rounded-lg z-10 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700"
+          className="absolute top-full left-0 mt-2 w-full bg-white/80 dark:bg-gray-800/90 shadow-lg rounded-lg z-10 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700"
         >
-          {filteredMovies.map((movie) => (
+          {filteredResults.map((movie) => (
             <div
               key={movie._id}
-              onClick={() => router.push(`/movies/${movie.tmdbId}`)}
+              onClick={() => handleViewDetails(movie)}
               className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer transition-colors"
             >
               <Image
@@ -79,9 +103,8 @@ const SearchPopup = ({
                   {movie.title}
                 </h3>
                 <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
-                  {movie.runtime ? `${movie.runtime} min` : "N/A"}
                   {movie.genreIds?.length > 0 &&
-                    ` • ${movie.genreIds
+                    `  ${movie.genreIds
                       .map((id) => genreMap[id] || "Unknown")
                       .join(", ")}`}
                   {movie.releaseDate
