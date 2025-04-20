@@ -78,14 +78,7 @@ export default function SearchBar() {
         }
       } catch (error: any) {
         console.error("Search movies error:", error.response || error)
-        toast({
-          title: "Error",
-          description:
-            error.response?.data?.message ||
-            error.message ||
-            "Failed to fetch movies.",
-          variant: "destructive",
-        })
+
         if (error.response?.status === 401) {
           router.push("/login")
         }
@@ -128,7 +121,9 @@ export default function SearchBar() {
           className="relative"
         >
           <div
-            className="ml-2 bg-transparent shadow-xl border border-white/30 backdrop-blur-lg rounded-md"
+            className={`ml-2 bg-transparent backdrop-blur-lg rounded-md transition-all duration-300 ${
+              isSearchOpen ? "border border-white/50 shadow-lg" : "border-none"
+            }`}
             style={{
               backgroundImage: "url('/path-to-your-pattern.png')",
               backgroundSize: "cover",
