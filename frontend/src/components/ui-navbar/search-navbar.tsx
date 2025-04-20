@@ -121,8 +121,10 @@ export default function SearchBar() {
           className="relative"
         >
           <div
-            className={`ml-2 bg-transparent backdrop-blur-lg rounded-md transition-all duration-300 ${
-              isSearchOpen ? "border border-white/50 shadow-lg" : "border-none"
+            className={`ml-2 bg-transparent rounded-md transition-all duration-300 ${
+              isSearchOpen
+                ? "border border-white/50 shadow-xl backdrop-blur-lg"
+                : "border-none"
             }`}
             style={{
               backgroundImage: "url('/path-to-your-pattern.png')",
