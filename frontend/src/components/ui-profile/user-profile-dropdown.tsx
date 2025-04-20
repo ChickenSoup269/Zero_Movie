@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
@@ -21,6 +22,7 @@ import ProfileDialog from "./profile-dialog"
 import UserService from "@/services/userService"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import axios from "axios"
+import { useRouter } from "next/navigation"
 
 // Create an axios instance for JWT handling
 const axiosJWT = axios.create()
@@ -38,11 +40,18 @@ export default function UserProfileDropdown({
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const { logout } = useUser()
+  const router = useRouter()
 
   const errorToast = ErrorToast({
     title: "Error",
     description: "Failed to load user profile.",
     duration: 3000,
+  })
+
+  const sessionExpiredToast = ErrorToast({
+    title: "Session Expired",
+    description: "Your session has expired. Please log in again.",
+    duration: 5000,
   })
 
   useEffect(() => {
@@ -80,9 +89,34 @@ export default function UserProfileDropdown({
     const responseInterceptor = axiosJWT.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
-          // Token hết hạn, thực hiện logout
-          await handleAutoLogout()
+        const originalRequest = error.config
+
+        // Kiểm tra lỗi 401 và đảm bảo không lặp lại yêu cầu
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true // Đánh dấu yêu cầu đã thử lại
+
+          try {
+            // Thử làm mới token (nếu backend hỗ trợ)
+            const refreshToken = localStorage.getItem("refresh_token")
+            if (refreshToken) {
+              const refreshResponse = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+                { refreshToken }
+              )
+              const newAccessToken = refreshResponse.data.access_token
+              localStorage.setItem("access_token", newAccessToken)
+
+              // Cập nhật header Authorization và thử lại yêu cầu gốc
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+              return axiosJWT(originalRequest)
+            } else {
+              // Không có refresh token, tiến hành logout
+              await handleAutoLogout()
+            }
+          } catch (refreshError) {
+            // Lỗi khi làm mới token, tiến hành logout
+            await handleAutoLogout()
+          }
         }
         return Promise.reject(error)
       }
@@ -92,28 +126,23 @@ export default function UserProfileDropdown({
       // Cleanup interceptor khi component unmount
       axiosJWT.interceptors.response.eject(responseInterceptor)
     }
-  }, [logout]) // Thêm logout vào dependencies
+  }, [logout])
 
   const handleAutoLogout = async () => {
     try {
-      // Gọi hàm logout từ useUser hook
       await logout()
-
-      // Có thể thêm thông báo hoặc redirect nếu cần
-      console.log("Tự động logout do token hết hạn")
-
-      // Redirect về trang login
-      if (typeof window !== "undefined") {
-        window.location.href = "/login"
-      }
+      sessionExpiredToast.showToast({
+        description: "Your session has expired. Please log in again.",
+      })
+      console.log("Auto logout due to expired token")
+      router.push("/login")
     } catch (error) {
-      console.error("Lỗi khi tự động logout:", error)
+      console.error("Error during auto logout:", error)
+      router.push("/login")
     }
   }
 
   const isAdmin = userProfile?.role === "admin"
-
-  // Tính toán avatarUrl
   const avatarUrl = getFullImageUrl(userProfile?.avatar || user?.avatar || "")
 
   return (
@@ -128,10 +157,10 @@ export default function UserProfileDropdown({
                   alt={userProfile?.fullName || user?.fullName || "User"}
                   width={32}
                   height={32}
-                  className="object-cover w-full h-full" // Quan trọng
+                  className="object-cover w-full h-full"
                   style={{
-                    borderRadius: "50%", // Đảm bảo bo tròn
-                    aspectRatio: "1/1", // Giữ tỉ lệ vuông
+                    borderRadius: "50%",
+                    aspectRatio: "1/1",
                   }}
                   onError={() => setAvatarError(true)}
                 />
@@ -140,7 +169,7 @@ export default function UserProfileDropdown({
                   <AvatarFallback
                     className="bg-[#4599e3] text-white flex items-center justify-center"
                     style={{
-                      fontSize: "0.75rem", // Kích thước chữ phù hợp
+                      fontSize: "0.75rem",
                       width: "100%",
                       height: "100%",
                     }}
@@ -194,7 +223,10 @@ export default function UserProfileDropdown({
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>
-                <Link href="/admin" className="flex items-center space-x-2">
+                <Link
+                  href="/movieAdmin"
+                  className="flex items-center space-x-2"
+                >
                   <Shield className="h-4 w-4" />
                   <span>Admin Page</span>
                 </Link>
