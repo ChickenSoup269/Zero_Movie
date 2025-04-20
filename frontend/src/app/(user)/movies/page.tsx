@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import "./movies.css"
 
 interface DisplayedMovie extends Movie {
   genreNames: string[]
@@ -228,273 +229,322 @@ const Movies = () => {
   }, [])
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 pt-32 sm:pt-28 md:pt-36 lg:pt-40 xl:pt-44">
-      {/* Tabs */}
-      <div className="flex justify-center mb-8 space-x-2">
-        <Button
-          onClick={() => {
-            setSelectedTab("nowPlaying")
-            setCurrentPage(1)
-            setHoveredIndex(null)
-          }}
-          className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
-            selectedTab === "nowPlaying"
-              ? "bg-[#4599e3] text-white"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-          }`}
-          aria-pressed={selectedTab === "nowPlaying"}
-        >
-          Now Playing
-        </Button>
-        <Button
-          onClick={() => {
-            setSelectedTab("upcoming")
-            setCurrentPage(1)
-            setHoveredIndex(null)
-          }}
-          className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
-            selectedTab === "upcoming"
-              ? "bg-[#4599e3] text-white"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-          }`}
-          aria-pressed={selectedTab === "upcoming"}
-        >
-          Upcoming
-        </Button>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8 max-w-[54rem] mx-auto">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Search movies..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="pl-10 text-sm md:text-base"
-            aria-label="Search movies"
-          />
-        </div>
-        <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-          <SelectTrigger className="w-[180px] text-sm md:text-base">
-            <SelectValue placeholder="Select genre" />
-          </SelectTrigger>
-          <SelectContent>
-            {genres.length > 0 ? (
-              genres.map((genre) => (
-                <SelectItem key={genre.id} value={genre.id.toString()}>
-                  {genre.name}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="0" disabled>
-                No genres available
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-center max-w-[54rem] mx-auto">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex justify-center items-center py-8">
-          <svg
-            className="animate-spin h-8 w-8 text-[#4599e3]"
-            viewBox="0 0 24 24"
+    <div className="movies-page">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 pt-32 sm:pt-28 md:pt-36 lg:pt-40 xl:pt-44">
+        {/* Tabs */}
+        <div className="flex justify-center mb-8 space-x-2">
+          <Button
+            onClick={() => {
+              setSelectedTab("nowPlaying")
+              setCurrentPage(1)
+              setHoveredIndex(null)
+            }}
+            className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
+              selectedTab === "nowPlaying"
+                ? "bg-[#4599e3] text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+            aria-pressed={selectedTab === "nowPlaying"}
           >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
+            Now Playing
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedTab("upcoming")
+              setCurrentPage(1)
+              setHoveredIndex(null)
+            }}
+            className={`px-6 py-2 text-lg font-semibold rounded-lg transition-colors duration-300 ${
+              selectedTab === "upcoming"
+                ? "bg-[#4599e3] text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+            aria-pressed={selectedTab === "upcoming"}
+          >
+            Upcoming
+          </Button>
         </div>
-      )}
 
-      {/* Movies Grid */}
-      {!isLoading && (
-        <div
-          ref={moviesContainerRef}
-          className="relative w-full max-w-[54rem] mx-auto"
-        >
-          <div className="absolute top-[-20px] right-0 z-10">
-            <a
-              href="#"
-              className="text-white text-sm font-light hover:underline"
-              aria-label="See more movies"
-            >
-              See more
-            </a>
+        {/* Search and Filter Section */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8 max-w-[54rem] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col md:flex-row gap-4 mb-8 max-w-[54rem] mx-auto bg-gray-800 bg-opacity-50 p-4 rounded-lg shadow-lg"
+          >
+            {/* Search Bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Search movies..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="pl-10 pr-10 py-2 text-sm md:text-base bg-gray-900 text-white border border-gray-700 rounded-full focus:ring-2 focus:ring-[#4599e3] focus:border-transparent transition-all duration-300"
+                aria-label="Search movies"
+              />
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200"
+                  aria-label="Clear search"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {/* Genre Dropdown */}
+            <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+              <SelectTrigger
+                className="w-[180px] py-2 text-sm md:text-base bg-gray-900 text-white border border-gray-700 rounded-full focus:ring-2 focus:ring-[#4599e3] focus:border-transparent transition-all duration-300"
+                aria-label="Select movie genre"
+              >
+                <SelectValue placeholder="Select genre" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                <AnimatePresence>
+                  {genres.length > 0 ? (
+                    genres.map((genre) => (
+                      <motion.div
+                        key={genre.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <SelectItem
+                          value={genre.id.toString()}
+                          className="text-white hover:bg-[#4599e3] hover:text-white rounded-md transition-colors duration-200"
+                        >
+                          {genre.name}
+                        </SelectItem>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <SelectItem value="0" disabled className="text-gray-400">
+                      No genres available
+                    </SelectItem>
+                  )}
+                </AnimatePresence>
+              </SelectContent>
+            </Select>
+          </motion.div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-center max-w-[54rem] mx-auto">
+            {error}
           </div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${selectedTab}-${currentPage}-${searchText}-${selectedGenre}`}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full"
-              role="grid"
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-8">
+            <svg
+              className="animate-spin h-8 w-8 text-[#4599e3]"
+              viewBox="0 0 24 24"
             >
-              {currentMovies.length > 0 ? (
-                currentMovies.map((movie, index) => (
-                  <motion.div
-                    key={movie._id}
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+          </div>
+        )}
+
+        {/* Movies Grid */}
+        {!isLoading && (
+          <div
+            ref={moviesContainerRef}
+            className="relative w-full max-w-[54rem] mx-auto"
+          >
+            <div className="absolute top-[-20px] right-0 z-10">
+              <a
+                href="#"
+                className="text-white text-sm font-light hover:underline"
+                aria-label="See more movies"
+              >
+                See more
+              </a>
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${selectedTab}-${currentPage}-${searchText}-${selectedGenre}`}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full"
+                role="grid"
+              >
+                {currentMovies.length > 0 ? (
+                  currentMovies.map((movie, index) => (
+                    <motion.div
+                      key={movie._id}
+                      variants={movieVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="relative rounded-lg overflow-hidden shadow-lg w-[200px] max-w-[200px] min-w-[200px] mx-auto"
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                      role="gridcell"
+                    >
+                      <motion.div
+                        variants={scaleVariants}
+                        initial="initial"
+                        whileHover="hover"
+                        className="relative w-full h-[300px] max-h-[300px] min-h-[300px]"
+                      >
+                        <motion.div
+                          variants={blurVariants}
+                          initial="initial"
+                          animate={hoveredIndex === index ? "hover" : "initial"}
+                          className="relative w-full h-full"
+                        >
+                          <Image
+                            src={
+                              movie.posterPath
+                                ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
+                                : "/placeholder-image.jpg"
+                            }
+                            alt={movie.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover"
+                          />
+                        </motion.div>
+                      </motion.div>
+
+                      <AnimatePresence>
+                        {hoveredIndex === index && (
+                          <motion.div
+                            variants={detailsVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            className="absolute bottom-0 left-0 right-0 top-0 p-2 bg-gray-800 bg-opacity-70 text-white flex flex-col justify-center items-center"
+                          >
+                            <motion.h3
+                              variants={childVariants}
+                              className="text-sm font-semibold text-center mb-1"
+                            >
+                              {movie.title}
+                            </motion.h3>
+                            <motion.div
+                              variants={childVariants}
+                              className="flex items-center mb-1 gap-1"
+                            >
+                              {renderStars(movie.voteAverage)}
+                              <span className="text-xs">
+                                {movie.voteAverage.toFixed(1)}/10
+                              </span>
+                            </motion.div>
+                            <motion.div
+                              variants={childVariants}
+                              className="flex flex-wrap gap-1 mb-1 justify-center"
+                            >
+                              {movie.genreNames.map((genre, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 text-xs bg-white text-black rounded cursor-default"
+                                >
+                                  {genre}
+                                </span>
+                              ))}
+                            </motion.div>
+                            <motion.p
+                              variants={childVariants}
+                              className="text-xs mb-2 text-center line-clamp-3"
+                            >
+                              {getShortDescription(movie.overview)}
+                            </motion.p>
+                            <motion.button
+                              variants={childVariants}
+                              onClick={() => handleViewDetails(movie)}
+                              className="w-full max-w-[150px] py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
+                              aria-label={`View details for ${movie.title}`}
+                            >
+                              View Details
+                            </motion.button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.p
+                    key="no-movies"
                     variants={movieVariants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="relative rounded-lg overflow-hidden shadow-lg w-[200px] max-w-[200px] min-w-[200px] mx-auto"
-                    onMouseEnter={() => setHoveredIndex(index)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                    role="gridcell"
+                    className="text-center text-gray-400 col-span-full"
                   >
-                    <motion.div
-                      variants={scaleVariants}
-                      initial="initial"
-                      whileHover="hover"
-                      className="relative w-full h-[300px] max-h-[300px] min-h-[300px]"
-                    >
-                      <motion.div
-                        variants={blurVariants}
-                        initial="initial"
-                        animate={hoveredIndex === index ? "hover" : "initial"}
-                        className="relative w-full h-full"
-                      >
-                        <Image
-                          src={
-                            movie.posterPath
-                              ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
-                              : "/placeholder-image.jpg"
-                          }
-                          alt={movie.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover"
-                        />
-                      </motion.div>
-                    </motion.div>
+                    No movies found
+                  </motion.p>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
 
-                    <AnimatePresence>
-                      {hoveredIndex === index && (
-                        <motion.div
-                          variants={detailsVariants}
-                          initial="hidden"
-                          animate="visible"
-                          exit="hidden"
-                          className="absolute bottom-0 left-0 right-0 top-0 p-2 bg-gray-800 bg-opacity-70 text-white flex flex-col justify-center items-center"
-                        >
-                          <motion.h3
-                            variants={childVariants}
-                            className="text-sm font-semibold text-center mb-1"
-                          >
-                            {movie.title}
-                          </motion.h3>
-                          <motion.div
-                            variants={childVariants}
-                            className="flex items-center mb-1 gap-1"
-                          >
-                            {renderStars(movie.voteAverage)}
-                            <span className="text-xs">
-                              {movie.voteAverage.toFixed(1)}/10
-                            </span>
-                          </motion.div>
-                          <motion.div
-                            variants={childVariants}
-                            className="flex flex-wrap gap-1 mb-1 justify-center"
-                          >
-                            {movie.genreNames.map((genre, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-1 text-xs bg-white text-black rounded cursor-default"
-                              >
-                                {genre}
-                              </span>
-                            ))}
-                          </motion.div>
-                          <motion.p
-                            variants={childVariants}
-                            className="text-xs mb-2 text-center line-clamp-3"
-                          >
-                            {getShortDescription(movie.overview)}
-                          </motion.p>
-                          <motion.button
-                            variants={childVariants}
-                            onClick={() => handleViewDetails(movie)}
-                            className="w-full max-w-[150px] py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
-                            aria-label={`View details for ${movie.title}`}
-                          >
-                            View Details
-                          </motion.button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                ))
-              ) : (
-                <motion.p
-                  key="no-movies"
-                  variants={movieVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="text-center text-gray-400 col-span-full"
-                >
-                  No movies found
-                </motion.p>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && !isLoading && (
-        <div className="flex justify-center mt-8 space-x-4 max-w-[54rem] mx-auto">
-          <Button
-            onClick={handlePreviousPage}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-lg transition-colors duration-300 ${
-              currentPage === 1
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-[#4599e3] hover:bg-[#357abd]"
-            }`}
-            aria-label="Previous page"
-          >
-            Previous
-          </Button>
-          <span className="text-white self-center" aria-live="polite">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-lg transition-colors duration-300 ${
-              currentPage === totalPages
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-[#4599e3] hover:bg-[#357abd]"
-            }`}
-            aria-label="Next page"
-          >
-            Next
-          </Button>
-        </div>
-      )}
+        {/* Pagination */}
+        {totalPages > 1 && !isLoading && (
+          <div className="flex justify-center mt-8 space-x-4 max-w-[54rem] mx-auto">
+            <Button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-lg transition-colors duration-300 ${
+                currentPage === 1
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-[#4599e3] hover:bg-[#357abd]"
+              }`}
+              aria-label="Previous page"
+            >
+              Previous
+            </Button>
+            <span className="text-white self-center" aria-live="polite">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-lg transition-colors duration-300 ${
+                currentPage === totalPages
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-[#4599e3] hover:bg-[#357abd]"
+              }`}
+              aria-label="Next page"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

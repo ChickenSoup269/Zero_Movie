@@ -1,0 +1,10 @@
+.movies-page {
+  background-image: url("https://images.steamusercontent.com/ugc/270598716228941149/CAE07B9116B7AC69BC7B5210AEA1164C3BA91832/");
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
