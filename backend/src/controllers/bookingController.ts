@@ -6,21 +6,50 @@ import mongoose from 'mongoose';
 export const createBooking = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { movieId, showtimeId, seatIds } = req.body;
-    if (!movieId || !showtimeId || !Array.isArray(seatIds) || seatIds.length === 0) {
-      res.status(400).json({ message: 'Thiếu hoặc sai định dạng dữ liệu: movieId, showtimeId, seatIds' });
+    let { showtimeId, seatIds } = req.body;
+    console.log('Input:', { showtimeId, seatIds, userId });
+
+    // Parse showtimeId nếu là chuỗi JSON
+    try {
+      if (typeof showtimeId === 'string' && showtimeId.startsWith('{')) {
+        showtimeId = JSON.parse(showtimeId)._id;
+      }
+    } catch (error) {
+      res.status(400).json({ message: 'showtimeId không hợp lệ hoặc định dạng sai' });
       return;
     }
 
-    const { booking, totalPrice, details } = await BookingService.createBooking(userId, movieId, showtimeId, seatIds);
+    // Kiểm tra dữ liệu đầu vào
+    if (!showtimeId || !Array.isArray(seatIds) || seatIds.length === 0) {
+      res.status(400).json({ message: 'Thiếu hoặc sai định dạng dữ liệu: showtimeId, seatIds' });
+      return;
+    }
+    if (!mongoose.Types.ObjectId.isValid(showtimeId)) {
+      res.status(400).json({ message: 'showtimeId không hợp lệ' });
+      return;
+    }
+    for (const seatId of seatIds) {
+      try {
+        const parsedSeatId = seatId.startsWith('{') ? JSON.parse(seatId)._id : seatId;
+        if (!mongoose.Types.ObjectId.isValid(parsedSeatId)) {
+          res.status(400).json({ message: `seatId ${seatId} không hợp lệ` });
+          return;
+        }
+      } catch (error) {
+        res.status(400).json({ message: `seatId ${seatId} không hợp lệ hoặc định dạng sai` });
+        return;
+      }
+    }
+
+    const { booking, totalPrice, details } = await BookingService.createBooking(userId, showtimeId, seatIds);
     res.status(201).json({
       message: 'Đặt vé thành công',
       booking: {
         _id: booking._id.toString(),
         userId: booking.userId?.toString(),
         movieId: booking.movieId,
-        showtimeId: booking.showtimeId.toString(), // Chỉ lấy _id
-        seatIds: booking.seatIds.map(id => id.toString()), // Chỉ lấy _id của ShowtimeSeat
+        showtimeId: booking.showtimeId.toString(),
+        seatIds: booking.seatIds.map(id => id.toString()),
         totalPrice: booking.totalPrice,
         status: booking.status,
       },

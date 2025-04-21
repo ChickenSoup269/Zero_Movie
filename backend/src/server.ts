@@ -5,7 +5,7 @@ import setupRoutes from "./routes/appRoutes"
 import morgan from "morgan"
 import path from "path"
 import { connectDB } from "./config/db"
-import { startCronJobs } from "./utils/cronUtils"
+// import { startCronJobs } from "./utils/cronUtils"
 
 dotenv.config()
 
@@ -24,7 +24,7 @@ app.use("/uploads", express.static(uploadPath)) // Sử dụng uploadPath
 
 connectDB().then(async () => {
   console.log("Kết nối MongoDB thành công!")
-  startCronJobs()
+  // startCronJobs()
 })
 
 setupRoutes(app)

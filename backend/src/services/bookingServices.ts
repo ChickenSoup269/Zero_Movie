@@ -10,7 +10,6 @@ import Seat from '../models/seatModel';
 export class BookingService {
   static async createBooking(
     userId: string | null,
-    movieId: number,
     showtimeId: string,
     seatIds: string[]
   ): Promise<{
@@ -36,13 +35,19 @@ export class BookingService {
       throw new Error('Seat ID không hợp lệ');
     }
 
-    // Kiểm tra phim
+    // Tìm suất chiếu
+    const showtime = await Showtime.findById(parsedShowtimeId).populate('roomId');
+    if (!showtime) throw new Error('Suất chiếu không tồn tại');
+
+    // Lấy movieId từ showtime
+    const movieId = showtime.movieId;
     const movie = await Movie.findOne({ tmdbId: movieId });
     if (!movie) throw new Error('Phim không tồn tại');
 
-    // Kiểm tra suất chiếu
-    const showtime = await Showtime.findById(parsedShowtimeId).populate('roomId');
-    if (!showtime || showtime.movieId !== movieId) throw new Error('Suất chiếu không tồn tại');
+    // Kiểm tra trạng thái phim
+    if (movie.status !== 'nowPlaying') {
+      throw new Error('Chỉ phim có trạng thái "nowPlaying" mới được đặt vé');
+    }
 
     // Kiểm tra ghế
     const showtimeSeats = await ShowtimeSeat.find({ showtimeId: parsedShowtimeId, _id: { $in: parsedSeatIds } });
@@ -72,6 +77,7 @@ export class BookingService {
       status: 'pending',
     });
     await booking.save();
+
     const details = {
       movie: { title: movie.title },
       cinema: { name: cinema.name, address: cinema.address },
