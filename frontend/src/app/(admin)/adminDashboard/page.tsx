@@ -158,7 +158,9 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<
     { _id: string; fullName: string; username: string; createdAt: string }[]
   >([])
-  const [movieRevenue, setMovieRevenue] = useState([])
+  const [movieRevenue, setMovieRevenue] = useState<
+    { title: string; revenue: number; tickets: number }[]
+  >([])
   const [monthlyRevenue, setMonthlyRevenue] = useState<
     { name: string; revenue: number }[]
   >([])
@@ -217,7 +219,7 @@ export default function AdminDashboard() {
   // Calculate total movies
   const totalMovies = movies.length
 
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",

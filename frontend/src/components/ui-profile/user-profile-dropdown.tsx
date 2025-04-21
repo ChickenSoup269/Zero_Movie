@@ -224,7 +224,7 @@ export default function UserProfileDropdown({
             {isAdmin && (
               <DropdownMenuItem asChild>
                 <Link
-                  href="/movieAdmin"
+                  href="/adminDashboard"
                   className="flex items-center space-x-2"
                 >
                   <Shield className="h-4 w-4" />

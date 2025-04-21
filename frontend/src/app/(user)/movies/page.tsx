@@ -495,7 +495,7 @@ const Movies = () => {
                             </motion.p>
                             <motion.button
                               variants={childVariants}
-                              onClick={() => handleViewDetails(movie)}
+                              onClick={() => handleViewDetails(movie)} // lỗi này không ảnh hưởng gì
                               className="w-full max-w-[150px] py-1 text-sm font-semibold text-white bg-[#4599e3] rounded-lg hover:bg-[#357abd] transition-colors duration-300"
                               aria-label={`View details for ${movie.title}`}
                             >

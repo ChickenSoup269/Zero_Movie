@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Palette,
+  CheckSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -38,13 +39,14 @@ import { useToast } from "@/hooks/use-toast"
 import ProfileDialog from "@/components/ui-profile/profile-dialog"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import CustomSwitch from "@/components/ui-navbar/switch-theme"
+import Image from "next/image"
 
 // Menu items
 const mainMenuItems = [
   { title: "Dashboard", url: "/adminDashboard", icon: Home },
   { title: "Movies", url: "/movieAdmin", icon: Film },
-  { title: "Genres", url: "/admin/genres", icon: Tag },
   { title: "Users", url: "/movieUser", icon: Users },
+  { title: "Tasks", url: "/adminTask", icon: CheckSquare },
   { title: "Calendar", url: "/admin/calendar", icon: Calendar },
 ]
 
@@ -187,6 +189,9 @@ export function AdminSidebar({
       })
     }
   }
+  const handleBackHomeImage = async () => {
+    router.push("/")
+  }
 
   // Toggle sidebar collapsed state
   const toggleSidebar = () => {
@@ -206,16 +211,30 @@ export function AdminSidebar({
       <div className="flex items-center h-16 px-4 border-b">
         {!collapsed && (
           <div className="flex items-center flex-1 gap-2">
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-              <Film className="w-5 h-5 text-primary-foreground" />
+            <div className="w-20 h-20 rounded-md  flex items-center justify-center">
+              <Image
+                src="/logo.png"
+                alt="Zero Movies Logo"
+                width={120}
+                height={100}
+                className="cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={handleBackHomeImage}
+              />
             </div>
-            <span className="font-bold text-lg">Movie Admin</span>
+            <span className="font-bold text-lg font-mono">Admin</span>
           </div>
         )}
         {collapsed && (
           <div className="flex items-center justify-center w-full">
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-              <Film className="w-5 h-5 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center">
+              <Image
+                src="/logo2.png"
+                alt="Zero Movies Logo"
+                width={120}
+                height={100}
+                className="cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={handleBackHomeImage}
+              ></Image>
             </div>
           </div>
         )}
@@ -225,7 +244,7 @@ export function AdminSidebar({
           onClick={toggleSidebar}
           className={
             collapsed
-              ? "absolute right-2 top-7 w-8 h-8 rounded-full border shadow-md bg-background hover:bg-muted"
+              ? "absolute -right-10 top-4s w-8 h-8 rounded-full border shadow-md bg-background hover:bg-muted"
               : "ml-auto"
           }
         >
@@ -252,11 +271,18 @@ export function AdminSidebar({
                   <div className="relative">
                     <Avatar
                       className={cn(
-                        "shadow-xl object-cover",
+                        " border-b-black",
                         collapsed ? "w-10 h-10" : "w-12 h-12"
                       )}
                     >
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user.name}
+                        className="object-cover object-center shadow-lg"
+                        onError={() =>
+                          console.error("Failed to load avatar:", user.avatar)
+                        }
+                      />
                       <AvatarFallback>
                         {user.name.charAt(0).toUpperCase()}
                       </AvatarFallback>

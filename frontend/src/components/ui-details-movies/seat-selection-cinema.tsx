@@ -248,12 +248,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
-          <div className="bg-gray-900 p-4 rounded-lg">
+          <div className="  p-4 rounded-lg">
             <p className="text-gray-400 text-sm sm:text-base flex items-center gap-2">
-              <span className="text-orange-500 font-semibold">
-                {ticketCount} / 8 Seats:
-              </span>
-              <span className="text-gray-400">|</span>
+              <span className="0 font-bold">Seats:</span>
+
               {selectedSeats.length > 0 ? (
                 selectedSeats.map((seat, index) => {
                   const letterMatch = seat.match(/[A-Za-z]+/)
@@ -263,11 +261,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                   return (
                     <span
                       key={index}
-                      className={`text-orange-500 px-3 py-1 rounded-full inline-block mr-2 ${
+                      className={`text-orange-400 px-2 py-1 rounded-lg inline-block font-mono  ${
                         seat === "D10" ? "bg-red-600" : "bg-gray-800"
                       }`}
                     >
-                      {letter} {number}
+                      {letter}-{number}
                     </span>
                   )
                 })

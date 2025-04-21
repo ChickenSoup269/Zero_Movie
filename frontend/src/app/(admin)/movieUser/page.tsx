@@ -239,7 +239,6 @@ export default function UserAdmin() {
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        role: formData.role,
       })
       toast({
         title: "Success",
@@ -278,7 +277,7 @@ export default function UserAdmin() {
       await UserService.updateProfile({
         username: formData.username,
         fullName: formData.fullName,
-        role: formData.role,
+
         avatarFile: undefined,
         backgroundFile: undefined,
       })
