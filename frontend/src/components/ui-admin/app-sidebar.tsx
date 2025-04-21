@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element */
 "use client"
 import { useState, useEffect } from "react"
 import {
@@ -34,10 +34,12 @@ import { useRouter, usePathname } from "next/navigation"
 import UserService from "@/services/userService"
 import { logout } from "@/services/authService"
 import { useToast } from "@/hooks/use-toast"
+import ProfileDialog from "@/components/ui-profile/profile-dialog"
+import { getFullImageUrl } from "@/utils/getFullImageUrl" // Import getFullImageUrl
 
 // Menu items
 const mainMenuItems = [
-  { title: "Dashboard", url: "/admin", icon: Home },
+  { title: "Dashboard", url: "/adminDashboard", icon: Home },
   { title: "Movies", url: "/movieAdmin", icon: Film },
   { title: "Genres", url: "/admin/genres", icon: Tag },
   { title: "Users", url: "/movieUser", icon: Users },
@@ -64,7 +66,12 @@ export function AdminSidebar({
     email: string
     role: string
     avatar?: string
+    fullName?: string
+    username?: string
+    backgroundImage?: string
   } | null>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { toast } = useToast()
@@ -74,12 +81,19 @@ export function AdminSidebar({
     const fetchUser = async () => {
       try {
         const response = await UserService.getProfile()
+        const profileData = response.data
         setUser({
-          name: response.data.fullName || "Admin User",
-          email: response.data.email || "admin@example.com",
-          role: response.data.role || "Administrator",
-          avatar: response.data.avatar || "/api/placeholder/32/32",
+          name: profileData.fullName || "Admin User",
+          email: profileData.email || "admin@example.com",
+          role: profileData.role || "Administrator",
+          avatar: profileData.avatar
+            ? getFullImageUrl(profileData.avatar)
+            : "/api/placeholder/32/32", // Apply getFullImageUrl
+          fullName: profileData.fullName,
+          username: profileData.username,
+          backgroundImage: profileData.backgroundImage,
         })
+        setUserProfile(profileData)
       } catch (error) {
         toast({
           title: "Error",
@@ -96,6 +110,25 @@ export function AdminSidebar({
     }
     fetchUser()
   }, [toast])
+
+  // Handle profile update
+  const handleProfileUpdate = (updatedProfile: any) => {
+    setUser((prev) => ({
+      ...prev!,
+      name: updatedProfile.fullName || prev!.name,
+      avatar: updatedProfile.avatar
+        ? getFullImageUrl(updatedProfile.avatar)
+        : prev!.avatar, // Apply getFullImageUrl
+      fullName: updatedProfile.fullName,
+      username: updatedProfile.username,
+      backgroundImage: updatedProfile.backgroundImage,
+    }))
+    setUserProfile(updatedProfile)
+    toast({
+      title: "Success",
+      description: "Profile updated successfully",
+    })
+  }
 
   // Handle navigation
   const handleNavigation = (url: string, title: string) => {
@@ -135,7 +168,8 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-background border-r transition-all duration-300 z-10 mr-10",
+        "flex flex-col h-screen bg-background border-r transition-all duration-300",
+        "sticky top-0",
         collapsed ? "w-20" : "w-64",
         className
       )}
@@ -163,8 +197,8 @@ export function AdminSidebar({
           onClick={toggleSidebar}
           className={
             collapsed
-              ? "absolute -right-4 top-7 w-8 h-8 rounded-full border shadow-md bg-background"
-              : ""
+              ? "absolute right-2 top-7 w-8 h-8 rounded-full border shadow-md bg-background hover:bg-muted"
+              : "ml-auto"
           }
         >
           {collapsed ? (
@@ -186,20 +220,22 @@ export function AdminSidebar({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="relative">
-                  <Avatar
-                    className={cn(
-                      "border-2 border-primary",
-                      collapsed ? "w-10 h-10" : "w-12 h-12"
-                    )}
-                  >
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>
-                      {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
-                </div>
+                <button onClick={() => setIsProfileDialogOpen(true)}>
+                  <div className="relative">
+                    <Avatar
+                      className={cn(
+                        "border-2 border-primary",
+                        collapsed ? "w-10 h-10" : "w-12 h-12"
+                      )}
+                    >
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback>
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
+                  </div>
+                </button>
               </TooltipTrigger>
               <TooltipContent
                 side="right"
@@ -228,7 +264,7 @@ export function AdminSidebar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => router.push("/admin/profile")}>
+              <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
@@ -360,6 +396,17 @@ export function AdminSidebar({
           ))}
         </ul>
       </div>
+
+      {/* Profile Dialog */}
+      {user && userProfile && (
+        <ProfileDialog
+          open={isProfileDialogOpen}
+          onOpenChange={setIsProfileDialogOpen}
+          user={user}
+          userProfile={userProfile}
+          onProfileUpdate={handleProfileUpdate}
+        />
+      )}
 
       {/* Version info */}
       {!collapsed && (

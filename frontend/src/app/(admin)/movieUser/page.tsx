@@ -1,9 +1,8 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
 "use client"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Card,
@@ -47,16 +46,35 @@ import { useToast } from "@/hooks/use-toast"
 import UserService from "@/services/userService"
 import { register } from "@/services/authService"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
-
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
+import { Edit, MoreHorizontal, Trash2, UserRoundPlus, Eye } from "lucide-react"
 interface User {
   _id: string
   username: string
   fullName: string
   email: string
   avatar?: string
+  role: string
 }
 
-// Mảng các màu nền cho avatar
+// Array of background colors for avatars
 const AVATAR_COLORS = [
   "bg-red-500",
   "bg-blue-500",
@@ -78,21 +96,34 @@ export default function UserAdmin() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isBulkActionDialogOpen, setIsBulkActionDialogOpen] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [bulkAction, setBulkAction] = useState<string>("")
+  // Column visibility state
+  const [columnVisibility, setColumnVisibility] = useState({
+    avatar: true,
+    username: true,
+    fullName: true,
+    email: true,
+    role: true,
+  })
   const [formData, setFormData] = useState<{
     username: string
     fullName: string
     email: string
     password?: string
+    role: string
   }>({
     username: "",
     fullName: "",
     email: "",
     password: "",
+    role: "user",
   })
   const { toast } = useToast()
   const router = useRouter()
 
-  // Hàm tạo màu ngẫu nhiên cho avatar dựa trên ID của người dùng
+  // Function to generate a random color for avatar based on user ID
   const getAvatarColor = useCallback((userId: string) => {
     const index =
       Math.abs(
@@ -101,7 +132,7 @@ export default function UserAdmin() {
     return AVATAR_COLORS[index]
   }, [])
 
-  // Hàm lấy ký tự đầu tiên từ username hoặc fullName
+  // Function to get the first character from username or fullName
   const getInitial = useCallback((user: User) => {
     if (user.fullName && user.fullName.trim().length > 0) {
       return user.fullName.trim()[0].toUpperCase()
@@ -127,7 +158,16 @@ export default function UserAdmin() {
       }
       const response = await UserService.getAllUsers()
       console.log("Fetch Users Response:", response)
-      setUsers(response.data || []) // Fallback to empty array
+
+      // Add a default role if none is provided
+      const usersWithRoles = (response.data || []).map(
+        (user: { role: any }) => ({
+          ...user,
+          role: user.role || "user",
+        })
+      )
+
+      setUsers(usersWithRoles)
     } catch (error: any) {
       console.error("Fetch Users Error:", error.response || error)
       const message =
@@ -160,7 +200,14 @@ export default function UserAdmin() {
     try {
       const response = await UserService.searchUsers(searchTerm)
       console.log("Search Users Response:", response)
-      setUsers(response.data || [])
+      // Add a default role if none is provided
+      const usersWithRoles = (response.data || []).map(
+        (user: { role: any }) => ({
+          ...user,
+          role: user.role || "user",
+        })
+      )
+      setUsers(usersWithRoles)
     } catch (error: any) {
       console.error("Search Users Error:", error.response || error)
       toast({
@@ -186,11 +233,13 @@ export default function UserAdmin() {
       return
     }
     try {
+      // Assuming the register function has been updated to accept a role parameter
       await register({
         username: formData.username,
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
+        role: formData.role,
       })
       toast({
         title: "Success",
@@ -217,6 +266,7 @@ export default function UserAdmin() {
       username: user.username,
       fullName: user.fullName,
       email: user.email,
+      role: user.role || "user",
     })
     setIsEditDialogOpen(true)
   }
@@ -224,9 +274,11 @@ export default function UserAdmin() {
   const handleUpdateUser = async () => {
     if (!selectedUser) return
     try {
+      // Assuming the updateProfile function has been updated to accept a role parameter
       await UserService.updateProfile({
         username: formData.username,
         fullName: formData.fullName,
+        role: formData.role,
         avatarFile: undefined,
         backgroundFile: undefined,
       })
@@ -283,6 +335,7 @@ export default function UserAdmin() {
       fullName: "",
       email: "",
       password: "",
+      role: "user",
     })
     setSelectedUser(null)
   }
@@ -290,6 +343,18 @@ export default function UserAdmin() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleRoleChange = (role: string) => {
+    setFormData((prev) => ({ ...prev, role }))
+  }
+
+  // Function to toggle column visibility
+  const toggleColumnVisibility = (column: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [column]: !prev[column as keyof typeof prev],
+    }))
   }
 
   const renderUserAvatar = useCallback(
@@ -320,28 +385,172 @@ export default function UserAdmin() {
     [getAvatarColor, getInitial]
   )
 
+  const handleSelectUser = (userId: string) => {
+    setSelectedUsers((prev) => {
+      if (prev.includes(userId)) {
+        return prev.filter((id) => id !== userId)
+      } else {
+        return [...prev, userId]
+      }
+    })
+  }
+
+  const handleSelectAllUsers = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(users.map((user) => user._id))
+    } else {
+      setSelectedUsers([])
+    }
+  }
+
+  const handleBulkAction = async () => {
+    if (selectedUsers.length === 0 || !bulkAction) {
+      toast({
+        title: "Error",
+        description: "Please select users and an action",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Implement bulk action logic based on the action type
+      switch (bulkAction) {
+        case "delete":
+          // Call API to delete selected users
+          await Promise.all(
+            selectedUsers.map((userId) => UserService.deleteUser(userId))
+          )
+          toast({
+            title: "Success",
+            description: `${selectedUsers.length} users deleted successfully`,
+          })
+          break
+        case "changeRole":
+          break
+        default:
+          toast({
+            title: "Error",
+            description: "Invalid action selected",
+            variant: "destructive",
+          })
+      }
+
+      fetchUsers()
+      setIsBulkActionDialogOpen(false)
+      setSelectedUsers([])
+      setBulkAction("")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to perform bulk action",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-blue-400 hover:bg-blue-500"
+      default:
+        return "bg-black hover:bg-gray-600"
+    }
+  }
+
   return (
     <div className="container mx-auto py-8">
       <Toaster />
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>User Admin Dashboard</CardTitle>
-          <CardDescription>
+      <Card className="mb-8 shadow-md">
+        <CardHeader className="border-b">
+          <CardTitle className="text-2xl font-bold text-gray-800">
+            User Admin Dashboard
+          </CardTitle>
+          <CardDescription className="text-gray-600">
             Manage your user accounts with full CRUD operations
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-            <Button onClick={handleSearch}>Search</Button>
+        <CardContent className="p-6">
+          <div className="flex flex-wrap gap-4 mb-6 items-center">
+            <div className="">
+              <Input
+                placeholder="filter users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64 font-mono"
+              />
+            </div>
+            <Button
+              onClick={handleSearch}
+              className="bg-black hover:bg-gray-700 duration-300"
+            >
+              Search
+            </Button>
+
+            {selectedUsers.length > 0 && (
+              <Button
+                onClick={() => setIsBulkActionDialogOpen(true)}
+                variant="outline"
+                className="border-blue-500 text-blue-500 hover:bg-blue-50"
+              >
+                Actions ({selectedUsers.length})
+              </Button>
+            )}
+
+            {/* View Column Toggle Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="ml-auto mr-2 border-gray-400 text-gray-700 hover:bg-gray-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" /> View Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.avatar}
+                  onCheckedChange={() => toggleColumnVisibility("avatar")}
+                >
+                  Avatar
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.username}
+                  onCheckedChange={() => toggleColumnVisibility("username")}
+                >
+                  Username
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.fullName}
+                  onCheckedChange={() => toggleColumnVisibility("fullName")}
+                >
+                  Full Name
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.email}
+                  onCheckedChange={() => toggleColumnVisibility("email")}
+                >
+                  Email
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.role}
+                  onCheckedChange={() => toggleColumnVisibility("role")}
+                >
+                  Role
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="ml-auto">Add New User</Button>
+                <Button className="bg-black hover:bg-gray-700">
+                  Add New User <UserRoundPlus className="ml-2" />
+                </Button>
               </DialogTrigger>
               <DialogContent className="max-w-xl">
                 <DialogHeader>
@@ -389,6 +598,22 @@ export default function UserAdmin() {
                       onChange={handleInputChange}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                      defaultValue={formData.role}
+                      onValueChange={handleRoleChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="moderator">Moderator</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button
@@ -400,61 +625,142 @@ export default function UserAdmin() {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleAddUser}>Add User</Button>
+                  <Button
+                    onClick={handleAddUser}
+                    className="bg-black hover:bg-gray-700 duration-300"
+                  >
+                    Add User
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
           {isLoading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-10">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-solid border-blue-500 border-r-transparent"></div>
+              <p className="mt-2 text-gray-600">Loading users...</p>
+            </div>
           ) : (
-            <div className="border rounded-md">
+            <div className="border rounded-lg overflow-hidden shadow-sm">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-gray-100">
                   <TableRow>
-                    <TableHead>Avatar</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Full Name</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={
+                          selectedUsers.length === users.length &&
+                          users.length > 0
+                        }
+                        onCheckedChange={handleSelectAllUsers}
+                      />
+                    </TableHead>
+                    {columnVisibility.avatar && <TableHead>Avatar</TableHead>}
+                    {columnVisibility.username && (
+                      <TableHead>Username</TableHead>
+                    )}
+                    {columnVisibility.fullName && (
+                      <TableHead>Full Name</TableHead>
+                    )}
+                    {columnVisibility.email && <TableHead>Email</TableHead>}
+                    {columnVisibility.role && <TableHead>Role</TableHead>}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No users found
                       </TableCell>
                     </TableRow>
                   ) : (
                     users.map((user) => (
-                      <TableRow key={user._id}>
-                        <TableCell>{renderUserAvatar(user)}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.fullName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditClick(user)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteClick(user)}
-                          >
-                            Delete
-                          </Button>
+                      <TableRow
+                        key={user._id}
+                        className={
+                          selectedUsers.includes(user._id) ? "bg-blue-50" : ""
+                        }
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedUsers.includes(user._id)}
+                            onCheckedChange={() => handleSelectUser(user._id)}
+                          />
+                        </TableCell>
+                        {columnVisibility.avatar && (
+                          <TableCell>{renderUserAvatar(user)}</TableCell>
+                        )}
+                        {columnVisibility.username && (
+                          <TableCell className="font-medium">
+                            {user.username}
+                          </TableCell>
+                        )}
+                        {columnVisibility.fullName && (
+                          <TableCell>{user.fullName}</TableCell>
+                        )}
+                        {columnVisibility.email && (
+                          <TableCell className="text-gray-600">
+                            {user.email}
+                          </TableCell>
+                        )}
+                        {columnVisibility.role && (
+                          <TableCell>
+                            <Badge
+                              className={`${getRoleBadgeStyle(user.role)}`}
+                            >
+                              {user.role || "user"}
+                            </Badge>
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="cursor-pointer flex items-center gap-2"
+                                onClick={() => handleEditClick(user)}
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span>Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="cursor-pointer text-red-600 focus:text-red-600 flex items-center gap-2"
+                                onClick={() => handleDeleteClick(user)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {users.length > 0 && (
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+              <div>
+                Showing {users.length} users{" "}
+                {selectedUsers.length > 0 &&
+                  `(${selectedUsers.length} selected)`}
+              </div>
             </div>
           )}
         </CardContent>
@@ -499,6 +805,21 @@ export default function UserAdmin() {
                 disabled
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                defaultValue={formData.role}
+                onValueChange={handleRoleChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -510,7 +831,12 @@ export default function UserAdmin() {
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdateUser}>Update User</Button>
+            <Button
+              onClick={handleUpdateUser}
+              className="bg-blue-400 hover:bg-blue-600"
+            >
+              Update User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -525,19 +851,91 @@ export default function UserAdmin() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              user "{selectedUser?.username}&quot;.
+              user "{selectedUser?.username}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser}>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Action Dialog */}
+      <Dialog
+        open={isBulkActionDialogOpen}
+        onOpenChange={setIsBulkActionDialogOpen}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Actions</DialogTitle>
+            <DialogDescription>
+              Apply actions to {selectedUsers.length} selected users
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-action">Select Action</Label>
+              <Select onValueChange={(value) => setBulkAction(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose an action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="changeRole">Change Role</SelectItem>
+                  <SelectItem value="delete">Delete Users</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkAction === "changeRole" && (
+              <div className="space-y-2">
+                <Label htmlFor="new-role">New Role</Label>
+                <Select
+                  defaultValue={formData.role}
+                  onValueChange={handleRoleChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="moderator">Moderator</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsBulkActionDialogOpen(false)
+                setBulkAction("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkAction}
+              className={
+                bulkAction === "delete"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
+            >
+              Apply to {selectedUsers.length} Users
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
