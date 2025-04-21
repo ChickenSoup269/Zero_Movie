@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -16,7 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import "./movies.css"
+import { Slide } from "@/components/ui-home/full-image-slider"
 
 interface DisplayedMovie extends Movie {
   genreNames: string[]
@@ -37,7 +41,7 @@ const Movies = () => {
   const [error, setError] = useState<string | null>(null)
   const moviesContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-
+  const { toast } = useToast()
   // Fetch movies and genres on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -192,12 +196,19 @@ const Movies = () => {
     }
   }, [currentPage, totalPages])
 
-  const handleViewDetails = useCallback(
-    (movie: DisplayedMovie) => {
-      router.push(`/movies/${movie.tmdbId}`)
-    },
-    [router]
-  )
+  const handleViewDetails = (movie: Slide) => {
+    console.log("Navigating to details with tmdbId:", movie.tmdbId) // Debug
+    if (movie.status === "upcoming") {
+      toast({
+        title: "Hey!",
+        description: "The movie has no release date yet :(",
+        variant: "default",
+        action: <ToastAction altText="Try again">I'm cook</ToastAction>,
+      })
+    } else {
+      router.push(`/details-movies/${movie.tmdbId}`)
+    }
+  }
 
   const getShortDescription = useCallback((description: string) => {
     const firstPeriodIndex = description.indexOf(".")
