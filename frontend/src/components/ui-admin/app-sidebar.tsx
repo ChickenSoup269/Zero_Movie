@@ -13,6 +13,7 @@ import {
   Menu,
   ChevronRight,
   ChevronLeft,
+  Palette,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -35,7 +36,8 @@ import UserService from "@/services/userService"
 import { logout } from "@/services/authService"
 import { useToast } from "@/hooks/use-toast"
 import ProfileDialog from "@/components/ui-profile/profile-dialog"
-import { getFullImageUrl } from "@/utils/getFullImageUrl" // Import getFullImageUrl
+import { getFullImageUrl } from "@/utils/getFullImageUrl"
+import CustomSwitch from "@/components/ui-navbar/switch-theme"
 
 // Menu items
 const mainMenuItems = [
@@ -44,11 +46,6 @@ const mainMenuItems = [
   { title: "Genres", url: "/admin/genres", icon: Tag },
   { title: "Users", url: "/movieUser", icon: Users },
   { title: "Calendar", url: "/admin/calendar", icon: Calendar },
-]
-
-const bottomMenuItems = [
-  { title: "Settings", url: "/admin/settings", icon: Settings },
-  { title: "Logout", url: "/logout", icon: LogOut },
 ]
 
 interface AdminSidebarProps {
@@ -75,6 +72,14 @@ export function AdminSidebar({
   const router = useRouter()
   const pathname = usePathname()
   const { toast } = useToast()
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("darkMode")
+    if (saved !== null) {
+      setIsDarkMode(JSON.parse(saved))
+    }
+  }, [])
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -110,6 +115,29 @@ export function AdminSidebar({
     }
     fetchUser()
   }, [toast])
+
+  const handleDarkModeToggle = (checked: boolean) => {
+    setIsDarkMode(checked)
+    if (checked) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+  }
+  const bottomMenuItems = [
+    { title: "Settings", url: "/admin/settings", icon: Settings },
+    {
+      title: "Dark Mode",
+      component: (
+        <CustomSwitch
+          checked={isDarkMode}
+          onCheckedChange={handleDarkModeToggle}
+        />
+      ),
+      icon: Palette,
+    },
+    { title: "Logout", url: "/logout", icon: LogOut },
+  ]
 
   // Handle profile update
   const handleProfileUpdate = (updatedProfile: any) => {
@@ -224,7 +252,7 @@ export function AdminSidebar({
                   <div className="relative">
                     <Avatar
                       className={cn(
-                        "border-2 border-primary",
+                        "shadow-xl object-cover",
                         collapsed ? "w-10 h-10" : "w-12 h-12"
                       )}
                     >
@@ -346,42 +374,70 @@ export function AdminSidebar({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <li>
-                    <button
-                      onClick={() => handleNavigation(item.url, item.title)}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-muted w-full text-left",
-                        item.title === "Logout"
-                          ? "hover:bg-red-100 hover:text-red-600"
-                          : "",
-                        pathname === item.url
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : ""
-                      )}
-                    >
-                      <item.icon
+                    {item.component ? (
+                      <div
                         className={cn(
-                          "w-5 h-5",
-                          item.title === "Logout" ? "text-red-500" : "",
-                          pathname === item.url
-                            ? "text-primary-foreground"
-                            : "text-muted-foreground group-hover:text-foreground"
+                          "flex items-center gap-3 px-3 py-2 rounded-md transition-colors w-full text-left"
                         )}
-                      />
-                      {!collapsed && (
-                        <span
+                      >
+                        <item.icon
                           className={cn(
-                            "text-sm font-medium",
+                            "w-5 h-5",
                             item.title === "Logout" ? "text-red-500" : "",
-                            pathname !== item.url &&
-                              !item.title.includes("Logout")
-                              ? "text-muted-foreground group-hover:text-foreground"
-                              : ""
+                            pathname === item.url
+                              ? "text-primary-foreground"
+                              : "text-muted-foreground group-hover:text-foreground"
                           )}
-                        >
-                          {item.title}
-                        </span>
-                      )}
-                    </button>
+                        />
+                        {!collapsed && (
+                          <span
+                            className={cn(
+                              "text-sm font-medium text-muted-foreground group-hover:text-foreground"
+                            )}
+                          >
+                            {item.title}
+                          </span>
+                        )}
+                        <div className="ml-auto">{item.component}</div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleNavigation(item.url!, item.title)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-muted w-full text-left",
+                          item.title === "Logout"
+                            ? "hover:bg-red-100 hover:text-red-600"
+                            : "",
+                          pathname === item.url
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : ""
+                        )}
+                      >
+                        <item.icon
+                          className={cn(
+                            "w-5 h-5",
+                            item.title === "Logout" ? "text-red-500" : "",
+                            pathname === item.url
+                              ? "text-primary-foreground"
+                              : "text-muted-foreground group-hover:text-foreground"
+                          )}
+                        />
+                        {!collapsed && (
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              item.title === "Logout" ? "text-red-500" : "",
+                              pathname !== item.url &&
+                                !item.title.includes("Logout")
+                                ? "text-muted-foreground group-hover:text-foreground"
+                                : ""
+                            )}
+                          >
+                            {item.title}
+                          </span>
+                        )}
+                      </button>
+                    )}
                   </li>
                 </TooltipTrigger>
                 <TooltipContent

@@ -9,6 +9,7 @@ import { Send, Loader2, MessageSquareMore } from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService" // Adjust the path to your UserService
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 
 interface Message {
   role: "user" | "bot"
@@ -173,7 +174,7 @@ export default function ChatBox() {
       {/* Toggle Button */}
       <Button
         onClick={toggleChat}
-        className="rounded-full h-12 w-12 bg-white shadow-gray-500/50 hover:bg-blue-400 text-black hover:text-white flex items-center justify-center shadow-lg duration-300 "
+        className="rounded-full h-12 w-12 bg-blue-400 dark:bg-white shadow-gray-500/50 hover:bg-blue-500 text-white dark:text-black hover:text-white flex items-center justify-center shadow-lg duration-300 "
       >
         <MessageSquareMore className="h-6 w-6 " />
       </Button>
@@ -189,12 +190,18 @@ export default function ChatBox() {
             className="flex flex-col h-96 w-80 sm:w-96 bg-background rounded-lg border shadow-lg overflow-hidden mt-2"
           >
             {/* Chat header */}
-            <div className="bg-primary p-3 text-primary-foreground flex items-center gap-2">
-              <Avatar className="h-8 w-8 bg-primary-foreground text-primary flex items-center justify-center">
-                <span className="text-xs font-bold">AI</span>
+            <div className="bg-black p-3 text-primary-foreground flex items-center gap-2">
+              <Avatar className="h-8 w-8 flex items-center justify-center">
+                <Image
+                  src="/logo2.png"
+                  alt="Zero Movies Logo"
+                  width={100}
+                  height={80}
+                  className="cursor-pointer transition-transform duration-300 hover:scale-105"
+                />
               </Avatar>
               <div>
-                <h3 className="font-medium text-sm">Gemini Assistant</h3>
+                <h3 className="font-medium text-sm">Gemini X Zero</h3>
                 <p className="text-xs opacity-90">Powered by Google Gemini</p>
               </div>
             </div>
@@ -203,7 +210,7 @@ export default function ChatBox() {
             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
               {messages.length === 0 && (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
-                  Gửi tin nhắn để bắt đầu cuộc trò chuyện
+                  Xin chào Zero AI giúp gì được cho bạn?
                 </div>
               )}
 
@@ -280,7 +287,7 @@ export default function ChatBox() {
                   type="submit"
                   size="icon"
                   disabled={isLoading || !input.trim()}
-                  className="rounded-full h-10 w-10 flex-shrink-0"
+                  className="bg-blue-400 rounded-full h-10 w-10 flex-shrink-0"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

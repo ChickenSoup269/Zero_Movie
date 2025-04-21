@@ -155,7 +155,9 @@ const RevenueService = {
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [movies, setMovies] = useState<Movie[]>([])
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<
+    { _id: string; fullName: string; username: string; createdAt: string }[]
+  >([])
   const [movieRevenue, setMovieRevenue] = useState([])
   const [monthlyRevenue, setMonthlyRevenue] = useState<
     { name: string; revenue: number }[]
