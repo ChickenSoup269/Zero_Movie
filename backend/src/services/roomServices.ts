@@ -1,78 +1,87 @@
-import Room, { IRoom } from '../models/roomModel';
-import Showtime from '../models/showtimeModel';
-import mongoose from 'mongoose';
-import { SeatService } from './seatServices';
+import Room, { IRoom } from "../models/roomModel"
+import Showtime from "../models/showtimeModel"
+import mongoose from "mongoose"
+import { SeatService } from "./seatServices"
 
 export class RoomService {
-  static async createRoom(cinemaId: string, roomNumber: string): Promise<IRoom> {
+  static async createRoom(
+    cinemaId: string,
+    roomNumber: string
+  ): Promise<IRoom> {
     if (!cinemaId || !roomNumber) {
-      throw new Error('cinemaId và roomNumber là bắt buộc');
+      throw new Error("cinemaId và roomNumber là bắt buộc")
     }
     if (!mongoose.Types.ObjectId.isValid(cinemaId)) {
-      throw new Error('Cinema ID không hợp lệ');
+      throw new Error("Cinema ID không hợp lệ")
     }
 
-    const cinema = await mongoose.model('Cinema').findById(cinemaId);
+    const cinema = await mongoose.model("Cinema").findById(cinemaId)
     if (!cinema) {
-      throw new Error('Không tìm thấy rạp');
+      throw new Error("Không tìm thấy rạp")
     }
 
-    const existingRoom = await Room.findOne({ cinemaId, roomNumber });
+    const existingRoom = await Room.findOne({ cinemaId, roomNumber })
     if (existingRoom) {
-      throw new Error('Phòng đã tồn tại trong rạp này');
+      throw new Error("Phòng đã tồn tại trong rạp này")
     }
 
-    const newRoom = new Room({ cinemaId, roomNumber, capacity: 144 });
+    const newRoom = new Room({ cinemaId, roomNumber, capacity: 144 })
 
     try {
-      await newRoom.save(); // Lưu Room trước
-      await SeatService.initializeSeatsForRoom(newRoom._id.toString()); // Tạo 144 ghế
-      return newRoom;
+      await newRoom.save() // Lưu Room trước
+      await SeatService.initializeSeatsForRoom(newRoom._id.toString()) // Tạo 144 ghế
+      return newRoom
     } catch (error) {
-      await Room.findByIdAndDelete(newRoom._id); // Rollback nếu lỗi
-      throw new Error(`Tạo phòng thất bại: ${(error as Error).message}`);
+      await Room.findByIdAndDelete(newRoom._id) // Rollback nếu lỗi
+      throw new Error(`Tạo phòng thất bại: ${(error as Error).message}`)
     }
   }
 
   static async getAllRooms(cinemaId?: string): Promise<IRoom[]> {
-    const query: any = {};
+    const query: any = {}
     if (cinemaId) {
       if (!mongoose.Types.ObjectId.isValid(cinemaId)) {
-        throw new Error('Cinema ID không hợp lệ');
+        throw new Error("Cinema ID không hợp lệ")
       }
-      query.cinemaId = cinemaId;
+      query.cinemaId = cinemaId
     }
-    return await Room.find(query);
+    return await Room.find(query)
   }
 
   static async getRoomById(id: string): Promise<IRoom> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error('Room ID không hợp lệ');
+      throw new Error("Room ID không hợp lệ")
     }
-    const room = await Room.findById(id);
+    const room = await Room.findById(id)
     if (!room) {
-      throw new Error('Không tìm thấy phòng');
+      throw new Error("Không tìm thấy phòng")
     }
-    return room;
+    return room
   }
 
-  static async updateRoom(id: string, roomNumber?: string): Promise<IRoom | null> {
+  static async updateRoom(
+    id: string,
+    roomNumber?: string
+  ): Promise<IRoom | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error('Room ID không hợp lệ');
+      throw new Error("Room ID không hợp lệ")
     }
     if (!roomNumber) {
-      throw new Error('Cần cung cấp roomNumber để cập nhật');
+      throw new Error("Cần cung cấp roomNumber để cập nhật")
     }
 
-    const room = await Room.findById(id);
+    const room = await Room.findById(id)
     if (!room) {
-      throw new Error('Không tìm thấy phòng');
+      throw new Error("Không tìm thấy phòng")
     }
 
     if (roomNumber !== room.roomNumber) {
-      const existingRoom = await Room.findOne({ cinemaId: room.cinemaId, roomNumber });
+      const existingRoom = await Room.findOne({
+        cinemaId: room.cinemaId,
+        roomNumber,
+      })
       if (existingRoom) {
-        throw new Error('Phòng với số này đã tồn tại trong rạp');
+        throw new Error("Phòng với số này đã tồn tại trong rạp")
       }
     }
 
@@ -80,27 +89,27 @@ export class RoomService {
       id,
       { roomNumber },
       { new: true, runValidators: true }
-    );
-    return updatedRoom;
+    )
+    return updatedRoom
   }
 
   static async deleteRoom(id: string): Promise<IRoom | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error('Room ID không hợp lệ');
+      throw new Error("Room ID không hợp lệ")
     }
 
-    const room = await Room.findById(id);
+    const room = await Room.findById(id)
     if (!room) {
-      throw new Error('Không tìm thấy phòng');
+      throw new Error("Không tìm thấy phòng")
     }
 
-    const showtimes = await Showtime.find({ roomId: id });
+    const showtimes = await Showtime.find({ roomId: id })
     if (showtimes.length > 0) {
-      throw new Error('Không thể xóa phòng vì đã có suất chiếu liên quan');
+      throw new Error("Không thể xóa phòng vì đã có suất chiếu liên quan")
     }
 
-    await mongoose.model('Seat').deleteMany({ roomId: id }); // Xóa ghế
-    const deletedRoom = await Room.findByIdAndDelete(id);
-    return deletedRoom;
+    await mongoose.model("Seat").deleteMany({ roomId: id }) // Xóa ghế
+    const deletedRoom = await Room.findByIdAndDelete(id)
+    return deletedRoom
   }
 }
