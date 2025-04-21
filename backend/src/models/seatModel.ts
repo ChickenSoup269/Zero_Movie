@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 
 export interface ISeat extends Document {
   _id: Types.ObjectId;
-  roomId: Types.ObjectId; // Đổi thành ObjectId
+  roomId: Types.ObjectId; 
   seatNumber: string;
   row: string;
   column: number;
@@ -13,7 +13,7 @@ export interface ISeat extends Document {
 }
 
 const seatSchema = new Schema<ISeat>({
-  roomId: { type: Schema.Types.ObjectId, ref: 'Room', required: true }, // Sửa thành ObjectId
+  roomId: { type: Schema.Types.ObjectId, ref: 'Room', required: true }, 
   seatNumber: { type: String, required: true },
   row: { type: String, required: true, enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] },
   column: { type: Number, required: true, min: 1, max: 18 },

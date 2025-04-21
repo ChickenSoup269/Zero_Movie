@@ -67,4 +67,4 @@ export class GenreService {
       throw error instanceof Error ? error : new Error('Lỗi khi lấy phim theo thể loại');
     }
   }
-}
+} 

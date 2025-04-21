@@ -56,17 +56,4 @@ export const capturePayment = async (req: Request, res: Response): Promise<void>
   }
   
 };
-export const getPaymentHistory = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.id; // Lấy userId từ token
 
-    const payments = await PaymentService.getPaymentHistory(userId);
-
-    res.status(200).json({
-      message: payments.length ? 'Lấy lịch sử thanh toán thành công' : 'Không có lịch sử thanh toán',
-      payments,
-    });
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message || 'Lỗi khi lấy lịch sử thanh toán' });
-  }
-};

@@ -3,16 +3,16 @@
 
   export interface IShowtimeSeat extends Document {
     _id: Types.ObjectId;
-    showtimeId: string;
-    seatId: string;
+    showtimeId: Types.ObjectId;
+    seatId: Types.ObjectId;
     status: 'available' | 'booked' | 'reserved';
     createdAt?: Date;
     updatedAt?: Date;
   }
 
   const showtimeSeatSchema = new Schema<IShowtimeSeat>({
-    showtimeId: { type: String, ref: 'Showtime', required: true },
-    seatId: { type: String, ref: 'Seat', required: true },
+    showtimeId: { type: Schema.Types.ObjectId, ref: 'Showtime', required: true },
+    seatId: { type: Schema.Types.ObjectId, ref: 'Seat', required: true },
     status: {
       type: String,
       enum: ['available', 'booked', 'reserved'],
