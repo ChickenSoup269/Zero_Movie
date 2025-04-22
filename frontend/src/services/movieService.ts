@@ -8,7 +8,6 @@ if (!API_URL) {
 }
 
 export interface Movie {
-  release_date: any
   id: number
   genreNames: string[]
   ageRating: string
@@ -141,6 +140,17 @@ export class MovieService {
       await axios.delete(`${API_URL}/movies/${id}`)
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Failed to delete movie")
+    }
+  }
+
+  static async getRecommendations(userId: string): Promise<Movie[]> {
+    try {
+      const response = await axios.get(`${API_URL}/movies/recommend/${userId}`)
+      return response.data.recommendations
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch recommendations"
+      )
     }
   }
 }
