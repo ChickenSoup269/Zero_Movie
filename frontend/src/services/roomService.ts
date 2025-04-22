@@ -1,26 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosError } from "axios"
 
-// Create axios instance
 const axiosJWT = axios.create()
 
-// Read API base URL from environment variable
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
-// Add token to requests via interceptor for authenticated endpoints
 axiosJWT.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (config.method !== "get") {
+    const token = localStorage.getItem("token")
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
   }
   return config
 })
 
-// Interface for room data
 interface Room {
   _id: string
   cinemaId: string
@@ -30,111 +28,102 @@ interface Room {
   updatedAt?: string
 }
 
-// Interface for creating/updating a room request
 interface RoomRequest {
   cinemaId: string
   roomNumber: string
   capacity: number
 }
 
-// Interface for API response
 interface ApiResponse<T = any> {
-  status: "OK" | "ERR"
-  message?: string
-  data?: T
+  message: string
+  rooms?: T[]
+  room?: T
 }
 
-// Create a room (POST /rooms)
-export const createRoom = async (
-  data: RoomRequest
-): Promise<ApiResponse<Room>> => {
-  try {
-    const res = await axiosJWT.post(`${API_URL}/rooms`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
-    }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
-}
-
-// Get all rooms (GET /rooms)
-export const getAllRooms = async (): Promise<ApiResponse<Room[]>> => {
-  try {
-    const res = await axiosJWT.get(`${API_URL}/rooms`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
-    }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
-}
-
-// Get rooms by cinema ID (GET /rooms/cinema/:cinemaId)
 export const getRoomsByCinemaId = async (
   cinemaId: string
 ): Promise<ApiResponse<Room[]>> => {
   try {
     const res = await axiosJWT.get(`${API_URL}/rooms/cinema/${cinemaId}`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    console.log("getRoomsByCinemaId response:", res.data)
+    return {
+      message: res.data.message,
+      rooms: res.data.rooms
+        ? res.data.rooms.map((room: any) => ({
+            _id: room._id,
+            cinemaId: room.cinemaId,
+            roomNumber: room.roomNumber,
+            capacity: room.capacity,
+            createdAt: room.createdAt,
+            updatedAt: room.updatedAt,
+          }))
+        : [],
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
-// Get room by ID (GET /rooms/:id)
-export const getRoomById = async (
-  roomId: string
-): Promise<ApiResponse<Room>> => {
-  try {
-    const res = await axiosJWT.get(`${API_URL}/room/${roomId}`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
-    }
-    return res.data
-  } catch (error) {
-    const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
-  }
-}
-
-// Update a room (PUT /rooms/:id)
-export const updateRoom = async (
-  roomId: string,
+export const createRoom = async (
   data: RoomRequest
 ): Promise<ApiResponse<Room>> => {
   try {
-    const res = await axiosJWT.put(`${API_URL}/rooms/${roomId}`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    const res = await axiosJWT.post(`${API_URL}/rooms`, data)
+    return {
+      message: res.data.message,
+      room: {
+        _id: res.data.room._id,
+        cinemaId: res.data.room.cinemaId,
+        roomNumber: res.data.room.roomNumber,
+        capacity: res.data.room.capacity,
+        createdAt: res.data.room.createdAt,
+        updatedAt: res.data.room.updatedAt,
+      },
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
-// Delete a room (DELETE /rooms/:id)
+export const updateRoom = async (
+  roomId: string,
+  data: Partial<RoomRequest>
+): Promise<ApiResponse<Room>> => {
+  try {
+    const res = await axiosJWT.put(`${API_URL}/rooms/${roomId}`, data)
+    return {
+      message: res.data.message,
+      room: {
+        _id: res.data.room._id,
+        cinemaId: res.data.room.cinemaId,
+        roomNumber: res.data.room.roomNumber,
+        capacity: res.data.room.capacity,
+        createdAt: res.data.room.createdAt,
+        updatedAt: res.data.room.updatedAt,
+      },
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
+  }
+}
+
 export const deleteRoom = async (
   roomId: string
 ): Promise<ApiResponse<void>> => {
   try {
     const res = await axiosJWT.delete(`${API_URL}/rooms/${roomId}`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
