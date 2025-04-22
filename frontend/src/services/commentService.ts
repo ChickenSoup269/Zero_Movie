@@ -4,7 +4,6 @@ import axios, { AxiosError, AxiosRequestConfig } from "axios"
 // Create axios instance
 const axiosJWT = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  timeout: 10000, // 10s timeout
 })
 
 if (!process.env.NEXT_PUBLIC_API_URL) {
@@ -26,7 +25,8 @@ export const updateToken = (token: string | null) => {
 // Interceptor to add token to requests
 axiosJWT.interceptors.request.use(
   (config) => {
-    if (accessToken) {
+    if (accessToken && config.method !== "get") {
+      // Only add token for non-GET requests (POST, PUT, DELETE)
       config.headers.Authorization = `Bearer ${accessToken}`
     }
     return config
@@ -44,7 +44,6 @@ axiosJWT.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       try {
-        // Giả sử có API refresh token
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {
@@ -60,6 +59,7 @@ axiosJWT.interceptors.response.use(
         return axiosJWT(originalRequest)
       } catch (refreshError) {
         updateToken(null) // Clear token on refresh failure
+        localStorage.removeItem("refreshToken")
         return Promise.reject(refreshError)
       }
     }
@@ -75,7 +75,7 @@ interface User {
   avatar?: string
 }
 
-// Interface for comment data (matches IComment from backend)
+// Interface for comment data (matches backend IComment)
 interface Comment {
   _id: string
   userId: User // Populated user data
@@ -94,8 +94,9 @@ interface CommentRequest {
 // Interface for API response
 interface ApiResponse<T> {
   status: "OK" | "ERR"
-  message?: string
-  data?: T
+  message: string
+  comment?: T extends Comment ? Comment : never
+  comments?: T extends Comment[] ? Comment[] : never
 }
 
 // Add a comment (POST /comments)
@@ -105,21 +106,31 @@ export const addComment = async (
 ): Promise<ApiResponse<Comment>> => {
   try {
     if (!accessToken) {
-      throw new Error("No access token available. Please log in.")
+      return {
+        status: "ERR",
+        message: "No access token available. Please log in.",
+      }
     }
     const res = await axiosJWT.post<ApiResponse<Comment>>("/comments", data, {
       signal,
     })
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message || "Failed to add comment")
+      return {
+        status: "ERR",
+        message: res.data.message || "Failed to add comment",
+      }
     }
-    return res.data
+    return {
+      status: "OK",
+      message: res.data.message || "Comment added successfully",
+      comment: res.data.comment!,
+    }
   } catch (error) {
-    const axiosError = error as AxiosError<ApiResponse<unknown>>
-    throw (
+    const axiosError = error as AxiosError<ApiResponse<Comment>>
+    return (
       axiosError.response?.data || {
         status: "ERR",
-        message: axiosError.message,
+        message: axiosError.message || "Error adding comment",
       }
     )
   }
@@ -136,15 +147,22 @@ export const getCommentsByMovie = async (
       { signal }
     )
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message || "Failed to fetch comments")
+      return {
+        status: "ERR",
+        message: res.data.message || "Failed to fetch comments",
+      }
     }
-    return res.data
+    return {
+      status: "OK",
+      message: res.data.message || "Comments fetched successfully",
+      comments: res.data.comments!,
+    }
   } catch (error) {
-    const axiosError = error as AxiosError<ApiResponse<unknown>>
-    throw (
+    const axiosError = error as AxiosError<ApiResponse<Comment[]>>
+    return (
       axiosError.response?.data || {
         status: "ERR",
-        message: axiosError.message,
+        message: axiosError.message || "Error fetching comments",
       }
     )
   }
@@ -158,7 +176,10 @@ export const updateComment = async (
 ): Promise<ApiResponse<Comment>> => {
   try {
     if (!accessToken) {
-      throw new Error("No access token available. Please log in.")
+      return {
+        status: "ERR",
+        message: "No access token available. Please log in.",
+      }
     }
     const res = await axiosJWT.put<ApiResponse<Comment>>(
       `/comments/${commentId}`,
@@ -166,15 +187,22 @@ export const updateComment = async (
       { signal }
     )
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message || "Failed to update comment")
+      return {
+        status: "ERR",
+        message: res.data.message || "Failed to update comment",
+      }
     }
-    return res.data
+    return {
+      status: "OK",
+      message: res.data.message || "Comment updated successfully",
+      comment: res.data.comment!,
+    }
   } catch (error) {
-    const axiosError = error as AxiosError<ApiResponse<unknown>>
-    throw (
+    const axiosError = error as AxiosError<ApiResponse<Comment>>
+    return (
       axiosError.response?.data || {
         status: "ERR",
-        message: axiosError.message,
+        message: axiosError.message || "Error updating comment",
       }
     )
   }
@@ -187,22 +215,31 @@ export const deleteComment = async (
 ): Promise<ApiResponse<void>> => {
   try {
     if (!accessToken) {
-      throw new Error("No access token available. Please log in.")
+      return {
+        status: "ERR",
+        message: "No access token available. Please log in.",
+      }
     }
     const res = await axiosJWT.delete<ApiResponse<void>>(
       `/comments/${commentId}`,
       { signal }
     )
     if (res.data.status === "ERR") {
-      throw new Error(res.data.message || "Failed to delete comment")
+      return {
+        status: "ERR",
+        message: res.data.message || "Failed to delete comment",
+      }
     }
-    return res.data
+    return {
+      status: "OK",
+      message: res.data.message || "Comment deleted successfully",
+    }
   } catch (error) {
-    const axiosError = error as AxiosError<ApiResponse<unknown>>
-    throw (
+    const axiosError = error as AxiosError<ApiResponse<void>>
+    return (
       axiosError.response?.data || {
         status: "ERR",
-        message: axiosError.message,
+        message: axiosError.message || "Error deleting comment",
       }
     )
   }

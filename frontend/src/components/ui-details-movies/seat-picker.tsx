@@ -288,15 +288,17 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                             ? "bg-gray-600 cursor-not-allowed"
                             : isSelected
                             ? "bg-blue-400 rounded-bl-[40%] rounded-br-[40%]"
-                            : "bg-white"
+                            : "" // loại bỏ bg-white ở đây
                         }`}
                         initial={{ scale: 1, opacity: 1, rotate: 0 }}
                         animate={{
-                          scale: isSelected ? 1 : isHovered ? 0.95 : 1.01,
+                          scale: isSelected ? 1 : isHovered ? 0.95 : 1,
                           opacity: seat.type === "sold" ? 0.6 : 1,
                           color: isSelected ? "white" : "black",
-                          border: isHovered ? "2px solid #4599e3 " : "none",
-                          backgroundColor: isSelected ? "#4599e3" : "white",
+                          border: isHovered ? "2px solid #4599e3" : "none",
+                          backgroundColor: isSelected
+                            ? "#4599e3"
+                            : "rgba(255, 255, 255, 0.9)",
                           boxShadow: isSelected
                             ? "0px 0px 8px rgba(69, 153, 227, 0.8)"
                             : isHovered
@@ -305,6 +307,12 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                         }}
                         transition={{ duration: 0.3, ease: "easeInOut" }}
                         whileTap={{ scale: seat.type !== "sold" ? 0.95 : 1 }}
+                        style={{
+                          backgroundColor: isSelected
+                            ? "#4599e3"
+                            : "rgba(255, 255, 255, 0.5)", // dùng style để thay đổi màu
+                          color: isSelected ? "white" : "black", // dùng style cho màu chữ
+                        }}
                       >
                         {seat.type === "sold" ? "" : seat.number}
                       </motion.button>

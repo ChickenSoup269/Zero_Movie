@@ -12,12 +12,7 @@ import { getAllCinemas } from "@/services/cinemaService"
 interface MovieDetailProps {
   params: Promise<{ id: string }>
 }
-interface MovieInfo {
-  type: string
-  movieTitle: string
-  director: string
-  tmdbId: number
-}
+
 interface Theater {
   id: string
   name: string
