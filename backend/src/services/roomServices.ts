@@ -1,7 +1,8 @@
-import Room, { IRoom } from "../models/roomModel"
-import Showtime from "../models/showtimeModel"
-import mongoose from "mongoose"
-import { SeatService } from "./seatServices"
+import Room, { IRoom } from '../models/roomModel';
+import Showtime from '../models/showtimeModel';
+import mongoose from 'mongoose';
+import { SeatService } from './seatServices';
+import Cinema from '../models/cinemaModel';
 
 export class RoomService {
   static async createRoom(
@@ -108,8 +109,20 @@ export class RoomService {
       throw new Error("Không thể xóa phòng vì đã có suất chiếu liên quan")
     }
 
-    await mongoose.model("Seat").deleteMany({ roomId: id }) // Xóa ghế
-    const deletedRoom = await Room.findByIdAndDelete(id)
-    return deletedRoom
+    await mongoose.model('Seat').deleteMany({ roomId: id }); // Xóa ghế
+    const deletedRoom = await Room.findByIdAndDelete(id);
+    return deletedRoom;
+  }
+  static async getRoomsByCinemaId(cinemaId: string): Promise<IRoom[]> {
+    if (!mongoose.Types.ObjectId.isValid(cinemaId)) {
+      throw new Error('Cinema ID không hợp lệ');
+    }
+
+    const cinema = await Cinema.findById(cinemaId);
+    if (!cinema) {
+      throw new Error('Rạp không tồn tại');
+    }
+
+    return await Room.find({ cinemaId }).select('_id cinemaId roomNumber capacity');
   }
 }
