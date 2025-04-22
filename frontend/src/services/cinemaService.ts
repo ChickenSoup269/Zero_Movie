@@ -23,7 +23,7 @@ axiosJWT.interceptors.request.use((config) => {
   return config
 })
 
-// Interface for cinema data (adjusted to match backend)
+// Interface for cinema data (matched with backend response)
 interface Cinema {
   id: string
   name: string
@@ -32,26 +32,27 @@ interface Cinema {
   updatedAt?: string
 }
 
-// Interface for showtime data (simplified for frontend use)
+// Interface for showtime data (matched with backend response)
 interface Showtime {
   id: string
-  movieId: string
-  cinemaId: string
+  movieId: number
+  movieTitle?: string
+  roomId: string
+  roomNumber: string
   startTime: string
   endTime: string
-  createdAt: string
 }
 
-// Interface for cinema request
+// Interface for cinema request (matched with backend input)
 interface CinemaRequest {
   name: string
   address: string
 }
 
-// Interface for API response (adjusted to match backend structure)
+// Interface for API response (matched with backend structure)
 interface ApiResponse<T = any> {
   message: string
-  cinema?: T
+  cinema?: Cinema
   cinemas?: T[]
   showtimes?: Showtime[]
 }
@@ -72,7 +73,8 @@ export const getAllCinemas = async (): Promise<ApiResponse<Cinema[]>> => {
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
@@ -94,7 +96,8 @@ export const getCinemaById = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
@@ -113,12 +116,27 @@ export const getShowtimesByCinemaId = async (
     )
     return {
       message: res.data.message,
-      cinema: res.data.cinema,
-      showtimes: res.data.showtimes,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
+      showtimes: res.data.showtimes.map((showtime: any) => ({
+        id: showtime._id,
+        movieId: showtime.movieId,
+        movieTitle: showtime.movieTitle,
+        roomId: showtime.roomId,
+        roomNumber: showtime.roomNumber,
+        startTime: showtime.startTime,
+        endTime: showtime.endTime,
+      })),
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
@@ -140,14 +158,15 @@ export const createCinema = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
 // Update a cinema (PUT /cinemas/:id)
 export const updateCinema = async (
   cinemaId: string,
-  data: CinemaRequest
+  data: Partial<CinemaRequest>
 ): Promise<ApiResponse<Cinema>> => {
   try {
     const res = await axiosJWT.put(`${API_URL}/cinemas/${cinemaId}`, data)
@@ -163,7 +182,8 @@ export const updateCinema = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
@@ -185,6 +205,7 @@ export const deleteCinema = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response?.data || axiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }

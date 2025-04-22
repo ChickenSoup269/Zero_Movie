@@ -8,6 +8,7 @@ if (!API_URL) {
 }
 
 export interface Movie {
+  release_date: any
   id: number
   genreNames: string[]
   ageRating: string

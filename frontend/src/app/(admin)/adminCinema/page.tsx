@@ -1,15 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -29,6 +20,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useToast } from "@/components/ui/toaster"
+import { RefreshCcw, Plus, Edit, Trash2, Calendar, Search } from "lucide-react"
+
+// Import services
+import {
+  getAllCinemas,
+  createCinema,
+  updateCinema,
+  deleteCinema,
+} from "@/services/cinemaService"
+import {
+  getRoomsByCinemaId,
+  createRoom,
+  updateRoom,
+  deleteRoom,
+} from "@/services/roomService"
+import {
+  getSeatsByRoom,
+  deleteSeat,
+  createSeat,
+  updateSeat,
+} from "@/services/seatService"
+import {
+  getAllShowtimes,
+  createShowtime,
+  deleteShowtime,
+} from "@/services/showtimeService"
+import { MovieService, Movie } from "@/services/movieService"
+
+// Import tab components
+import CinemasTab from "@/components/ui-admin/ui-cinema/cinemas-tab"
+import RoomsTab from "@/components/ui-admin/ui-cinema/rooms-tab"
+import SeatsTab from "@/components/ui-admin/ui-cinema/seats-tab"
+import ShowtimesTab from "@/components/ui-admin/ui-cinema/showtimes-tab"
 import {
   Table,
   TableBody,
@@ -37,44 +62,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useToast } from "@/components/ui/toaster"
-import { RefreshCcw, Plus, Edit, Trash2, Calendar, Search } from "lucide-react"
-
-// Import services
-import {
-  getAllCinemas,
-  getCinemaById,
-  createCinema,
-  updateCinema,
-  deleteCinema,
-} from "@/services/cinemaService"
-
-import {
-  getAllRooms,
-  getRoomsByCinemaId,
-  getRoomById,
-  createRoom,
-  updateRoom,
-  deleteRoom,
-} from "@/services/roomService"
-
-import {
-  getSeatsByRoom,
-  createSeat,
-  updateSeat,
-  deleteSeat,
-} from "@/services/seatService"
-
-import {
-  getAllShowtimes,
-  getShowtimesByMovie,
-  getShowtimesByRoom,
-  createShowtime,
-  updateShowtime,
-  deleteShowtime,
-} from "@/services/showtimeService"
-
-import { MovieService, Movie } from "@/services/movieService"
 
 interface Cinema {
   id: string
@@ -91,6 +78,7 @@ interface Room {
   capacity: number
   createdAt?: string
   updatedAt?: string
+  __v?: number
 }
 
 interface Seat {
@@ -105,14 +93,12 @@ interface Seat {
 }
 
 interface Showtime {
-  _id: string
+  _id: string // Changed from `id` to `_id`
   movieId: number
-  roomId: string
+  roomId: Room // Changed from `string` to `Room`
   startTime: string
   endTime: string
   price: number
-  createdAt?: string
-  updatedAt?: string
   movie?: Movie
 }
 
@@ -140,6 +126,7 @@ export default function AdminCinema() {
     seatNumber: "",
     row: "",
     column: 0,
+    type: "standard",
   })
   const [showtimeForm, setShowtimeForm] = useState({
     movieId: 0,
@@ -158,12 +145,7 @@ export default function AdminCinema() {
   const [isSearching, setIsSearching] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchCinemas()
-    fetchMovies()
-  }, [])
-
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     try {
       const moviesList = await MovieService.getAllMovies()
       setMovies(moviesList)
@@ -174,7 +156,27 @@ export default function AdminCinema() {
         variant: "destructive",
       })
     }
-  }
+  }, [toast])
+
+  const fetchCinemas = useCallback(async () => {
+    try {
+      const res = await getAllCinemas()
+      if (res.cinemas) {
+        setCinemas(Array.isArray(res.cinemas) ? res.cinemas : [])
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách rạp phim",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
+  useEffect(() => {
+    fetchCinemas()
+    fetchMovies()
+  }, [fetchCinemas, fetchMovies])
 
   const handleSearchMovies = async () => {
     if (!movieSearchQuery.trim()) return
@@ -198,26 +200,11 @@ export default function AdminCinema() {
     setMovieSearchDialog(false)
   }
 
-  const fetchCinemas = async () => {
-    try {
-      const res = await getAllCinemas()
-      if (res.cinemas) {
-        setCinemas(res.cinemas)
-      }
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách rạp phim",
-        variant: "destructive",
-      })
-    }
-  }
-
   const fetchRooms = async (cinemaId: string) => {
     try {
       const res = await getRoomsByCinemaId(cinemaId)
-      if (res.data) {
-        setRooms(res.data)
+      if (res.rooms) {
+        setRooms(Array.isArray(res.rooms) ? res.rooms : [])
       }
     } catch (error) {
       toast({
@@ -231,8 +218,10 @@ export default function AdminCinema() {
   const fetchSeats = async (roomId: string) => {
     try {
       const res = await getSeatsByRoom(roomId)
-      if (res.data) {
-        setSeats(res.data)
+      if (res.seats) {
+        setSeats(Array.isArray(res.seats) ? res.seats : [])
+      } else {
+        setSeats([])
       }
     } catch (error) {
       toast({
@@ -245,20 +234,24 @@ export default function AdminCinema() {
 
   const fetchShowtimes = async (roomId: string) => {
     try {
-      const res = await getShowtimesByRoom(roomId)
-      if (res.data) {
-        const enrichedShowtimes = await Promise.all(
-          res.data.map(async (showtime: Showtime) => {
-            try {
-              const movie = movies.find((m) => m.id === showtime.movieId)
-              return { ...showtime, movie }
-            } catch (error) {
-              return showtime
-            }
-          })
-        )
-        setShowtimes(enrichedShowtimes)
-      }
+      const res = await getAllShowtimes()
+      console.log("API Response:", res)
+      const showtimes = Array.isArray(res.showtimes) ? res.showtimes : []
+      const filteredShowtimes = showtimes.filter(
+        (showtime: Showtime) => showtime.roomId._id === roomId
+      )
+      console.log("Filtered Showtimes:", filteredShowtimes)
+      const enrichedShowtimes = await Promise.all(
+        filteredShowtimes.map(async (showtime: Showtime) => {
+          try {
+            const movie = movies.find((m) => m.id === showtime.movieId)
+            return { ...showtime, movie }
+          } catch (error) {
+            return showtime
+          }
+        })
+      )
+      setShowtimes(enrichedShowtimes)
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -283,6 +276,7 @@ export default function AdminCinema() {
     setSelectedShowtime(null)
     fetchSeats(room._id)
     fetchShowtimes(room._id)
+    setActiveTab("seats")
   }
 
   const handleAddCinema = async () => {
@@ -411,7 +405,13 @@ export default function AdminCinema() {
         await createSeat(data)
         fetchSeats(selectedRoom._id)
         setSeatDialog(false)
-        setSeatForm({ roomId: "", seatNumber: "", row: "", column: 0 })
+        setSeatForm({
+          roomId: "",
+          seatNumber: "",
+          row: "",
+          column: 0,
+          type: "standard",
+        })
         toast({
           title: "Thành công",
           description: "Đã thêm ghế mới",
@@ -498,15 +498,23 @@ export default function AdminCinema() {
   const handleUpdateShowtime = async () => {
     if (!selectedShowtime) return
     try {
-      await updateShowtime(selectedShowtime._id, showtimeForm)
       if (selectedRoom) {
+        const data = { ...showtimeForm, roomId: selectedRoom._id }
+        await updateShowtime(selectedShowtime.id, data)
         fetchShowtimes(selectedRoom._id)
+        setShowtimeDialog(false)
+        setShowtimeForm({
+          movieId: 0,
+          roomId: "",
+          startTime: "",
+          endTime: "",
+          price: 0,
+        })
+        toast({
+          title: "Thành công",
+          description: "Đã cập nhật lịch chiếu",
+        })
       }
-      setShowtimeDialog(false)
-      toast({
-        title: "Thành công",
-        description: "Đã cập nhật lịch chiếu",
-      })
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -562,6 +570,7 @@ export default function AdminCinema() {
       seatNumber: seat.seatNumber,
       row: seat.row,
       column: seat.column,
+      type: seat.type,
     })
     setSeatDialog(true)
   }
@@ -611,395 +620,60 @@ export default function AdminCinema() {
         </TabsList>
 
         <TabsContent value="cinemas">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Danh Sách Rạp Phim</span>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      setSelectedCinema(null)
-                      setCinemaForm({ name: "", address: "" })
-                      setCinemaDialog(true)
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Thêm Rạp Phim
-                  </Button>
-                  <Button variant="outline" onClick={fetchCinemas}>
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Quản lý thông tin các rạp phim của hệ thống
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên Rạp</TableHead>
-                    <TableHead>Địa Chỉ</TableHead>
-                    <TableHead>Ngày Tạo</TableHead>
-                    <TableHead className="text-right">Tác Vụ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cinemas.map((cinema) => (
-                    <TableRow
-                      key={cinema.id}
-                      className={
-                        selectedCinema?.id === cinema.id ? "bg-muted" : ""
-                      }
-                    >
-                      <TableCell className="font-medium">
-                        {cinema.name}
-                      </TableCell>
-                      <TableCell>{cinema.address}</TableCell>
-                      <TableCell>{formatDate(cinema.createdAt)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelectCinema(cinema)}
-                          >
-                            Chọn
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditCinemaDialog(cinema)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteCinema(cinema.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {cinemas.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        Không có dữ liệu rạp phim
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <CinemasTab
+            cinemas={cinemas}
+            selectedCinema={selectedCinema}
+            fetchCinemas={fetchCinemas}
+            handleSelectCinema={handleSelectCinema}
+            openEditCinemaDialog={openEditCinemaDialog}
+            handleDeleteCinema={handleDeleteCinema}
+            setCinemaDialog={setCinemaDialog}
+            setCinemaForm={setCinemaForm}
+          />
         </TabsContent>
 
         <TabsContent value="rooms">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Danh Sách Phòng Chiếu - {selectedCinema?.name}</span>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      setSelectedRoom(null)
-                      setRoomForm({ cinemaId: "", roomNumber: "", capacity: 0 })
-                      setRoomDialog(true)
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Thêm Phòng
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      selectedCinema && fetchRooms(selectedCinema.id)
-                    }
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setActiveTab("cinemas")}
-                  >
-                    Quay lại
-                  </Button>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Quản lý thông tin các phòng chiếu của rạp:{" "}
-                {selectedCinema?.name}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Phòng Số</TableHead>
-                    <TableHead>Sức Chứa</TableHead>
-                    <TableHead>Ngày Tạo</TableHead>
-                    <TableHead className="text-right">Tác Vụ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rooms.map((room) => (
-                    <TableRow
-                      key={room._id}
-                      className={
-                        selectedRoom?._id === room._id ? "bg-muted" : ""
-                      }
-                    >
-                      <TableCell className="font-medium">
-                        {room.roomNumber}
-                      </TableCell>
-                      <TableCell>{room.capacity} ghế</TableCell>
-                      <TableCell>
-                        {room.createdAt ? formatDate(room.createdAt) : "N/A"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelectRoom(room)}
-                          >
-                            Chọn
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditRoomDialog(room)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteRoom(room._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {rooms.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        Không có dữ liệu phòng chiếu
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <RoomsTab
+            rooms={rooms}
+            selectedCinema={selectedCinema}
+            selectedRoom={selectedRoom}
+            fetchRooms={fetchRooms}
+            handleSelectRoom={handleSelectRoom}
+            openEditRoomDialog={openEditRoomDialog}
+            handleDeleteRoom={handleDeleteRoom}
+            setRoomDialog={setRoomDialog}
+            setRoomForm={setRoomForm}
+            setActiveTab={setActiveTab}
+          />
         </TabsContent>
 
         <TabsContent value="seats">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Danh Sách Ghế - Phòng {selectedRoom?.roomNumber}</span>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      setSelectedSeat(null)
-                      setSeatForm({
-                        roomId: "",
-                        seatNumber: "",
-                        row: "",
-                        column: 0,
-                      })
-                      setSeatDialog(true)
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Thêm Ghế
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => selectedRoom && fetchSeats(selectedRoom._id)}
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setActiveTab("rooms")}
-                  >
-                    Quay lại
-                  </Button>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Quản lý thông tin các ghế trong phòng:{" "}
-                {selectedRoom?.roomNumber}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã Ghế</TableHead>
-                    <TableHead>Hàng</TableHead>
-                    <TableHead>Cột</TableHead>
-                    <TableHead>Loại Ghế</TableHead>
-                    <TableHead className="text-right">Tác Vụ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {seats.map((seat) => (
-                    <TableRow
-                      key={seat._id}
-                      className={
-                        selectedSeat?._id === seat._id ? "bg-muted" : ""
-                      }
-                    >
-                      <TableCell className="font-medium">
-                        {seat.seatNumber}
-                      </TableCell>
-                      <TableCell>{seat.row}</TableCell>
-                      <TableCell>{seat.column}</TableCell>
-                      <TableCell>
-                        {seat.type === "standard" ? "Tiêu chuẩn" : seat.type}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditSeatDialog(seat)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteSeat(seat._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {seats.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        Không có dữ liệu ghế ngồi
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <SeatsTab
+            seats={seats}
+            selectedRoom={selectedRoom}
+            selectedSeat={selectedSeat}
+            fetchSeats={fetchSeats}
+            openEditSeatDialog={openEditSeatDialog}
+            handleDeleteSeat={handleDeleteSeat}
+            setSeatDialog={setSeatDialog}
+            setSeatForm={setSeatForm}
+            setActiveTab={setActiveTab}
+          />
         </TabsContent>
 
         <TabsContent value="showtimes">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Lịch Chiếu - Phòng {selectedRoom?.roomNumber}</span>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      setSelectedShowtime(null)
-                      setShowtimeForm({
-                        movieId: 0,
-                        roomId: "",
-                        startTime: "",
-                        endTime: "",
-                        price: 0,
-                      })
-                      setShowtimeDialog(true)
-                    }}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Thêm Lịch Chiếu
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      selectedRoom && fetchShowtimes(selectedRoom._id)
-                    }
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setActiveTab("rooms")}
-                  >
-                    Quay lại
-                  </Button>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Quản lý lịch chiếu phim trong phòng: {selectedRoom?.roomNumber}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên Phim</TableHead>
-                    <TableHead>Bắt Đầu</TableHead>
-                    <TableHead>Kết Thúc</TableHead>
-                    <TableHead>Giá Vé</TableHead>
-                    <TableHead className="text-right">Tác Vụ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {showtimes.map((showtime) => (
-                    <TableRow
-                      key={showtime._id}
-                      className={
-                        selectedShowtime?._id === showtime._id ? "bg-muted" : ""
-                      }
-                    >
-                      <TableCell className="font-medium">
-                        {getMovieTitle(showtime.movieId)}
-                      </TableCell>
-                      <TableCell>{formatDate(showtime.startTime)}</TableCell>
-                      <TableCell>{formatDate(showtime.endTime)}</TableCell>
-                      <TableCell>
-                        {showtime.price.toLocaleString("vi-VN")} VNĐ
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditShowtimeDialog(showtime)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteShowtime(showtime._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {showtimes.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        Không có dữ liệu lịch chiếu
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <ShowtimesTab
+            showtimes={showtimes}
+            selectedRoom={selectedRoom}
+            selectedShowtime={selectedShowtime}
+            fetchShowtimes={fetchShowtimes}
+            openEditShowtimeDialog={openEditShowtimeDialog}
+            handleDeleteShowtime={handleDeleteShowtime}
+            setShowtimeDialog={setShowtimeDialog}
+            setShowtimeForm={setShowtimeForm}
+            getMovieTitle={getMovieTitle}
+            setActiveTab={setActiveTab}
+          />
         </TabsContent>
       </Tabs>
 
@@ -1063,7 +737,7 @@ export default function AdminCinema() {
               {selectedRoom ? "Chỉnh Sửa Phòng Chiếu" : "Thêm Phòng Chiếu Mới"}
             </DialogTitle>
             <DialogDescription>
-              Nh-entry thông tin chi tiết của phòng chiếu
+              Nhập thông tin chi tiết của phòng chiếu
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
