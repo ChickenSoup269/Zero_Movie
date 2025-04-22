@@ -11,22 +11,28 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
+// Add token to requests via interceptor for authenticated endpoints
 axiosJWT.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  // Add token for non-GET requests (assuming GET endpoints are public)
+  if (config.method !== "get") {
+    const token = localStorage.getItem("token")
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
   }
   return config
 })
 
+// Interface for cinema data (adjusted to match backend)
 interface Cinema {
   id: string
   name: string
   address: string
-  city: string
   createdAt: string
+  updatedAt?: string
 }
 
+// Interface for showtime data (simplified for frontend use)
 interface Showtime {
   id: string
   movieId: string
@@ -36,29 +42,37 @@ interface Showtime {
   createdAt: string
 }
 
+// Interface for cinema request
 interface CinemaRequest {
   name: string
   address: string
-  city: string
 }
 
+// Interface for API response (adjusted to match backend structure)
 interface ApiResponse<T = any> {
-  status: "OK" | "ERR"
-  message?: string
-  data?: T
+  message: string
+  cinema?: T
+  cinemas?: T[]
+  showtimes?: Showtime[]
 }
 
 // Get all cinemas (GET /cinemas)
 export const getAllCinemas = async (): Promise<ApiResponse<Cinema[]>> => {
   try {
     const res = await axiosJWT.get(`${API_URL}/cinemas`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
+      cinemas: res.data.cinemas.map((cinema: any) => ({
+        id: cinema._id,
+        name: cinema.name,
+        address: cinema.address,
+        createdAt: cinema.createdAt,
+        updatedAt: cinema.updatedAt,
+      })),
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }
 
@@ -68,29 +82,43 @@ export const getCinemaById = async (
 ): Promise<ApiResponse<Cinema>> => {
   try {
     const res = await axiosJWT.get(`${API_URL}/cinemas/${cinemaId}`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }
 
 // Get showtimes by cinema ID (GET /cinemas/:id/showtimes)
 export const getShowtimesByCinemaId = async (
-  cinemaId: string
+  cinemaId: string,
+  date?: string,
+  movieId?: string
 ): Promise<ApiResponse<Showtime[]>> => {
   try {
-    const res = await axiosJWT.get(`${API_URL}/cinemas/${cinemaId}/showtimes`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    const query = new URLSearchParams()
+    if (date) query.append("date", date)
+    if (movieId) query.append("movieId", movieId)
+    const res = await axiosJWT.get(
+      `${API_URL}/cinemas/${cinemaId}/showtimes?${query.toString()}`
+    )
+    return {
+      message: res.data.message,
+      cinema: res.data.cinema,
+      showtimes: res.data.showtimes,
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }
 
@@ -100,13 +128,19 @@ export const createCinema = async (
 ): Promise<ApiResponse<Cinema>> => {
   try {
     const res = await axiosJWT.post(`${API_URL}/cinemas`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }
 
@@ -117,28 +151,40 @@ export const updateCinema = async (
 ): Promise<ApiResponse<Cinema>> => {
   try {
     const res = await axiosJWT.put(`${API_URL}/cinemas/${cinemaId}`, data)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }
 
 // Delete a cinema (DELETE /cinemas/:id)
 export const deleteCinema = async (
   cinemaId: string
-): Promise<ApiResponse<void>> => {
+): Promise<ApiResponse<Cinema>> => {
   try {
     const res = await axiosJWT.delete(`${API_URL}/cinemas/${cinemaId}`)
-    if (res.data.status === "ERR") {
-      throw new Error(res.data.message)
+    return {
+      message: res.data.message,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
     }
-    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
-    throw axiosError.response ? axiosError.response.data : axiosError
+    throw axiosError.response?.data || axiosError
   }
 }

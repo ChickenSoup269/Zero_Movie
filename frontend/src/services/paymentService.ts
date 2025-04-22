@@ -15,7 +15,7 @@ if (!API_URL) {
 axiosJWT.interceptors.request.use((config) => {
   // Only add token for non-GET requests
   if (config.method !== "get") {
-    const token = localStorage.getItem("token") // Replace with your token retrieval method
+    const token = localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -25,29 +25,25 @@ axiosJWT.interceptors.request.use((config) => {
 
 // Interface for payment creation request
 interface CreatePaymentRequest {
+  bookingId: string
   amount: number
-  currency: string
+  paymentMethod: "paypal"
+  currency?: string
   description?: string
-  // Add other fields as needed (e.g., bookingId, returnUrl)
 }
 
-// Interface for payment creation response
+// Interface for payment response
 interface Payment {
-  id: string
-  paymentUrl: string // URL to redirect user to payment gateway
-  status: string
-  createdAt: string
-  // Add other fields as needed
-}
-
-// Interface for payment capture response
-interface PaymentCapture {
-  id: string
-  status: string
+  _id: string
+  bookingId: string
+  userId?: string
   amount: number
-  currency: string
-  capturedAt: string
-  // Add other fields as needed
+  status: "pending" | "completed" | "failed"
+  paymentMethod: "paypal"
+  transactionId?: string
+  paymentUrl?: string // Only present for pending payments
+  createdAt: string
+  updatedAt: string
 }
 
 interface ApiResponse<T = any> {
@@ -74,13 +70,29 @@ export const createPayment = async (
 
 // Capture a payment (GET /payments/success)
 export const capturePayment = async (query: {
-  paymentId?: string
+  paymentId: string
   token?: string
-}): Promise<ApiResponse<PaymentCapture>> => {
+}): Promise<ApiResponse<Payment>> => {
   try {
     const res = await axiosJWT.get(`${API_URL}/payments/success`, {
-      params: query, // Send paymentId, token, or other query params
+      params: query,
     })
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
+// Get payment status (GET /payments/:id)
+export const getPaymentStatus = async (
+  paymentId: string
+): Promise<ApiResponse<Payment>> => {
+  try {
+    const res = await axiosJWT.get(`${API_URL}/payments/${paymentId}`)
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }

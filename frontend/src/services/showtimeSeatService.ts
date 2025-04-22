@@ -13,37 +13,56 @@ if (!API_URL) {
 
 // Add token to requests via interceptor for authenticated endpoints
 axiosJWT.interceptors.request.use((config) => {
-  // Only add token for non-GET requests (assuming GET endpoint is public)
-  if (config.method !== "get") {
-    const token = localStorage.getItem("token") // Replace with your token retrieval method
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+  const token = localStorage.getItem("token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
 // Interface for showtime-seat data
 interface ShowtimeSeat {
-  id: string
+  _id: string
   showtimeId: string
   seatId: string
-  seatNumber: string // e.g., 'A1', 'B12'
-  status: "available" | "reserved" | "booked" // Adjust based on backend
-  type: "standard" | "VIP" | "accessible" // Adjust based on backend
-  // Add other fields as needed (e.g., price)
+  status: "available" | "booked" | "reserved"
+  createdAt?: string
+  updatedAt?: string
 }
 
-// Interface for updating seat status request
+// Interface for creating a showtime-seat
+interface CreateShowtimeSeatRequest {
+  showtimeId: string
+  seatId: string
+  status?: "available" | "booked" | "reserved"
+}
+
+// Interface for updating seat status
 interface UpdateSeatStatusRequest {
-  status: "available" | "reserved" | "booked" // Adjust based on backend
+  status: "available" | "booked" | "reserved"
 }
 
-// Interface for API response (matches authService.js style)
+// Interface for API response
 interface ApiResponse<T = any> {
   status: "OK" | "ERR"
   message?: string
   data?: T
+}
+
+// Create a showtime-seat (POST /showtime-seats)
+export const createShowtimeSeat = async (
+  data: CreateShowtimeSeatRequest
+): Promise<ApiResponse<ShowtimeSeat>> => {
+  try {
+    const res = await axiosJWT.post(`${API_URL}/showtime-seats`, data)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
 }
 
 // Get seats by showtime ID (GET /showtime-seats/showtime/:showtimeId)
@@ -64,17 +83,45 @@ export const getSeatsByShowtime = async (
   }
 }
 
-// Update seat status (PUT /showtime-seats/showtime/:showtimeId/seat/:seatId)
+// Get showtime-seat by ID (GET /showtime-seats/:id)
+export const getShowtimeSeatById = async (
+  id: string
+): Promise<ApiResponse<ShowtimeSeat>> => {
+  try {
+    const res = await axiosJWT.get(`${API_URL}/showtime-seats/${id}`)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
+// Update seat status (PUT /showtime-seats/:id)
 export const updateSeatStatus = async (
-  showtimeId: string,
-  seatId: string,
+  id: string,
   data: UpdateSeatStatusRequest
 ): Promise<ApiResponse<ShowtimeSeat>> => {
   try {
-    const res = await axiosJWT.put(
-      `${API_URL}/showtime-seats/showtime/${showtimeId}/seat/${seatId}`,
-      data
-    )
+    const res = await axiosJWT.put(`${API_URL}/showtime-seats/${id}`, data)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
+// Delete a showtime-seat (DELETE /showtime-seats/:id)
+export const deleteShowtimeSeat = async (
+  id: string
+): Promise<ApiResponse<void>> => {
+  try {
+    const res = await axiosJWT.delete(`${API_URL}/showtime-seats/${id}`)
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }

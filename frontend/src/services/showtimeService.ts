@@ -13,39 +13,35 @@ if (!API_URL) {
 
 // Add token to requests via interceptor for authenticated endpoints
 axiosJWT.interceptors.request.use((config) => {
-  // Only add token for non-GET requests (assuming GET endpoints are public)
-  if (config.method !== "get") {
-    const token = localStorage.getItem("token") // Replace with your token retrieval method
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+  const token = localStorage.getItem("token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
 // Interface for showtime data
 interface Showtime {
-  id: string
-  movieId: string
+  _id: string
+  movieId: number
   roomId: string
   startTime: string
   endTime: string
   price: number
-  createdAt: string
-  // Add other fields as needed
+  createdAt?: string
+  updatedAt?: string
 }
 
-// Interface for creating a showtime request
+// Interface for creating/updating a showtime
 interface ShowtimeRequest {
-  movieId: string
+  movieId: number
   roomId: string
   startTime: string
   endTime: string
   price: number
-  // Add other fields as needed
 }
 
-// Interface for API response (matches authService.js style)
+// Interface for API response
 interface ApiResponse<T = any> {
   status: "OK" | "ERR"
   message?: string
@@ -82,12 +78,61 @@ export const getAllShowtimes = async (): Promise<ApiResponse<Showtime[]>> => {
   }
 }
 
+// Get showtimes by movie ID (GET /showtimes/movie/:movieId)
+export const getShowtimesByMovie = async (
+  movieId: number
+): Promise<ApiResponse<Showtime[]>> => {
+  try {
+    const res = await axiosJWT.get(`${API_URL}/showtimes/movie/${movieId}`)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
+// Get showtimes by room ID (GET /showtimes/room/:roomId)
+export const getShowtimesByRoom = async (
+  roomId: string
+): Promise<ApiResponse<Showtime[]>> => {
+  try {
+    const res = await axiosJWT.get(`${API_URL}/showtimes/room/${roomId}`)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
 // Get showtime by ID (GET /showtimes/:id)
 export const getShowtimeById = async (
   showtimeId: string
 ): Promise<ApiResponse<Showtime>> => {
   try {
     const res = await axiosJWT.get(`${API_URL}/showtimes/${showtimeId}`)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
+// Update a showtime (PUT /showtimes/:id)
+export const updateShowtime = async (
+  showtimeId: string,
+  data: Partial<ShowtimeRequest>
+): Promise<ApiResponse<Showtime>> => {
+  try {
+    const res = await axiosJWT.put(`${API_URL}/showtimes/${showtimeId}`, data)
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }

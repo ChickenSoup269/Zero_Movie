@@ -13,37 +13,31 @@ if (!API_URL) {
 
 // Add token to requests via interceptor for authenticated endpoints
 axiosJWT.interceptors.request.use((config) => {
-  // Only add token for non-GET requests (assuming GET endpoints are public)
-  if (config.method !== "get") {
-    const token = localStorage.getItem("token") // Replace with your token retrieval method
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+  const token = localStorage.getItem("token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
 // Interface for room data
 interface Room {
-  id: string
-  name: string
+  _id: string
   cinemaId: string
+  roomNumber: string
   capacity: number
-  type: string // e.g., '2D', '3D', 'IMAX'
-  createdAt: string
-  // Add other fields as needed
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Interface for creating/updating a room request
 interface RoomRequest {
-  name: string
   cinemaId: string
+  roomNumber: string
   capacity: number
-  type: string
-  // Add other fields as needed
 }
 
-// Interface for API response (matches authService.js style)
+// Interface for API response
 interface ApiResponse<T = any> {
   status: "OK" | "ERR"
   message?: string
@@ -80,12 +74,28 @@ export const getAllRooms = async (): Promise<ApiResponse<Room[]>> => {
   }
 }
 
+// Get rooms by cinema ID (GET /rooms/cinema/:cinemaId)
+export const getRoomsByCinemaId = async (
+  cinemaId: string
+): Promise<ApiResponse<Room[]>> => {
+  try {
+    const res = await axiosJWT.get(`${API_URL}/rooms/cinema/${cinemaId}`)
+    if (res.data.status === "ERR") {
+      throw new Error(res.data.message)
+    }
+    return res.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    throw axiosError.response ? axiosError.response.data : axiosError
+  }
+}
+
 // Get room by ID (GET /rooms/:id)
 export const getRoomById = async (
   roomId: string
 ): Promise<ApiResponse<Room>> => {
   try {
-    const res = await axiosJWT.get(`${API_URL}/rooms/${roomId}`)
+    const res = await axiosJWT.get(`${API_URL}/room/${roomId}`)
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Palette,
   CheckSquare,
+  Projector,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -46,6 +47,7 @@ const mainMenuItems = [
   { title: "Dashboard", url: "/adminDashboard", icon: Home },
   { title: "Movies", url: "/movieAdmin", icon: Film },
   { title: "Users", url: "/movieUser", icon: Users },
+  { title: "Cinema", url: "/adminCinema", icon: Projector },
   { title: "Tasks", url: "/adminTask", icon: CheckSquare },
   { title: "Calendar", url: "/admin/calendar", icon: Calendar },
 ]
