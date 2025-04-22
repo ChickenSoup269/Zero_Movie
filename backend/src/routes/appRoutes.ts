@@ -22,7 +22,7 @@ export default function setupRoutes(app: Application) {
   app.use("/api/movies", moviesRoutes);
   app.use("/api/genres", genresRoutes)
   app.use("/api/comments", commentRoutes);
-  app.use("/api/room", roomRoutes)
+  app.use("/api/rooms", roomRoutes)
   app.use("/api/seats", seatRoutes)
   app.use("/api/showtime", showtimeRoutes)
   app.use("/api/showtimeseat", showtimeseatRoutes)
