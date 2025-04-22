@@ -1,18 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
-import { theatersData } from "@/data/theatersData"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
 import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
+import { getAllCinemas } from "@/services/cinemaService"
 
 interface MovieDetailProps {
   params: Promise<{ id: string }>
 }
-
+interface MovieInfo {
+  type: string
+  movieTitle: string
+  director: string
+  tmdbId: number
+}
+interface Theater {
+  id: string
+  name: string
+  address: string
+  createdAt: string
+  updatedAt?: string
+}
 interface MovieUI {
   id: number
   tmdbId: number
@@ -29,16 +41,6 @@ interface MovieUI {
   starring: string
 }
 
-interface Theater {
-  id: number
-  name: string
-  image: string
-  address: string
-  phone: string
-  description: string
-  mapUrl: string
-}
-
 export default function MovieDetail({ params }: MovieDetailProps) {
   const [movie, setMovie] = useState<MovieUI | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,6 +49,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
   const [genreMap, setGenreMap] = useState<Record<number, string>>({})
+  const [theaters, setTheaters] = useState<Theater[]>([])
+  const { toast } = useToast()
 
   // Fetch genre map
   useEffect(() => {
@@ -100,7 +104,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           starring: movieData.starring || "Không xác định",
         }
 
-        console.log("Mapped movieUI:", movieUI) // Debug
+        console.log("Mapped movieUI:", movieUI)
         setMovie(movieUI)
         setLoading(false)
       } catch (err: unknown) {
@@ -115,19 +119,28 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     fetchParamsAndMovie()
   }, [params, genreMap])
 
-  // Map theaters data with CGV prefix
-  const updatedTheatersData: Theater[] =
-    theatersData?.map((theater) => ({
-      ...theater,
-      name: `CGV ${theater.name}`,
-    })) || []
+  // Fetch cinemas from backend
 
-  // Set default selected theater
   useEffect(() => {
-    if (updatedTheatersData.length > 0 && !selectedTheater) {
-      setSelectedTheater(updatedTheatersData[0])
+    const fetchCinemas = async () => {
+      try {
+        const response = await getAllCinemas()
+        console.log("Fetched cinemas:", response.cinemas)
+        const mappedTheaters = (response.cinemas || []).map((cinema) => ({
+          id: cinema.id, // MongoDB _id string
+          name: cinema.name,
+          address: cinema.address,
+          createdAt: cinema.createdAt,
+          updatedAt: cinema.updatedAt,
+        }))
+        setTheaters(mappedTheaters)
+      } catch (err) {
+        console.error("Error fetching cinemas:", err)
+        toast.error("Failed to load cinemas")
+      }
     }
-  }, [updatedTheatersData])
+    fetchCinemas()
+  }, [])
 
   if (loading) {
     return <div className="text-white text-center py-10">Đang tải...</div>
@@ -456,7 +469,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   Rạp chiếu
                 </h3>
                 <div className="space-y-2">
-                  {updatedTheatersData.map((theater) => (
+                  {theaters.map((theater) => (
                     <motion.div
                       key={theater.id}
                       className={`flex justify-between items-center cursor-pointer p-2 rounded ${
@@ -490,14 +503,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           </motion.div>
 
           {/* Seat Selection */}
-          <SeatSelection
-            movieInfo={{
-              type: "Phim",
-              movieTitle: movie.title,
-              director: movie.director,
-            }}
-            theaters={updatedTheatersData}
-          />
+          {movie && <SeatSelection movieInfo={movie} theaters={theaters} />}
         </div>
       </motion.div>
 
@@ -550,22 +556,20 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 </div>
                 <div>
                   <span className="font-semibold">Số điện thoại:</span>{" "}
-                  <span className="text-gray-300">{selectedTheater.phone}</span>
+                  <span className="text-gray-300">0994705379</span>
                 </div>
                 <p className="text-gray-300 text-base">
-                  {selectedTheater.description}
+                  Rạp hay chữ đẹp không cần phải đi xem
                 </p>
               </div>
               <div className="w-full md:w-1/2">
                 <iframe
-                  src={selectedTheater.mapUrl}
-                  width="100%"
-                  height="300"
-                  style={{ border: 0 }}
-                  allowFullScreen
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.7877999948746!2d106.69745087572814!3d10.827544858247322!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317528f4a62fce9b%3A0xc99902aa1e26ef02!2sVan%20Lang%20University%20-%20Main%20Campus!5e0!3m2!1sen!2s!4v1745354284919!5m2!1sen!2s"
+                  width="600"
+                  height="450"
+                  className=" rounded-md"
                   loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+                ></iframe>
               </div>
             </motion.div>
           </motion.div>
