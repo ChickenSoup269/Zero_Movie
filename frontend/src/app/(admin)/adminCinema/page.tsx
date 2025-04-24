@@ -654,7 +654,12 @@ export default function AdminCinema() {
   }
 
   const getMovieTitle = (movieId: number) => {
-    const movie = movies.find((m) => m.id === movieId)
+    const movie = movies.find((m) => m.tmdbId === movieId)
+    console.log("getMovieTitle:", {
+      movieId,
+      foundMovie: movie,
+      title: movie?.title,
+    })
     return movie ? movie.title : `Phim ID: ${movieId}`
   }
 

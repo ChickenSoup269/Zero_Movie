@@ -8,6 +8,7 @@ import Ticket from "./ticket"
 import DatePicker from "./date-picker"
 import SeatPicker from "./seat-picker"
 import { PaymentSummary } from "./payment-summary"
+import PaymentDialog from "./payment-dialog"
 import { format } from "date-fns"
 import CustomDropdown from "@/components/ui-dropdown/custom-dropdown"
 import { getRoomsByCinemaId } from "@/services/roomService"
@@ -16,7 +17,7 @@ import {
   getSeatsByShowtime,
   updateSeatStatus,
 } from "@/services/showtimeSeatService"
-import { createBooking } from "@/services/bookingService"
+import { createBooking, deleteBooking } from "@/services/bookingService"
 import { createPayment, capturePayment } from "@/services/paymentService"
 
 interface MovieInfo {
@@ -47,16 +48,21 @@ interface Theater {
   mapUrl?: string
 }
 
-interface TicketData {
-  theater: Theater
-  movieInfo: MovieInfo
-  selectedSeats: string[]
-  selectedTime: string
-  selectedDate: Date | undefined
-  ticketId: string
-  selectedRoom: string
-  selectedType: string
-  purchaseTime: string
+interface Showtime {
+  id: string
+  movieId: number
+  movieTitle?: string
+  roomId: string
+  roomNumber: string
+  startTime: string
+  endTime: string
+  price: number | null
+}
+
+interface TimeOption {
+  value: string
+  label: string
+  price: number
 }
 
 interface SeatSelectionProps {
@@ -64,25 +70,24 @@ interface SeatSelectionProps {
   theaters: Theater[]
 }
 
+interface SeatPickerRef {
+  markSeatsAsSold: () => void
+}
+
 const parseShowtimeDate = (dateString: string): Date => {
-  const [time, date] = dateString.split(" ")
-  const [hours, minutes] = time.split(":")
-  const [day, month, year] = date.split("/")
-  return new Date(
-    `${year}-${month.padStart(2, "0")}-${day.padStart(
-      2,
-      "0"
-    )}T${hours}:${minutes}:00`
-  )
+  try {
+    return new Date(dateString)
+  } catch (error) {
+    console.error("Invalid date format:", dateString)
+    return new Date()
+  }
 }
 
 const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([])
   const [soldSeats, setSoldSeats] = useState<string[]>([])
   const [ticketCount, setTicketCount] = useState(0)
-  const [selectedDate, setSelectedDate] = useState<Date | undefined | null>(
-    new Date("2025-04-21")
-  )
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date("2025-04-21"))
   const [ticketId, setTicketId] = useState<string>("")
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [selectedType, setSelectedType] = useState<string>("2D")
@@ -99,12 +104,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [roomOptions, setRoomOptions] = useState<
     { value: string; label: string }[]
   >([])
-  const [timeOptions, setTimeOptions] = useState<
-    { value: string; label: string }[]
-  >([])
+  const [timeOptions, setTimeOptions] = useState<TimeOption[]>([])
   const [bookingDetails, setBookingDetails] = useState<any | null>(null)
+  const [priceWarning, setPriceWarning] = useState<string | null>(null)
 
-  const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
+  const seatPickerRef = useRef<SeatPickerRef>(null)
 
   const typeOptions = [
     { value: "2D", label: "2D" },
@@ -122,14 +126,26 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     label: theater.name,
   }))
 
-  // Set initial theater
+  // Đặt rạp mặc định
   useEffect(() => {
+    console.log("Theaters prop:", theaters)
     if (theaters.length > 0 && !selectedTheater) {
       setSelectedTheater(theaters[0])
+      console.log("Đặt rạp mặc định:", theaters[0])
+    } else if (theaters.length === 0) {
+      setError("Không tìm thấy rạp chiếu phim")
+      console.warn("Danh sách rạp rỗng")
     }
-  }, [theaters, selectedTheater])
+  }, [theaters])
 
-  // Generate ticket ID
+  // Kiểm tra movieInfo.tmdbId
+  useEffect(() => {
+    if (!movieInfo.tmdbId) {
+      setError("Thông tin phim không hợp lệ")
+      console.warn("movieInfo.tmdbId không hợp lệ:", movieInfo)
+    }
+  }, [movieInfo])
+
   const generateTicketId = () => {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     const numbers = "0123456789"
@@ -143,7 +159,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     return `${randomLetters}${randomNumbers}`
   }
 
-  // Update ticket ID
   useEffect(() => {
     if (selectedSeats.length === 1 && ticketId === "") {
       setTicketId(generateTicketId())
@@ -152,18 +167,21 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     }
   }, [selectedSeats, ticketId])
 
-  // Update ticket count
   useEffect(() => {
     setTicketCount(selectedSeats.length)
   }, [selectedSeats])
 
-  // Fetch rooms
   useEffect(() => {
     const fetchRooms = async () => {
-      if (!selectedTheater?.id) return
+      if (!selectedTheater?.id) {
+        console.warn("Không có cinemaId để lấy phòng")
+        setError("Vui lòng chọn rạp chiếu phim hợp lệ")
+        return
+      }
       try {
         setError(null)
         const response = await getRoomsByCinemaId(selectedTheater.id)
+        console.log("Phản hồi phòng:", response)
         const options =
           response.rooms?.map((room) => ({
             value: room._id,
@@ -172,78 +190,130 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         setRoomOptions(options)
         setSelectedRoom(options[0]?.value || "")
       } catch (error: any) {
-        setError(error.message || "Failed to fetch rooms")
+        setError(error.message || "Không thể lấy danh sách phòng")
+        console.error("Lỗi khi lấy phòng:", error)
       }
     }
-    fetchRooms()
+    if (selectedTheater?.id) {
+      fetchRooms()
+    }
   }, [selectedTheater?.id])
 
-  // Fetch showtimes
   useEffect(() => {
     const fetchShowtimes = async () => {
-      if (!selectedTheater?.id || !selectedDate) return
+      if (!selectedTheater?.id || !selectedDate || !movieInfo.tmdbId) {
+        console.warn("Thiếu tham số cần thiết để lấy lịch chiếu:", {
+          cinemaId: selectedTheater?.id,
+          date: selectedDate,
+          tmdbId: movieInfo.tmdbId,
+        })
+        setError("Vui lòng chọn rạp, ngày và phim hợp lệ")
+        setTimeOptions([])
+        setShowtimeId(null)
+        setSelectedTime("")
+        setTicketPrice(0)
+        return
+      }
       try {
         setError(null)
+        setPriceWarning(null)
+        console.log("Đang lấy lịch chiếu với tham số:", {
+          cinemaId: selectedTheater.id,
+          date: format(selectedDate, "yyyy-MM-dd"),
+          movieId: movieInfo.tmdbId.toString(),
+        })
         const response = await getShowtimesByCinemaId(
           selectedTheater.id,
           format(selectedDate, "yyyy-MM-dd"),
           movieInfo.tmdbId.toString()
         )
-        const options =
-          response.showtimes
-            ?.filter((showtime) => {
-              const showtimeDate = parseShowtimeDate(showtime.startTime)
-              return (
-                format(showtimeDate, "yyyy-MM-dd") ===
-                format(selectedDate, "yyyy-MM-dd")
-              )
-            })
-            .map((showtime) => ({
-              value: showtime.id,
-              label: format(parseShowtimeDate(showtime.startTime), "HH:mm"),
-            })) || []
+        console.log("Phản hồi lịch chiếu:", response)
+
+        if (!response.showtimes || response.showtimes.length === 0) {
+          console.warn("Không tìm thấy lịch chiếu cho phim và ngày đã chọn")
+          setError("Không tìm thấy lịch chiếu cho phim và ngày đã chọn")
+          setTimeOptions([])
+          setShowtimeId(null)
+          setSelectedTime("")
+          setTicketPrice(0)
+          return
+        }
+
+        // Lọc showtimes theo movieId
+        const filteredShowtimes: Showtime[] = response.showtimes.filter(
+          (showtime: Showtime) => showtime.movieId === movieInfo.tmdbId
+        )
+        console.log("Lịch chiếu đã lọc:", filteredShowtimes)
+
+        if (filteredShowtimes.length === 0) {
+          console.warn(
+            "Không có lịch chiếu nào khớp với movieId:",
+            movieInfo.tmdbId
+          )
+          setError(
+            `Không tìm thấy lịch chiếu cho phim với ID ${movieInfo.tmdbId}`
+          )
+          setTimeOptions([])
+          setShowtimeId(null)
+          setSelectedTime("")
+          setTicketPrice(0)
+          return
+        }
+
+        // Xử lý price
+        let hasInvalidPrice = false
+        const options: TimeOption[] = filteredShowtimes.map((showtime) => {
+          const date = parseShowtimeDate(showtime.startTime)
+          const timeString = format(date, "HH:mm")
+          const price =
+            showtime.price && showtime.price > 0 ? showtime.price : 10
+          if (!showtime.price || showtime.price <= 0) {
+            console.warn("Price không hợp lệ, dùng giá mặc định 10:", showtime)
+            hasInvalidPrice = true
+          }
+          return {
+            value: showtime.id,
+            label: timeString,
+            price,
+          }
+        })
+        console.log("timeOptions đã tạo:", options)
+
+        if (hasInvalidPrice) {
+          setPriceWarning(
+            "Một số suất chiếu có giá không hợp lệ, đang sử dụng giá tạm thời 10đ"
+          )
+        }
+
         setTimeOptions(options)
         if (options.length > 0) {
           setShowtimeId(options[0].value)
           setSelectedTime(options[0].label)
-          const showtime = response.showtimes?.find(
-            (s) => s.id === options[0].value
-          )
-          setTicketPrice(showtime?.price || 0)
+          setTicketPrice(options[0].price)
+          console.log("Đã chọn lịch chiếu đầu tiên:", {
+            showtimeId: options[0].value,
+            time: options[0].label,
+            price: options[0].price,
+          })
         } else {
           setShowtimeId(null)
           setSelectedTime("")
           setTicketPrice(0)
         }
       } catch (error: any) {
-        setError(error.message || "Failed to fetch showtimes")
+        console.error("Lỗi khi lấy lịch chiếu:", error)
+        setError(error.message || "Không thể lấy lịch chiếu")
+        setTimeOptions([])
+        setShowtimeId(null)
+        setSelectedTime("")
+        setTicketPrice(0)
       }
     }
-    fetchShowtimes()
+    if (selectedTheater?.id) {
+      fetchShowtimes()
+    }
   }, [selectedTheater?.id, selectedDate, movieInfo.tmdbId])
 
-  // Fetch seat statuses
-  useEffect(() => {
-    const fetchSeatStatus = async () => {
-      if (!showtimeId) return
-      try {
-        setError(null)
-        const response = await getSeatsByShowtime(showtimeId)
-        const bookedSeats =
-          response.seats
-            ?.filter(
-              (seat) => seat.status === "booked" || seat.status === "reserved"
-            )
-            .map((seat) => seat.seatNumber) || []
-        setSoldSeats(bookedSeats)
-      } catch (error: any) {
-        setError(error.message || "Failed to fetch seat statuses")
-      }
-    }
-    fetchSeatStatus()
-  }, [showtimeId])
-
-  // Handle seat changes
   const handleSeatsChange = (
     newSelectedSeats: string[],
     newSoldSeats: string[]
@@ -252,25 +322,27 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     setSoldSeats(newSoldSeats)
   }
 
-  // Handle buy click
-  const handleBuyClick = async () => {
+  const handleBuyClick = () => {
     if (selectedSeats.length === 0) {
-      setError("Please select at least one seat!")
+      setError("Vui lòng chọn ít nhất một ghế!")
       return
     }
     if (!showtimeId) {
-      setError("Please select a valid showtime!")
+      setError("Vui lòng chọn lịch chiếu hợp lệ!")
       return
     }
     if (!localStorage.getItem("token")) {
-      setError("Please log in to proceed with booking!")
+      setError("Vui lòng đăng nhập để tiếp tục đặt vé!")
       window.location.href = "/login"
       return
     }
+    setIsPaymentOpen(true)
+  }
 
+  const handlePaymentConfirm = async (method: string) => {
     try {
       setError(null)
-      const seatResponse = await getSeatsByShowtime(showtimeId)
+      const seatResponse = await getSeatsByShowtime(showtimeId!)
       const seatIds = selectedSeats
         .map(
           (seatNumber) =>
@@ -279,15 +351,18 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         .filter((id): id is string => !!id)
 
       if (seatIds.length !== selectedSeats.length) {
-        setError("Some selected seats are invalid or unavailable!")
+        setError("Một số ghế đã chọn không hợp lệ hoặc không còn trống!")
         return
       }
 
-      const bookingResponse = await createBooking({ showtimeId, seatIds })
+      const bookingResponse = await createBooking({
+        showtimeId: showtimeId!,
+        seatIds,
+      })
       const bookingId = bookingResponse.data?.booking._id
 
       if (!bookingId) {
-        setError("Failed to create booking!")
+        setError("Không thể tạo đặt vé!")
         return
       }
 
@@ -304,14 +379,19 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         )
         window.location.href = paymentResponse.data.approveUrl
       } else {
-        setError("Failed to initiate payment!")
+        setError("Không thể khởi tạo thanh toán!")
+        await deleteBooking(bookingId)
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred during booking or payment")
+      setError(
+        error.message || "Đã xảy ra lỗi trong quá trình đặt vé hoặc thanh toán"
+      )
+      if (bookingId) {
+        await deleteBooking(bookingId)
+      }
     }
   }
 
-  // Handle payment capture
   useEffect(() => {
     const handlePaymentCapture = async () => {
       const urlParams = new URLSearchParams(window.location.search)
@@ -327,7 +407,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           pendingBooking
 
         if (!showtimeId || !bookingId) {
-          setError("Invalid booking state!")
+          setError("Trạng thái đặt vé không hợp lệ!")
           return
         }
 
@@ -383,11 +463,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             window.location.pathname
           )
         } else {
-          setError("Payment was not completed successfully!")
+          setError("Thanh toán chưa được hoàn tất!")
           await deleteBooking(bookingId)
         }
       } catch (error: any) {
-        setError(error.message || "Failed to capture payment")
+        setError(error.message || "Không thể xác nhận thanh toán")
         if (pendingBooking.bookingId) {
           await deleteBooking(pendingBooking.bookingId)
         }
@@ -418,6 +498,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       selectedSeats,
       showtimeId,
       ticketCount,
+      selectedDate,
+      selectedRoom,
+      timeOptions,
     })
   }, [
     selectedTime,
@@ -426,146 +509,173 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     selectedSeats,
     showtimeId,
     ticketCount,
+    selectedDate,
+    selectedRoom,
+    timeOptions,
   ])
 
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-      {selectedTheater ? (
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <DatePicker
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-          />
-          <CustomDropdown
-            label="Time"
-            value={showtimeId || ""}
-            onChange={(value) => {
-              const showtime = showtimes.find((s) => s.id === value)
-              console.log("Time Dropdown Changed:", { value, showtime })
-              setShowtimeId(value)
-              setSelectedTime(
-                showtime
-                  ? format(parseShowtimeDate(showtime.startTime), "HH:mm")
-                  : ""
-              )
-              setTicketPrice(showtime ? showtime.price : 0)
-            }}
-            options={timeOptions}
-            delay={0}
-          />
-          <CustomDropdown
-            label="Type"
-            value={selectedType}
-            onChange={setSelectedType}
-            options={typeOptions}
-            delay={0.1}
-          />
-          <CustomDropdown
-            label="Room"
-            value={selectedRoom}
-            onChange={setSelectedRoom}
-            options={roomOptions}
-            delay={0.2}
-          />
-          <CustomDropdown
-            label="Cinema"
-            value={selectedTheater.id || ""}
-            onChange={(value) => {
-              const theater = theaters.find((t) => t.id === value)
-              if (theater) setSelectedTheater(theater)
-            }}
-            options={theaterOptions}
-            delay={0.3}
-          />
-          <CustomDropdown
-            label="Select Mode"
-            value={selectionMode}
-            onChange={(value) =>
-              setSelectionMode(value as "single" | "pair" | "triple" | "group4")
-            }
-            options={modeOptions}
-            delay={0.4}
-          />
+      {error && <div className="text-red-500 mb-4 font-semibold">{error}</div>}
+      {priceWarning && (
+        <div className="text-yellow-500 mb-4 font-semibold">{priceWarning}</div>
+      )}
+      {theaters.length === 0 ? (
+        <div className="text-white text-center py-10">
+          Không tìm thấy rạp chiếu phim
+        </div>
+      ) : !selectedTheater ? (
+        <div className="text-white text-center py-10">
+          Đang tải danh sách rạp...
         </div>
       ) : (
-        <div className="text-white text-center py-10">Loading theaters...</div>
-      )}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-        <div className="w-full md:w-1/3 flex flex-col gap-4">
-          <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
-          <div className="p-4 rounded-lg">
-            <p className="text-gray-400 text-sm sm:text-base flex items-center gap-2">
-              <span className="font-bold">Seats:</span>
-              {selectedSeats.length > 0 ? (
-                selectedSeats.map((seat, index) => (
-                  <span
-                    key={index}
-                    className={`text-orange-400 px-2 py-1 rounded-lg inline-block font-mono ${
-                      seat === "D10" ? "bg-red-600" : "bg-gray-800"
-                    }`}
-                  >
-                    {seat}
-                  </span>
-                ))
-              ) : (
-                <span className="text-orange-500">No seats selected</span>
-              )}
-            </p>
-          </div>
-          {isPaymentCompleted && bookingDetails ? (
-            <Ticket
-              theater={selectedTheater!}
-              movieInfo={movieInfo}
-              selectedSeats={selectedSeats}
-              selectedTime={selectedTime}
-              selectedDate={selectedDate || undefined}
-              ticketId={ticketId}
-              selectedRoom={
-                roomOptions.find((opt) => opt.value === selectedRoom)?.label ||
-                ""
+        <>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <DatePicker
+              selectedDate={selectedDate}
+              setSelectedDate={(date) =>
+                setSelectedDate(date || new Date("2025-04-21"))
               }
-              selectedType={selectedType}
             />
-          ) : (
-            <>
-              <PaymentSummary
-                selectedSeats={selectedSeats}
-                selectedTime={selectedTime}
-                selectedDate={selectedDate}
-                originalPrice={originalPrice}
-                savings={savings}
-                totalAmount={totalAmount}
-              />
-              <div className="flex justify-center">
-                <motion.div
-                  initial={{ width: "10rem" }}
-                  whileHover={{ width: "100%" }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="w-full max-w-xs"
-                >
-                  <Button
-                    onClick={handleBuyClick}
-                    className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
-                  >
-                    BUY
-                  </Button>
-                </motion.div>
+            <CustomDropdown
+              label="Thời gian"
+              value={showtimeId || ""}
+              onChange={(value) => {
+                const selectedOption = timeOptions.find(
+                  (opt) => opt.value === value
+                )
+                setShowtimeId(value)
+                setSelectedTime(selectedOption ? selectedOption.label : "")
+                setTicketPrice(selectedOption?.price || 0)
+                console.log("Đã chọn thời gian:", selectedOption)
+              }}
+              options={timeOptions}
+              delay={0}
+            />
+            <CustomDropdown
+              label="Loại vé"
+              value={selectedType}
+              onChange={setSelectedType}
+              options={typeOptions}
+              delay={0.1}
+            />
+            <CustomDropdown
+              label="Phòng chiếu"
+              value={selectedRoom}
+              onChange={setSelectedRoom}
+              options={roomOptions}
+              delay={0.2}
+            />
+            <CustomDropdown
+              label="Rạp"
+              value={selectedTheater.id || ""}
+              onChange={(value) => {
+                const theater = theaters.find((t) => t.id === value)
+                if (theater) setSelectedTheater(theater)
+              }}
+              options={theaterOptions}
+              delay={0.3}
+            />
+            <CustomDropdown
+              label="Ghế"
+              value={selectionMode}
+              onChange={(value) =>
+                setSelectionMode(
+                  value as "single" | "pair" | "triple" | "group4"
+                )
+              }
+              options={modeOptions}
+              delay={0.4}
+            />
+          </div>
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+            <div className="w-full md:w-1/3 flex flex-col gap-4">
+              <h3 className="text-lg sm:text-xl font-bold text-white">
+                Chọn ghế của bạn
+              </h3>
+              <div className="p-4 rounded-lg bg-gray-800">
+                <p className="text-gray-400 text-sm sm:text-base flex items-center gap-2">
+                  <span className="font-bold">Ghế:</span>
+                  {selectedSeats.length > 0 ? (
+                    selectedSeats.map((seat, index) => (
+                      <span
+                        key={index}
+                        className={`text-orange-400 px-2 py-1 rounded-lg inline-block font-mono ${
+                          seat === "D10" ? "bg-red-600" : "bg-gray-700"
+                        }`}
+                      >
+                        {seat}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-orange-500">Chưa chọn ghế</span>
+                  )}
+                </p>
               </div>
-            </>
-          )}
-        </div>
-        <div className="w-full md:w-2/3">
-          <SeatPicker
-            ref={seatPickerRef}
-            selectedRoom={selectedRoom}
-            showtimeId={showtimeId}
-            selectionMode={selectionMode}
-            onSeatsChange={handleSeatsChange}
-            soldSeats={soldSeats}
+              {isPaymentCompleted && bookingDetails ? (
+                <Ticket
+                  theater={selectedTheater}
+                  movieInfo={movieInfo}
+                  selectedSeats={selectedSeats}
+                  selectedTime={selectedTime}
+                  selectedDate={selectedDate}
+                  ticketId={ticketId}
+                  selectedRoom={
+                    roomOptions.find((opt) => opt.value === selectedRoom)
+                      ?.label || ""
+                  }
+                  selectedType={selectedType}
+                />
+              ) : (
+                <>
+                  <PaymentSummary
+                    selectedSeats={selectedSeats}
+                    selectedTime={selectedTime}
+                    selectedDate={selectedDate}
+                    originalPrice={originalPrice}
+                    savings={savings}
+                    totalAmount={totalAmount}
+                    currency="đ"
+                  />
+                  <div className="flex justify-center">
+                    <motion.div
+                      initial={{ width: "10rem" }}
+                      whileHover={{ width: "100%" }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="w-full max-w-xs"
+                    >
+                      <Button
+                        onClick={handleBuyClick}
+                        className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
+                      >
+                        MUA
+                      </Button>
+                    </motion.div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="w-full md:w-2/3">
+              <SeatPicker
+                ref={seatPickerRef}
+                selectedRoom={selectedRoom}
+                showtimeId={showtimeId}
+                selectionMode={selectionMode}
+                onSeatsChange={handleSeatsChange}
+                soldSeats={soldSeats}
+              />
+            </div>
+          </div>
+          <PaymentDialog
+            isOpen={isPaymentOpen}
+            onClose={() => setIsPaymentOpen(false)}
+            onConfirm={handlePaymentConfirm}
+            originalPrice={originalPrice}
+            savings={savings}
+            totalAmount={totalAmount}
           />
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

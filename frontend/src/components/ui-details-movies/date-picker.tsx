@@ -1,4 +1,3 @@
-"use client"
 import { useState } from "react"
 import { format, addDays, subDays, isSameDay, startOfWeek } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
@@ -62,7 +61,11 @@ const DatePicker = ({ selectedDate, setSelectedDate }: DatePickerProps) => {
     if (newStart >= todayStartOfWeek) {
       setDirection(-1)
       setCurrentWeekStart(newStart)
-      setSelectedDate(undefined) // Reset ngày chọn khi chuyển tuần
+      // Set default date to the first day of the new week
+      const firstDay = new Date(newStart)
+      if (firstDay >= today) {
+        setSelectedDate(firstDay)
+      }
     }
   }
 
@@ -70,7 +73,11 @@ const DatePicker = ({ selectedDate, setSelectedDate }: DatePickerProps) => {
     const newStart = addDays(currentWeekStart, 7)
     setDirection(1)
     setCurrentWeekStart(newStart)
-    setSelectedDate(undefined) // Reset ngày chọn khi chuyển tuần
+    // Set default date to the first day of the new week
+    const firstDay = new Date(newStart)
+    if (firstDay >= today) {
+      setSelectedDate(firstDay)
+    }
   }
 
   const handleDateClick = (date: Date) => {
@@ -90,7 +97,7 @@ const DatePicker = ({ selectedDate, setSelectedDate }: DatePickerProps) => {
     }
   }
 
-  // Variants cho animation
+  // Variants for animation
   const variants = {
     enter: {
       y: -50,

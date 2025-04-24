@@ -26,7 +26,6 @@ interface Showtime {
   price: number
   movie?: any
 }
-
 interface Room {
   _id: string
   roomId: string

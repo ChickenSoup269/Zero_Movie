@@ -105,55 +105,38 @@ export const getCinemaById = async (
 // Get showtimes by cinema ID (GET /cinemas/:id/showtimes)
 export const getShowtimesByCinemaId = async (
   cinemaId: string,
-  date: string,
-  tmdbId: string
-) => {
+  date?: string,
+  movieId?: string
+): Promise<ApiResponse<Showtime[]>> => {
   try {
-    console.log("Fetching Showtimes with Inputs:", { cinemaId, date, tmdbId })
-    console.log("Showtimes Request URL:", `${API_URL}/showtimes`)
+    const query = new URLSearchParams()
+    if (date) query.append("date", date)
+    if (movieId) query.append("movieId", movieId)
+    const res = await axiosJWT.get(`${API_URL}/cinemas/${cinemaId}/showtimes`)
+    return {
+      message: res.data.message,
+      cinema: {
+        id: res.data.cinema._id,
+        name: res.data.cinema.name,
+        address: res.data.cinema.address,
+        createdAt: res.data.cinema.createdAt,
+        updatedAt: res.data.cinema.updatedAt,
+      },
+      showtimes: res.data.showtimes.map((showtime: any) => ({
+        id: showtime._id,
+        movieId: showtime.movieId,
+        movieTitle: showtime.movieTitle,
+        roomId: showtime.roomId,
+        roomNumber: showtime.roomNumber,
+        startTime: showtime.startTime,
 
-    let movieId = tmdbId
-    try {
-      const movieResponse = await MovieService.getMovieByTmdbId(tmdbId)
-      movieId = movieResponse._id || movieResponse.id || tmdbId
-      console.log("Mapped tmdbId to movieId:", { tmdbId, movieId })
-    } catch (error) {
-      console.warn("Failed to map tmdbId to _id, using tmdbId:", tmdbId)
-    }
-
-    const response = await axios.get(`${API_URL}/showtimes`, {
-      params: { cinemaId, date, movieId },
-    })
-
-    console.log("Showtimes Raw Response:", response.data)
-
-    const normalizedShowtimes =
-      response.data.showtimes?.map((showtime: any) => ({
-        id: showtime._id || showtime.id,
-        movieId: showtime.movieId || showtime.movie?._id || parseInt(tmdbId),
-        roomId: showtime.roomId?._id || showtime.roomId,
-        startTime: showtime.startTime || showtime.dateTime,
         endTime: showtime.endTime,
-        price: showtime.price || 10,
-        cinemaId: showtime.cinemaId,
-      })) || []
-
-    console.log("Normalized Showtimes:", normalizedShowtimes)
-    return { showtimes: normalizedShowtimes }
-  } catch (error: any) {
-    console.error("Showtimes Fetch Error:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-    })
-    if (error.response?.status === 404) {
-      console.warn(
-        "Showtimes endpoint not found. Check backend route for /api/showtimes."
-      )
+      })),
     }
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch showtimes"
-    )
+  } catch (error) {
+    const axiosError = error as AxiosError
+    const errorData = axiosError.response?.data as { message?: string }
+    throw new Error(errorData?.message || axiosError.message)
   }
 }
 
