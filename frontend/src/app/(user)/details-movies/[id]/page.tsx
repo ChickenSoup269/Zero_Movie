@@ -272,17 +272,21 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         initial="hidden"
         animate="visible"
       >
-        <Image
-          src={movie.image}
-          alt={movie.title}
-          fill
-          loading="lazy"
-          sizes="100vw"
-          style={{
-            objectFit: "cover",
-            maxWidth: "100%",
-            height: "auto"
-          }} />
+        <div className="relative w-full aspect-video">
+          {" "}
+          <Image
+            src={movie.image || "/placeholder.jpg"}
+            alt={movie.title || "Movie"}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.jpg"
+            }}
+            quality={80}
+          />
+        </div>
         <div
           className="absolute inset-0"
           style={{
@@ -310,15 +314,19 @@ export default function MovieDetail({ params }: MovieDetailProps) {
               className="relative sm:w-1/12 xl:w-1/6"
             >
               <div className="absolute inset-0 blur-xl opacity-100">
-                <Image
-                  src={movie.poster}
-                  alt={movie.title}
-                  fill
-                  style={{
-                    objectFit: "cover",
-                    maxWidth: "100%",
-                    height: "auto"
-                  }} />
+                <div className="relative aspect-[2/3] w-full">
+                  {" "}
+                  <Image
+                    src={movie.poster || "/placeholder-poster.jpg"}
+                    alt={movie.title || "Movie poster"}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-poster.jpg"
+                    }}
+                  />
+                </div>
               </div>
               <Image
                 src={movie.poster}
@@ -331,8 +339,9 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 blurDataURL="/fallback-poster.jpg"
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }} />
+                  height: "auto",
+                }}
+              />
             </motion.div>
 
             {/* Movie Info */}
@@ -652,5 +661,5 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

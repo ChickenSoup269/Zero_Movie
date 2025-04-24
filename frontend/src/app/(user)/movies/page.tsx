@@ -241,7 +241,7 @@ const Movies = () => {
 
   return (
     <div className="movies-page">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 pt-32 sm:pt-28 md:pt-36 lg:pt-40 xl:pt-44">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 pt-32 sm:pt-28 md:pt-36 lg:pt-36 xl:pt-44">
         {/* Tabs */}
         <div className="flex justify-center mb-8 space-x-2">
           <Button
@@ -436,21 +436,26 @@ const Movies = () => {
                           animate={hoveredIndex === index ? "hover" : "initial"}
                           className="relative w-full h-full"
                         >
-                          <Image
-                            src={
-                              movie.posterPath
-                                ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
-                                : "/placeholder-image.jpg"
-                            }
-                            alt={movie.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            style={{
-                              objectFit: "cover",
-                              maxWidth: "100%",
-                              height: "auto"
-                            }} />
+                          <div className="relative w-full aspect-[2/3]">
+                            {" "}
+                            {/* Standard poster aspect ratio */}
+                            <Image
+                              src={
+                                movie.posterPath
+                                  ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
+                                  : "/placeholder-image.jpg"
+                              }
+                              alt={movie.title || "Movie poster"}
+                              fill
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              className="object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder-image.jpg"
+                              }}
+                              quality={85}
+                              priority={false} // Set to true if this is a hero image
+                            />
+                          </div>
                         </motion.div>
                       </motion.div>
 
@@ -561,7 +566,7 @@ const Movies = () => {
         )}
       </div>
     </div>
-  );
+  )
 }
 
 export default Movies
