@@ -19,13 +19,15 @@ interface SeatPickerProps {
   selectedRoom: string
   selectionMode: "single" | "pair" | "triple" | "group4"
   onSeatsChange: (selectedSeats: string[], soldSeats: string[]) => void
+  showtimeId: string | null // Added to track showtime-specific seats
 }
+
 interface SeatPickerRef {
   markSeatsAsSold: () => void
 }
 
 const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
-  ({ selectedRoom, selectionMode, onSeatsChange }, ref) => {
+  ({ selectedRoom, selectionMode, onSeatsChange, showtimeId }, ref) => {
     const [selectedSeats, setSelectedSeats] = useState<string[]>([])
     const [soldSeats, setSoldSeats] = useState<string[]>([])
     const [hoveredSeats, setHoveredSeats] = useState<string[]>([])
@@ -33,6 +35,21 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
     const rows = ["A", "B", "C", "D", "E", "F", "G", "H"]
     const seatsPerRow = 18
+
+    useEffect(() => {
+      console.log("SeatPicker Inputs:", {
+        selectedRoom,
+        showtimeId,
+        selectionMode,
+      })
+      // Reset seats when room or showtime changes
+      setSelectedSeats([])
+      setSoldSeats([])
+      console.log("Reset Seats for new room/showtime:", {
+        selectedSeats: [],
+        soldSeats: [],
+      })
+    }, [selectedRoom, showtimeId])
 
     const seatsData = rows.map((row) => ({
       row,
@@ -66,6 +83,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
     }))
 
     useEffect(() => {
+      console.log("SeatPicker State Update:", { selectedSeats, soldSeats })
       onSeatsChange(selectedSeats, soldSeats)
     }, [selectedSeats, soldSeats, onSeatsChange])
 
@@ -73,7 +91,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       if (seat.type === "sold") return
 
       const seatId = `${seat.row}${seat.number}`
-      // Cập nhật số ghế cần chọn theo selectionMode
       const seatsToSelect =
         selectionMode === "single"
           ? 1
@@ -87,7 +104,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       const startIndex = seat.number - 1
 
       if (selectedSeats.includes(seatId)) {
-        // Xử lý bỏ chọn (giữ nguyên)
         let seatsToRemove: string[] = []
         for (let i = 0; i < seatsToSelect; i++) {
           const currentIndex = startIndex + i
@@ -105,7 +121,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         return
       }
 
-      // Kiểm tra giới hạn 8 ghế
       if (selectedSeats.length + seatsToSelect > 8) {
         toast({
           title: "Giới hạn chọn ghế",
@@ -115,7 +130,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         return
       }
 
-      // Kiểm tra ghế liền kề
       let seatsToAdd: string[] = []
       for (let i = 0; i < seatsToSelect; i++) {
         const currentIndex = startIndex + i
@@ -179,6 +193,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
     const handleMouseLeave = () => {
       setHoveredSeats([])
     }
+
     const markSeatsAsSold = () => {
       if (selectedSeats.length === 0) {
         toast({
@@ -191,30 +206,26 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
 
       setSoldSeats((prev) => [...prev, ...selectedSeats])
       setSelectedSeats([])
-
       toast({
         title: "Success!",
         description: `${selectedSeats.length} seats marked as sold`,
         variant: "default",
       })
     }
+
     useImperativeHandle(ref, () => ({
       markSeatsAsSold,
     }))
 
     return (
       <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 shadow-lg">
-        {/* phần màn hình */}
         <div className="relative flex justify-center pt-2 sm:pt-3 md:pt-4">
-          {/* Glow Effect Background */}
           <motion.div
             className="absolute w-full h-[20px] top-0 bg-blue-500 blur-3xl opacity-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.3 }}
             transition={{ duration: 1 }}
           />
-
-          {/* Main Screen */}
           <motion.div
             className="w-[90%] sm:w-[500px] md:w-[700px] h-[60px] sm:h-[80px] md:h-[100px] relative"
             initial={{ opacity: 0, y: -30 }}
@@ -229,8 +240,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
                 clipPath: "inset(0 0 45% 0)",
               }}
             />
-
-            {/* Glow Elements */}
             <motion.div
               className="absolute w-full h-[12px] sm:h-[16px] md:h-[20px] top-0 bg-blue-500 blur-xl sm:blur-3xl md:blur-3xl opacity-20"
               animate={{
@@ -244,8 +253,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
               }}
             />
           </motion.div>
-
-          {/* Screen Text */}
           <motion.div
             className="absolute bottom-4 sm:bottom-5 md:bottom-6 text-white text-lg sm:text-xl md:text-2xl font-bold tracking-widest"
             initial={{ opacity: 0 }}
@@ -258,7 +265,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
             SCREEN
           </motion.div>
         </div>
-        {/* phần ghế  */}
         <div className="grid gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 mt-2 sm:mt-3 md:mt-4 lg:mt-6">
           {seatsData.map((row) => (
             <div
@@ -268,7 +274,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
               <span className="text-gray-400 w-4 sm:w-5 text-xs sm:text-sm">
                 {row.row}
               </span>
-              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 flex-1 justify-center ">
+              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 flex-1 justify-center">
                 {row.seats.map((seat) => {
                   const seatId = `${seat.row}${seat.number}`
                   const isSelected = selectedSeats.includes(seatId)
@@ -322,7 +328,6 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
             </div>
           ))}
         </div>
-        {/* phần chú thích */}
         <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 mt-2 sm:mt-3 md:mt-4 lg:mt-5 text-[10px] sm:text-xs md:text-sm text-gray-400">
           <div className="flex items-center gap-0.5 sm:gap-1">
             <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-white rounded-sm"></div>

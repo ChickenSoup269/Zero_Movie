@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 import { useState, useEffect, useRef } from "react"
@@ -101,30 +102,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [timeOptions, setTimeOptions] = useState<
     { value: string; label: string }[]
   >([])
-  const [showtimes, setShowtimes] = useState<any[]>([])
   const [bookingDetails, setBookingDetails] = useState<any | null>(null)
 
   const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
-
-  // Log state changes
-  useEffect(() => {
-    console.log("SeatSelection State:", {
-      selectedTime,
-      ticketPrice,
-      totalAmount: ticketCount * ticketPrice,
-      selectedSeats,
-      showtimeId,
-      ticketCount,
-      selectedDate: selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
-    })
-  }, [
-    selectedTime,
-    ticketPrice,
-    ticketCount,
-    selectedSeats,
-    showtimeId,
-    selectedDate,
-  ])
 
   const typeOptions = [
     { value: "2D", label: "2D" },
@@ -204,18 +184,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       if (!selectedTheater?.id || !selectedDate) return
       try {
         setError(null)
-        console.log("Fetching Showtimes with:", {
-          cinemaId: selectedTheater.id,
-          date: format(selectedDate, "yyyy-MM-dd"),
-          tmdbId: movieInfo.tmdbId.toString(),
-        })
         const response = await getShowtimesByCinemaId(
           selectedTheater.id,
           format(selectedDate, "yyyy-MM-dd"),
           movieInfo.tmdbId.toString()
         )
-        console.log("Showtimes Response:", response)
-        setShowtimes(response.showtimes || [])
         const options =
           response.showtimes
             ?.filter((showtime) => {
@@ -236,21 +209,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           const showtime = response.showtimes?.find(
             (s) => s.id === options[0].value
           )
-          setTicketPrice(showtime?.price || 10) // Fallback price
-          console.log("Selected Default Showtime:", {
-            showtimeId: options[0].value,
-            time: options[0].label,
-            price: showtime?.price || 10,
-          })
+          setTicketPrice(showtime?.price || 0)
         } else {
           setShowtimeId(null)
           setSelectedTime("")
           setTicketPrice(0)
-          setError("No showtimes available for the selected date and theater.")
         }
       } catch (error: any) {
         setError(error.message || "Failed to fetch showtimes")
-        console.error("Showtimes Error:", error)
       }
     }
     fetchShowtimes()
@@ -270,7 +236,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             )
             .map((seat) => seat.seatNumber) || []
         setSoldSeats(bookedSeats)
-        console.log("Fetched Seat Statuses:", bookedSeats)
       } catch (error: any) {
         setError(error.message || "Failed to fetch seat statuses")
       }
@@ -285,10 +250,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   ) => {
     setSelectedSeats(newSelectedSeats)
     setSoldSeats(newSoldSeats)
-    console.log("SeatSelection: Seats Changed", {
-      newSelectedSeats,
-      newSoldSeats,
-    })
   }
 
   // Handle buy click
@@ -449,6 +410,24 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const originalPrice = totalAmount
   const savings = 0
 
+  useEffect(() => {
+    console.log("SeatSelection State:", {
+      selectedTime,
+      ticketPrice,
+      totalAmount,
+      selectedSeats,
+      showtimeId,
+      ticketCount,
+    })
+  }, [
+    selectedTime,
+    ticketPrice,
+    totalAmount,
+    selectedSeats,
+    showtimeId,
+    ticketCount,
+  ])
+
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
       {error && <div className="text-red-500 mb-4">{error}</div>}
@@ -470,7 +449,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                   ? format(parseShowtimeDate(showtime.startTime), "HH:mm")
                   : ""
               )
-              setTicketPrice(showtime ? showtime.price || 10 : 0) // Fallback price
+              setTicketPrice(showtime ? showtime.price : 0)
             }}
             options={timeOptions}
             delay={0}
