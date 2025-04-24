@@ -87,20 +87,20 @@ const PosterSlider = ({
             >
               {/* Layer image blur */}
               <div className="absolute inset-0">
-                <Image
-                  src={slide.poster || "/fallback-poster.jpg"}
-                  alt={`${slide.title}-blur`}
-                  width={150}
-                  height={200}
-                  className="rounded-lg shadow-lg"
-                  objectFit="contain"
-                  style={{
-                    filter: "blur(8px)",
-                    opacity: 0.8,
-                    zIndex: -1,
-                    pointerEvents: "none",
-                  }}
-                />
+                <div className="relative h-[200px] w-[150px]">
+                  <Image
+                    src={slide.poster || "/fallback-poster.jpg"}
+                    alt={`${slide.title}-blur`}
+                    fill
+                    className="rounded-lg shadow-lg object-contain" // Using Tailwind's object-contain
+                    style={{
+                      filter: "blur(8px)",
+                      opacity: 0.8,
+                      zIndex: -1,
+                      pointerEvents: "none",
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Layer image gốc với animation */}

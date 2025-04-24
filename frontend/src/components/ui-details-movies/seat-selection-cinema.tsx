@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 import { useState, useEffect, useRef } from "react"
@@ -11,29 +10,6 @@ import PaymentDialog from "./payment-dialog"
 import { PaymentSummary } from "./payment-summary"
 import { format } from "date-fns"
 import CustomDropdown from "@/components/ui-dropdown/custom-dropdown"
-
-// Import services
-import { getSeatsByRoom } from "@/services/seatService"
-import { getRoomsByCinemaId } from "@/services/roomService"
-
-interface Cinema {
-  id: string
-  name: string
-  address: string
-  createdAt: string
-  updatedAt?: string
-}
-
-interface Seat {
-  _id: string
-  roomId: string
-  seatNumber: string
-  row: string
-  column: number
-  type: "standard"
-  createdAt?: string
-  updatedAt?: string
-}
 
 interface MovieInfo {
   type: string
@@ -86,11 +62,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
   const [isPaymentCompleted, setIsPaymentCompleted] = useState(false)
 
-  const [seats, setSeats] = useState<Seat[]>([])
-  const [isLoadingSeats, setIsLoadingSeats] = useState(false)
-  const [selectedRoomObject, setSelectedRoomObject] = useState<any>(null)
   const seatPickerRef = useRef<{ markSeatsAsSold: () => void }>(null)
-  const [rooms, setRooms] = useState<any[]>([])
 
   const timeOptions = [
     { value: "18:00", label: "18:00" },
@@ -102,13 +74,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     { value: "3D", label: "3D" },
     { value: "IMAX", label: "IMAX" },
   ]
-  const roomOptions = Array.isArray(rooms)
-    ? rooms.map((room) => ({
-        value: room.roomNumber,
-        label: room.roomNumber,
-      }))
-    : []
-
+  const roomOptions = [
+    { value: "C1", label: "C1" },
+    { value: "C2", label: "C2" },
+    { value: "C3", label: "C3" },
+  ]
   const theaterOptions = theaters.map((theater) => ({
     value: theater.id.toString(),
     label: theater.name,
@@ -137,27 +107,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   }
 
   useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const roomList = await getRoomsByCinemaId(selectedTheater.id.toString())
-        console.log("Fetched rooms:", roomList)
-        if (Array.isArray(roomList)) {
-          setRooms(roomList)
-        } else {
-          setRooms([])
-        }
-      } catch (error) {
-        console.error("Failed to fetch rooms", error)
-        setRooms([])
-      }
-    }
-
-    fetchRooms()
-  }, [selectedTheater])
-
-  useEffect(() => {
     if (selectedSeats.length === 1 && ticketId === "") {
-      setTicketId(generateTicketId())
+      const newTicketId = generateTicketId()
+      setTicketId(newTicketId)
     } else if (selectedSeats.length === 0) {
       setTicketId("")
     }
@@ -166,24 +118,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   useEffect(() => {
     setTicketCount(selectedSeats.length)
   }, [selectedSeats])
-
-  useEffect(() => {
-    const fetchSeats = async () => {
-      if (!selectedRoomObject?._id) return
-
-      setIsLoadingSeats(true)
-      try {
-        const data = await getSeatsByRoom(selectedRoomObject._id)
-        setSeats(data)
-      } catch (err) {
-        console.error("Error loading seats", err)
-      } finally {
-        setIsLoadingSeats(false)
-      }
-    }
-
-    fetchSeats()
-  }, [selectedRoomObject])
 
   const handleBuyClick = () => {
     if (selectedSeats.length === 0) {
@@ -212,7 +146,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         `Payment confirmed with ${method} for $${totalAmount.toFixed(2)}`
       )
     }
-
     if (seatPickerRef.current) {
       seatPickerRef.current.markSeatsAsSold()
     }
@@ -253,13 +186,19 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const totalAmount = ticketCount * discountedTicketPrice
   const savings = originalPrice - totalAmount
 
+  const formattedDateTime = selectedDate
+    ? `${format(selectedDate, "dd/MM/yyyy")}; ${selectedTime}`
+    : "Not selected"
+
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
+      {/* Sử dụng CustomDropdown */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
         <DatePicker
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
         />
+
         <CustomDropdown
           label="Time"
           value={selectedTime}
@@ -267,6 +206,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           options={timeOptions}
           delay={0}
         />
+
         <CustomDropdown
           label="Type"
           value={selectedType}
@@ -274,6 +214,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           options={typeOptions}
           delay={0.1}
         />
+
         <CustomDropdown
           label="Room"
           value={selectedRoom}
@@ -281,6 +222,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           options={roomOptions}
           delay={0.2}
         />
+
         <CustomDropdown
           label="Cinema"
           value={selectedTheater.id.toString()}
@@ -291,10 +233,13 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           options={theaterOptions}
           delay={0.3}
         />
+
         <CustomDropdown
           label="Select Mode"
           value={selectionMode}
-          onChange={(value) => setSelectionMode(value as any)}
+          onChange={(value) =>
+            setSelectionMode(value as "single" | "pair" | "triple" | "group4")
+          }
           options={modeOptions}
           delay={0.4}
         />
@@ -303,17 +248,22 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
-          <div className="p-4 rounded-lg">
+          <div className="  p-4 rounded-lg">
             <p className="text-gray-400 text-sm sm:text-base flex items-center gap-2">
-              <span className="font-bold">Seats:</span>
+              <span className="0 font-bold">Seats:</span>
+
               {selectedSeats.length > 0 ? (
                 selectedSeats.map((seat, index) => {
-                  const letter = seat.match(/[A-Za-z]+/)?.[0] || ""
-                  const number = seat.match(/\d+/)?.[0] || ""
+                  const letterMatch = seat.match(/[A-Za-z]+/)
+                  const letter = letterMatch ? letterMatch[0] : ""
+                  const numberMatch = seat.match(/\d+/)
+                  const number = numberMatch ? numberMatch[0] : ""
                   return (
                     <span
                       key={index}
-                      className="text-orange-400 px-2 py-1 rounded-lg inline-block font-mono bg-gray-800"
+                      className={`text-orange-400 px-2 py-1 rounded-lg inline-block font-mono  ${
+                        seat === "D10" ? "bg-red-600" : "bg-gray-800"
+                      }`}
                     >
                       {letter}-{number}
                     </span>
@@ -355,7 +305,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
                 >
                   <Button
                     onClick={handleBuyClick}
-                    className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden"
+                    className="w-full px-4 py-2 text-base sm:text-lg bg-white text-black rounded-sm shadow-lg shadow-gray-500/50 hover:bg-[#4599e3] hover:text-white transition-colors duration-300 relative overflow-hidden border-running-effect"
                   >
                     BUY
                   </Button>
@@ -371,8 +321,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             selectedRoom={selectedRoom}
             selectionMode={selectionMode}
             onSeatsChange={handleSeatsChange}
-            seats={seats}
-            isLoading={isLoadingSeats}
           />
         </div>
       </div>

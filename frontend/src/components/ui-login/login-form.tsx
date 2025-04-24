@@ -19,7 +19,7 @@ import { useState, useEffect } from "react"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { useRouter } from "next/navigation"
-import { useUser } from "@/hooks/use-user" // Import useUser
+import { useUser } from "@/hooks/use-user"
 
 const tabVariantsLeft = {
   hidden: { opacity: 0, x: -40 },

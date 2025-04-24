@@ -144,8 +144,10 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     <Image
                       src={slide.image || "/fallback-image.jpg"}
                       alt={slide.title || "Movie slide"}
-                      layout="fill"
-                      objectFit="cover"
+                      fill
+                      style={{
+                        objectFit: "cover",
+                      }}
                       onError={() =>
                         console.error(`Failed to load image: ${slide.image}`)
                       }

@@ -239,6 +239,7 @@ const Movies = ({ slides }: MoviesProps) => {
                       <Image
                         src={movie.poster}
                         alt={movie.title}
+                        sizes=""
                         layout="fill"
                         objectFit="cover"
                       />
