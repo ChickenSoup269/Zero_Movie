@@ -13,12 +13,17 @@ interface MovieDetailProps {
 }
 
 interface Theater {
-  id: string
+  id: string // Change to string to match MovieDetail
   name: string
   address: string
-  createdAt: string
-  updatedAt?: string
+  image?: string // Optional
+  phone?: string // Optional
+  description?: string // Optional
+  mapUrl?: string // Optional
+  createdAt?: string // Optional, from MovieDetail
+  updatedAt?: string // Optional, from MovieDetail
 }
+
 interface MovieUI {
   id: number
   tmdbId: number
@@ -119,9 +124,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     const fetchCinemas = async () => {
       try {
         const response = await getAllCinemas()
-        console.log("Fetched cinemas:", response.cinemas)
         const mappedTheaters = (response.cinemas || []).map((cinema) => ({
-          id: cinema.id, // MongoDB _id string
+          id: cinema.id,
           name: cinema.name,
           address: cinema.address,
           createdAt: cinema.createdAt,
@@ -514,7 +518,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           </motion.div>
 
           {/* Seat Selection */}
-          {movie && <SeatSelection movieInfo={movie} theaters={theaters} />}
+          <SeatSelection movieInfo={movie} theaters={theaters} />
         </div>
       </motion.div>
       {/* Theater Popup */}

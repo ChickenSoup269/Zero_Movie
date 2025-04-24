@@ -7,6 +7,7 @@ interface PaymentSummaryProps {
   originalPrice: number
   savings: number
   totalAmount: number
+  currency?: string
 }
 
 export const PaymentSummary = ({
@@ -16,7 +17,16 @@ export const PaymentSummary = ({
   originalPrice,
   savings,
   totalAmount,
+  currency = "đ",
 }: PaymentSummaryProps) => {
+  console.log("PaymentSummary Props:", {
+    selectedSeats,
+    selectedTime,
+    selectedDate,
+    originalPrice,
+    savings,
+    totalAmount,
+  })
   return (
     <div className=" bg-transparent text-gray-500 rounded-md p-4 sm:p-5">
       <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
@@ -55,7 +65,8 @@ export const PaymentSummary = ({
               Original Price
             </span>
             <span className="text-white font-semibold text-sm sm:text-base">
-              {originalPrice.toFixed(2)}đ
+              {originalPrice.toFixed(2)}
+              {currency}
             </span>
           </div>
 

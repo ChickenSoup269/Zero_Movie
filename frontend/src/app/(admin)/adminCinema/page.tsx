@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 import { useState, useEffect, useCallback } from "react"
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toaster"
-import { RefreshCcw, Plus, Edit, Trash2, Calendar, Search } from "lucide-react"
+import { Search } from "lucide-react"
 
 // Import services
 import {
@@ -93,13 +94,20 @@ interface Seat {
 }
 
 interface Showtime {
-  _id: string // Changed from `id` to `_id`
+  _id: string
   movieId: number
-  roomId: Room // Changed from `string` to `Room`
+  roomId: string
   startTime: string
   endTime: string
   price: number
   movie?: Movie
+}
+
+interface Movie {
+  id: number
+  tmdbId: number
+  title: string
+  _id: string
 }
 
 export default function AdminCinema() {
@@ -126,23 +134,31 @@ export default function AdminCinema() {
     seatNumber: "",
     row: "",
     column: 0,
-    type: "standard",
+    type: "",
   })
-  const [showtimeForm, setShowtimeForm] = useState({
-    movieId: 0,
-    roomId: "",
-    startTime: "",
-    endTime: "",
-    price: 0,
+  const [showtimeForm, setShowtimeForm] = useState<{
+    movieId: number
+    roomId: string
+    startTime: string
+    endTime: string
+    price: number
+  }>({
+    movieId: 0, // Will be set by movie dropdown
+    roomId: "", // Will be set by selectedRoom
+    startTime: "", // Default for testing
+    endTime: "", // Default for testing
+    price: 10, // Default price
   })
   const [cinemaDialog, setCinemaDialog] = useState(false)
   const [roomDialog, setRoomDialog] = useState(false)
   const [seatDialog, setSeatDialog] = useState(false)
   const [showtimeDialog, setShowtimeDialog] = useState(false)
+
   const [movieSearchDialog, setMovieSearchDialog] = useState(false)
   const [movieSearchQuery, setMovieSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Movie[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const { toast } = useToast()
 
   const fetchMovies = useCallback(async () => {
@@ -179,12 +195,32 @@ export default function AdminCinema() {
   }, [fetchCinemas, fetchMovies])
 
   const handleSearchMovies = async () => {
-    if (!movieSearchQuery.trim()) return
     setIsSearching(true)
     try {
-      const results = await MovieService.searchMovies(movieSearchQuery)
-      setSearchResults(results)
+      // Nếu query rỗng, lấy tất cả phim
+      if (!movieSearchQuery.trim()) {
+        setSearchResults(movies)
+      } else {
+        // Kiểm tra xem query có phải là ID (số) không
+        const isNumeric = /^\d+$/.test(movieSearchQuery.trim())
+
+        // Nếu là số, tìm theo ID
+        if (isNumeric) {
+          const movieId = parseInt(movieSearchQuery.trim())
+          const movie = movies.find(
+            (m) => m.id === movieId || m.tmdbId === movieId
+          )
+          setSearchResults(movie ? [movie] : [])
+        } else {
+          // Ngược lại tìm theo tên
+          console.log("Searching for:", movieSearchQuery)
+          const results = await MovieService.searchMovies(movieSearchQuery)
+          console.log("Search results:", results)
+          setSearchResults(results)
+        }
+      }
     } catch (error) {
+      console.error("Error searching movies:", error)
       toast({
         title: "Lỗi",
         description: "Không thể tìm kiếm phim",
@@ -195,8 +231,14 @@ export default function AdminCinema() {
     }
   }
 
+  // Function to handle movie selection
   const handleSelectMovie = (movie: Movie) => {
-    setShowtimeForm({ ...showtimeForm, movieId: movie.id })
+    setSelectedMovie(movie)
+    // Sửa từ setFormData thành setShowtimeForm
+    setShowtimeForm((prev) => ({
+      ...prev,
+      movieId: movie.id,
+    }))
     setMovieSearchDialog(false)
   }
 
@@ -469,56 +511,67 @@ export default function AdminCinema() {
 
   const handleAddShowtime = async () => {
     try {
-      if (selectedRoom) {
-        const data = { ...showtimeForm, roomId: selectedRoom._id }
-        await createShowtime(data)
-        fetchShowtimes(selectedRoom._id)
-        setShowtimeDialog(false)
-        setShowtimeForm({
-          movieId: 0,
-          roomId: "",
-          startTime: "",
-          endTime: "",
-          price: 0,
-        })
+      if (!selectedRoom) {
         toast({
-          title: "Thành công",
-          description: "Đã thêm lịch chiếu mới",
+          title: "Lỗi",
+          description: "Vui lòng chọn phòng chiếu",
+          variant: "destructive",
         })
+        return
       }
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể thêm lịch chiếu",
-        variant: "destructive",
-      })
-    }
-  }
 
-  const handleUpdateShowtime = async () => {
-    if (!selectedShowtime) return
-    try {
-      if (selectedRoom) {
-        const data = { ...showtimeForm, roomId: selectedRoom._id }
-        await updateShowtime(selectedShowtime.id, data)
-        fetchShowtimes(selectedRoom._id)
-        setShowtimeDialog(false)
-        setShowtimeForm({
-          movieId: 0,
-          roomId: "",
-          startTime: "",
-          endTime: "",
-          price: 0,
-        })
-        toast({
-          title: "Thành công",
-          description: "Đã cập nhật lịch chiếu",
-        })
+      const data = {
+        movieId: showtimeForm.movieId,
+        roomId: selectedRoom._id,
+        startTime: showtimeForm.startTime,
+        endTime: showtimeForm.endTime,
+        price: showtimeForm.price,
       }
-    } catch (error) {
+
+      // Validate required fields
+      if (!data.movieId || data.movieId === 0) {
+        console.log("chọn phim lmao")
+        throw new Error("Vui lòng chọn phim hợp lệ")
+      }
+      if (!data.roomId) {
+        throw new Error("Vui lòng chọn phòng chiếu")
+      }
+      if (!data.startTime) {
+        throw new Error("Vui lòng nhập thời gian bắt đầu")
+      }
+      if (!data.endTime) {
+        throw new Error("Vui lòng nhập thời gian kết thúc")
+      }
+      if (!data.price || data.price <= 0) {
+        throw new Error("Vui lòng nhập giá vé hợp lệ")
+      }
+
+      console.log("Creating Showtime with Data:", data)
+
+      await createShowtime(data)
+
+      // Re-fetch showtimes
+      await fetchShowtimes(selectedRoom._id)
+
+      // Reset form and close dialog
+      setShowtimeDialog(false)
+      setShowtimeForm({
+        movieId: 0,
+        roomId: "",
+        startTime: "",
+        endTime: "",
+        price: 0,
+      })
+
+      toast({
+        title: "Thành công",
+        description: "Đã thêm lịch chiếu mới",
+      })
+    } catch (error: any) {
+      console.error("Error adding showtime:", error.message)
       toast({
         title: "Lỗi",
-        description: "Không thể cập nhật lịch chiếu",
+        description: error.message || "Không thể thêm lịch chiếu",
         variant: "destructive",
       })
     }
@@ -542,6 +595,15 @@ export default function AdminCinema() {
         variant: "destructive",
       })
     }
+  }
+
+  const openMovieSearchDialog = () => {
+    // Reset query
+    setMovieSearchQuery("")
+    // Hiển thị tất cả phim có sẵn
+    setSearchResults(movies)
+    // Mở dialog
+    setMovieSearchDialog(true)
   }
 
   const openEditCinemaDialog = (cinema: Cinema) => {
@@ -880,23 +942,40 @@ export default function AdminCinema() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="movieId" className="text-right">
+              <Label htmlFor="movie" className="text-right">
                 Phim
               </Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="movieId"
-                  value={getMovieTitle(showtimeForm.movieId)}
-                  disabled
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setMovieSearchDialog(true)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
+              <Select
+                onValueChange={(value) => {
+                  const selectedMovie = movies.find(
+                    (movie) => movie.tmdbId.toString() === value
+                  )
+                  console.log("Selected Movie:", {
+                    tmdbId: selectedMovie?.tmdbId,
+                    id: selectedMovie?.id,
+                    _id: selectedMovie?._id,
+                    title: selectedMovie?.title,
+                  })
+                  setShowtimeForm({
+                    ...showtimeForm,
+                    movieId: selectedMovie ? selectedMovie.tmdbId : 0,
+                  })
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Chọn phim" />
+                </SelectTrigger>
+                <SelectContent>
+                  {movies.map((movie) => (
+                    <SelectItem
+                      key={movie.tmdbId}
+                      value={movie.tmdbId.toString()}
+                    >
+                      {movie.title} (TMDB ID: {movie.tmdbId})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startTime" className="text-right">
@@ -951,13 +1030,7 @@ export default function AdminCinema() {
             <Button variant="outline" onClick={() => setShowtimeDialog(false)}>
               Hủy
             </Button>
-            <Button
-              onClick={
-                selectedShowtime ? handleUpdateShowtime : handleAddShowtime
-              }
-            >
-              {selectedShowtime ? "Cập nhật" : "Thêm"}
-            </Button>
+            <Button onClick={handleAddShowtime}>Thêm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -995,7 +1068,11 @@ export default function AdminCinema() {
                   {searchResults.map((movie) => (
                     <TableRow key={movie.id}>
                       <TableCell>{movie.title}</TableCell>
-                      <TableCell>{movie.release_date?.split("-")[0]}</TableCell>
+                      <TableCell>
+                        {(movie.releaseDate || movie.release_date)?.split(
+                          "-"
+                        )[0] || "N/A"}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"
