@@ -145,6 +145,7 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                       src={slide.image || "/fallback-image.jpg"}
                       alt={slide.title || "Movie slide"}
                       fill
+                      sizes="100%"
                       style={{
                         objectFit: "cover",
                       }}

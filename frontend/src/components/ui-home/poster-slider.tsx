@@ -92,7 +92,8 @@ const PosterSlider = ({
                     src={slide.poster || "/fallback-poster.jpg"}
                     alt={`${slide.title}-blur`}
                     fill
-                    className="rounded-lg shadow-lg object-contain" // Using Tailwind's object-contain
+                    sizes="100%"
+                    className="rounded-lg shadow-lg object-contain"
                     style={{
                       filter: "blur(8px)",
                       opacity: 0.8,
