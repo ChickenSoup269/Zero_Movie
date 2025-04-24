@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast"
 import ProfileDialog from "@/components/ui-profile/profile-dialog"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import CustomSwitch from "@/components/ui-navbar/switch-theme"
-import Image from "next/legacy/image"
+import Image from "next/image"
 
 // Menu items
 const mainMenuItems = [
@@ -221,7 +221,10 @@ export function AdminSidebar({
                 height={100}
                 className="cursor-pointer transition-transform duration-300 hover:scale-105"
                 onClick={handleBackHomeImage}
-              />
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }} />
             </div>
             <span className="font-bold text-lg font-mono">Admin</span>
           </div>
@@ -236,7 +239,10 @@ export function AdminSidebar({
                 height={100}
                 className="cursor-pointer transition-transform duration-300 hover:scale-105"
                 onClick={handleBackHomeImage}
-              ></Image>
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }}></Image>
             </div>
           </div>
         )}
@@ -257,7 +263,6 @@ export function AdminSidebar({
           )}
         </Button>
       </div>
-
       {/* User profile section */}
       <div
         className={cn(
@@ -337,7 +342,6 @@ export function AdminSidebar({
           </DropdownMenu>
         )}
       </div>
-
       {/* Main navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
@@ -393,7 +397,6 @@ export function AdminSidebar({
           ))}
         </ul>
       </nav>
-
       {/* Bottom actions */}
       <div className="mt-auto px-2 pb-4">
         <ul className="space-y-1">
@@ -480,7 +483,6 @@ export function AdminSidebar({
           ))}
         </ul>
       </div>
-
       {/* Profile Dialog */}
       {user && userProfile && (
         <ProfileDialog
@@ -491,7 +493,6 @@ export function AdminSidebar({
           onProfileUpdate={handleProfileUpdate}
         />
       )}
-
       {/* Version info */}
       {!collapsed && (
         <div className="px-4 py-2 text-xs text-muted-foreground">
@@ -499,7 +500,7 @@ export function AdminSidebar({
         </div>
       )}
     </aside>
-  )
+  );
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

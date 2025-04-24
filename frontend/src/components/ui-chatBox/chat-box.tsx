@@ -9,7 +9,7 @@ import { Send, Loader2, MessageSquareMore } from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService" // Adjust the path to your UserService
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/legacy/image"
+import Image from "next/image"
 
 interface Message {
   role: "user" | "bot"
@@ -178,7 +178,6 @@ export default function ChatBox() {
       >
         <MessageSquareMore className="h-6 w-6 " />
       </Button>
-
       {/* Chat Window with Animation */}
       <AnimatePresence>
         {isOpen && (
@@ -198,7 +197,10 @@ export default function ChatBox() {
                   width={100}
                   height={80}
                   className="cursor-pointer transition-transform duration-300 hover:scale-105"
-                />
+                  style={{
+                    maxWidth: "100%",
+                    height: "auto"
+                  }} />
               </Avatar>
               <div>
                 <h3 className="font-medium text-sm">Gemini X Zero</h3>
@@ -301,5 +303,5 @@ export default function ChatBox() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }

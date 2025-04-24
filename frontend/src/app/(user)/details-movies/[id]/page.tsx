@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
@@ -276,10 +276,13 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           src={movie.image}
           alt={movie.title}
           fill
-          style={{ objectFit: "cover" }}
           loading="lazy"
           sizes="100vw"
-        />
+          style={{
+            objectFit: "cover",
+            maxWidth: "100%",
+            height: "auto"
+          }} />
         <div
           className="absolute inset-0"
           style={{
@@ -288,7 +291,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           }}
         />
       </motion.div>
-
       {/* Main Content */}
       <motion.div
         className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20"
@@ -312,8 +314,11 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   src={movie.poster}
                   alt={movie.title}
                   fill
-                  style={{ objectFit: "cover" }}
-                />
+                  style={{
+                    objectFit: "cover",
+                    maxWidth: "100%",
+                    height: "auto"
+                  }} />
               </div>
               <Image
                 src={movie.poster}
@@ -324,7 +329,10 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 loading="lazy"
                 placeholder="blur"
                 blurDataURL="/fallback-poster.jpg"
-              />
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }} />
             </motion.div>
 
             {/* Movie Info */}
@@ -500,7 +508,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           {movie && <SeatSelection movieInfo={movie} theaters={theaters} />}
         </div>
       </motion.div>
-
       {/* Theater Popup */}
       <AnimatePresence>
         {isTheaterPopupOpen && selectedTheater && (
@@ -569,7 +576,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Trailer Popup */}
       <AnimatePresence>
         {isTrailerOpen && (
@@ -646,5 +652,5 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }

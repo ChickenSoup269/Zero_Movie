@@ -4,7 +4,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -158,12 +158,13 @@ export default function UserProfileDropdown({
                   width={32}
                   height={32}
                   className="object-cover w-full h-full"
+                  onError={() => setAvatarError(true)}
                   style={{
                     borderRadius: "50%",
                     aspectRatio: "1/1",
-                  }}
-                  onError={() => setAvatarError(true)}
-                />
+                    maxWidth: "100%",
+                    height: "auto"
+                  }} />
               ) : (
                 <Avatar className="h-full w-full">
                   <AvatarFallback
@@ -243,7 +244,6 @@ export default function UserProfileDropdown({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
       <ProfileDialog
         open={isProfileDialogOpen}
         onOpenChange={setIsProfileDialogOpen}
@@ -252,5 +252,5 @@ export default function UserProfileDropdown({
         onProfileUpdate={handleProfileUpdate}
       />
     </>
-  )
+  );
 }

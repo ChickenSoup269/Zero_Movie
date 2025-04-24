@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -97,7 +97,10 @@ const SearchPopup = ({
                 width={50}
                 height={75}
                 className="rounded-md mr-3 object-cover"
-              />
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }} />
               <div className="flex-1 text-black dark:text-white">
                 <h3 className="font-semibold text-sm md:text-base">
                   {movie.title}
@@ -117,7 +120,7 @@ const SearchPopup = ({
         </motion.div>
       )}
     </AnimatePresence>
-  )
+  );
 }
 
 export default SearchPopup

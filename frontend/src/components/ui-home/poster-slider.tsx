@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation, Autoplay } from "swiper/modules"
 import { Swiper as SwiperType } from "swiper" // Import Swiper type
@@ -87,18 +87,20 @@ const PosterSlider = ({
             >
               {/* Layer image blur */}
               <div className="absolute inset-0">
-                <div className="relative h-[200px] w-[150px]">
+                <div
+                  className="relative w-full aspect-square rounded-lg shadow-lg"
+                  style={{ height: 100 }}
+                >
                   <Image
                     src={slide.poster || "/fallback-poster.jpg"}
                     alt={`${slide.title}-blur`}
                     fill
-                    sizes="100%"
-                    className="rounded-lg shadow-lg "
+                    sizes="100px"
+                    className="object-cover"
                     style={{
                       filter: "blur(8px)",
                       opacity: 0.8,
                       zIndex: -1,
-                      objectFit: "cover",
                       pointerEvents: "none",
                     }}
                   />
@@ -119,11 +121,10 @@ const PosterSlider = ({
                   <Image
                     src={slide.poster || "/fallback-poster.jpg"}
                     alt={slide.title || "Movie poster"}
-                    width={150}
-                    height={200}
+                    width={250}
+                    height={250}
                     className="rounded-lg shadow-lg b-game-card__cover"
-                    objectFit="contain"
-                    loading="lazy" // Tối ưu tải hình ảnh
+                    loading="lazy"
                   />
                 </motion.div>
               </div>

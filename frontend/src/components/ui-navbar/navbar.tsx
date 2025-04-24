@@ -6,7 +6,7 @@ import CustomSwitch from "@/components/ui-navbar/switch-theme"
 import SearchBar from "@/components/ui-navbar/search-navbar"
 import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X as CloseIcon, Film, Trash2 } from "lucide-react"
 import {
@@ -156,7 +156,10 @@ export default function Navbar() {
               width={isScrolled ? 80 : 100}
               height={isScrolled ? 50 : 80}
               className="cursor-pointer transition-transform duration-300 hover:scale-105"
-            />
+              style={{
+                maxWidth: "100%",
+                height: "auto"
+              }} />
           </Link>
 
           <div className="hidden md:flex space-x-6 text-md">
@@ -262,7 +265,6 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </nav>
-
       <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
         <AnimatePresence>
           {isCartOpen && (
@@ -333,5 +335,5 @@ export default function Navbar() {
         </AnimatePresence>
       </Dialog>
     </>
-  )
+  );
 }

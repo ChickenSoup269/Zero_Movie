@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import PasswordInput from "./password-input"
 import ForgotPasswordDialog from "./forgot-password-dialog"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { useState, useEffect } from "react"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
@@ -129,7 +129,10 @@ const LoginForm = ({
                 width={50}
                 height={50}
                 className="mt-4 mx-auto"
-              />{" "}
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }} />{" "}
               Sign In
             </CardTitle>
             <CardDescription className="text-gray-600 text-center">
@@ -227,7 +230,7 @@ const LoginForm = ({
       </form>
       <ForgotPasswordDialog open={openDialog} setOpenDialog={setOpenDialog} />
     </motion.div>
-  )
+  );
 }
 
 export default LoginForm

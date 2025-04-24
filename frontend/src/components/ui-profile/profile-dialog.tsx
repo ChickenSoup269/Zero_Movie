@@ -2,7 +2,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client"
 import { useState, useEffect } from "react"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -252,12 +252,16 @@ export default function ProfileDialog({
                     src={backgroundUrl || "/default-background.png"}
                     alt="Background"
                     fill
-                    sizes="100%"
-                    style={{ objectFit: "cover" }}
                     onError={() => setBackgroundError(true)}
                     priority
-                    className="transition-opacity group-hover:opacity-70" // Giảm opacity khi hover
-                  />
+                    // Giảm opacity khi hover
+                    className="transition-opacity group-hover:opacity-70"
+                    sizes="100%"
+                    style={{
+                      objectFit: "cover",
+                      maxWidth: "100%",
+                      height: "auto"
+                    }} />
                   {/* Overlay đen khi hover */}
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
@@ -309,15 +313,19 @@ export default function ProfileDialog({
                     src={avatarUrl || "/default-avatar.png"}
                     alt={formData.fullName || "User"}
                     fill
-                    sizes="96px"
-                    style={{ objectFit: "cover", objectPosition: "center" }}
                     className="rounded-full transition-opacity group-hover:opacity-75"
                     onError={() => {
                       console.error("Avatar load error:", avatarUrl)
                       setAvatarError(true)
                     }}
                     priority
-                  />
+                    sizes="96px"
+                    style={{
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      maxWidth: "100%",
+                      height: "auto"
+                    }} />
                 ) : (
                   <Avatar className="h-full w-full">
                     <AvatarFallback className="bg-[#4599e3] text-white text-2xl">
@@ -488,12 +496,11 @@ export default function ProfileDialog({
           </Tabs>
         </DialogContent>
       </Dialog>
-
       <ForgotPasswordDialog
         open={isForgotPasswordDialogOpen}
         setOpenDialog={setIsForgotPasswordDialogOpen}
         userEmail={userProfile?.email || user?.email}
       />
     </>
-  )
+  );
 }

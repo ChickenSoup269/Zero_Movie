@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -194,7 +194,6 @@ const Movies = ({ slides }: MoviesProps) => {
           Upcoming
         </button>
       </div>
-
       <div
         ref={moviesContainerRef}
         className="relative w-full max-w-[54rem] mx-auto flex justify-center items-center"
@@ -236,13 +235,30 @@ const Movies = ({ slides }: MoviesProps) => {
                       animate={hoveredIndex === index ? "hover" : "initial"}
                       className="relative w-full h-full"
                     >
-                      <Image
-                        src={movie.poster}
-                        alt={movie.title}
-                        sizes="100%"
-                        fill
-                        style={{ objectFit: "cover" }}
-                      />
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          aspectRatio: "2/3",
+                        }}
+                      >
+                        <Image
+                          src={movie.poster || "/fallback-poster.jpg"}
+                          alt={movie.title || "Movie poster"}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 30vw"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = "/fallback-poster.jpg"
+                            console.error(
+                              `Failed to load image: ${movie.poster}`
+                            )
+                          }}
+                        />
+                      </div>
                     </motion.div>
                   </motion.div>
 
@@ -322,7 +338,6 @@ const Movies = ({ slides }: MoviesProps) => {
           </motion.div>
         </AnimatePresence>
       </div>
-
       {totalPages > 1 && (
         <div className="flex justify-center mt-8 space-x-4">
           <button

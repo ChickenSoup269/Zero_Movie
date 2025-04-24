@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Lock, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import Image from "next/legacy/image";
+import Image from "next/image";
 interface PaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -173,7 +173,10 @@ const PaymentDialog = ({
                           alt="PayPal Selected Icon"
                           width={20}
                           height={20}
-                        />
+                          style={{
+                            maxWidth: "100%",
+                            height: "auto"
+                          }} />
                       </motion.div>
                     ) : (
                       <motion.div
@@ -189,7 +192,10 @@ const PaymentDialog = ({
                           alt="PayPal Icon"
                           width={20}
                           height={20}
-                        />
+                          style={{
+                            maxWidth: "100%",
+                            height: "auto"
+                          }} />
                       </motion.div>
                     )}
                   </AnimatePresence>

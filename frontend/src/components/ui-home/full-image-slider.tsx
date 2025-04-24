@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation, Autoplay } from "swiper/modules"
 import { motion, AnimatePresence } from "framer-motion"
@@ -141,18 +141,23 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                     variants={imageVariants}
                     className="absolute top-0 left-0 w-full h-full full-screen-img"
                   >
-                    <Image
-                      src={slide.image || "/fallback-image.jpg"}
-                      alt={slide.title || "Movie slide"}
-                      fill
-                      sizes="100%"
+                    <div
                       style={{
-                        objectFit: "cover",
+                        width: "100%",
+                        position: "relative",
+                        aspectRatio: "16/9",
                       }}
-                      onError={() =>
-                        console.error(`Failed to load image: ${slide.image}`)
-                      }
-                    />
+                    >
+                      <Image
+                        src={slide.image || "/fallback-image.jpg"}
+                        alt={slide.title || "Movie slide"}
+                        fill
+                        sizes="100vw"
+                        onError={() =>
+                          console.error(`Failed to load image: ${slide.image}`)
+                        }
+                      />
+                    </div>
                   </motion.div>
                   <motion.div
                     variants={textContainerVariants}
@@ -178,6 +183,10 @@ const FullImageSlider = ({ slides }: FullImageSliderProps) => {
                                 width={45}
                                 height={45}
                                 className="mr-1 rounded-md"
+                                style={{
+                                  maxWidth: "100%",
+                                  height: "auto",
+                                }}
                               />
                             </>
                           ) : (

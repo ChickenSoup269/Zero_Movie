@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import Image from "next/legacy/image"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
@@ -444,10 +444,13 @@ const Movies = () => {
                             }
                             alt={movie.title}
                             fill
-                            style={{ objectFit: "cover" }}
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover"
-                          />
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            style={{
+                              objectFit: "cover",
+                              maxWidth: "100%",
+                              height: "auto"
+                            }} />
                         </motion.div>
                       </motion.div>
 
@@ -558,7 +561,7 @@ const Movies = () => {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default Movies
