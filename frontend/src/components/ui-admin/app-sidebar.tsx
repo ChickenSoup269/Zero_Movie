@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast"
 import ProfileDialog from "@/components/ui-profile/profile-dialog"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import CustomSwitch from "@/components/ui-navbar/switch-theme"
-import Image from "next/image"
+import Image from "next/legacy/image"
 
 // Menu items
 const mainMenuItems = [

@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"

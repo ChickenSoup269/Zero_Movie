@@ -4,7 +4,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,

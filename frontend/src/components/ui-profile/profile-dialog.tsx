@@ -2,7 +2,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client"
 import { useState, useEffect } from "react"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 

@@ -9,7 +9,7 @@ import { Send, Loader2, MessageSquareMore } from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService" // Adjust the path to your UserService
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/image"
+import Image from "next/legacy/image"
 
 interface Message {
   role: "user" | "bot"

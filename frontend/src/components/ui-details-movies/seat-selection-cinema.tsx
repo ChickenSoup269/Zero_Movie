@@ -244,7 +244,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           delay={0.4}
         />
       </div>
-
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h3 className="text-lg sm:text-xl font-bold">Select Your Seats</h3>
@@ -324,7 +323,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           />
         </div>
       </div>
-
       <PaymentDialog
         isOpen={isPaymentOpen}
         onClose={() => setIsPaymentOpen(false)}
@@ -334,7 +332,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         totalAmount={totalAmount}
       />
     </div>
-  )
+  );
 }
 
 export default SeatSelection

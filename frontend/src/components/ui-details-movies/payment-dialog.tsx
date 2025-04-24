@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Lock, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import Image from "next/image";
+import Image from "next/legacy/image";
 interface PaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;

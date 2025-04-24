@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"

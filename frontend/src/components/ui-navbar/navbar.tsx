@@ -6,7 +6,7 @@ import CustomSwitch from "@/components/ui-navbar/switch-theme"
 import SearchBar from "@/components/ui-navbar/search-navbar"
 import LanguageSelector from "@/components/ui-navbar/language-selector"
 import Link from "next/link"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X as CloseIcon, Film, Trash2 } from "lucide-react"
 import {
