@@ -93,11 +93,12 @@ const PosterSlider = ({
                     alt={`${slide.title}-blur`}
                     fill
                     sizes="100%"
-                    className="rounded-lg shadow-lg object-contain"
+                    className="rounded-lg shadow-lg "
                     style={{
                       filter: "blur(8px)",
                       opacity: 0.8,
                       zIndex: -1,
+                      objectFit: "cover",
                       pointerEvents: "none",
                     }}
                   />

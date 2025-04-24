@@ -622,6 +622,7 @@ export default function MovieAdmin() {
                                   src={`https://image.tmdb.org/t/p/w92${movie.posterPath}`}
                                   alt={movie.title}
                                   className="w-12 h-12 object-cover rounded"
+                                  style={{ objectFit: "cover" }}
                                   onError={(e) => {
                                     ;(e.target as HTMLImageElement).src =
                                       "/api/placeholder/92/138"

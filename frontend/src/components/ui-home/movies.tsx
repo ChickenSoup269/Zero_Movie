@@ -240,8 +240,8 @@ const Movies = ({ slides }: MoviesProps) => {
                         src={movie.poster}
                         alt={movie.title}
                         sizes="100%"
-                        layout="fill"
-                        objectFit="cover"
+                        fill
+                        style={{ objectFit: "cover" }}
                       />
                     </motion.div>
                   </motion.div>
