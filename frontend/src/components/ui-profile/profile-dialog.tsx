@@ -10,7 +10,7 @@ import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
-import { Camera, X } from "lucide-react"
+import { Camera } from "lucide-react"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import UserService from "@/services/userService"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
@@ -247,21 +247,16 @@ export default function ProfileDialog({
             <div className="relative h-40 w-full group">
               {/* Background image với overlay */}
               {formData.backgroundImage && !backgroundError ? (
-                <div className="relative h-40 w-full">
+                <div className="relative h-40 w-full ">
                   <Image
                     src={backgroundUrl || "/default-background.png"}
                     alt="Background"
                     fill
-                    onError={() => setBackgroundError(true)}
                     priority
-                    // Giảm opacity khi hover
-                    className="transition-opacity group-hover:opacity-70"
-                    sizes="100%"
-                    style={{
-                      objectFit: "cover",
-                      maxWidth: "100%",
-                      height: "auto"
-                    }} />
+                    sizes="100vw"
+                    className="object-cover transition-opacity group-hover:opacity-70"
+                    onError={() => setBackgroundError(true)}
+                  />
                   {/* Overlay đen khi hover */}
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
@@ -289,20 +284,6 @@ export default function ProfileDialog({
                   onChange={handleBackgroundChange}
                 />
               </label>
-
-              {/* Button X để xóa background (chỉ hiện khi có ảnh) */}
-              {formData.backgroundImage && !backgroundError && (
-                <button
-                  type="button"
-                  className="absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white"
-                  onClick={() => {
-                    setFormData((prev) => ({ ...prev, backgroundImage: "" }))
-                    setBackgroundFile(null)
-                  }}
-                >
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              )}
             </div>
 
             {/* Avatar với hiệu ứng online */}
@@ -311,21 +292,16 @@ export default function ProfileDialog({
                 {formData.avatar && !avatarError ? (
                   <Image
                     src={avatarUrl || "/default-avatar.png"}
-                    alt={formData.fullName || "User"}
+                    alt={formData.fullName || "User avatar"}
                     fill
-                    className="rounded-full transition-opacity group-hover:opacity-75"
+                    priority
+                    sizes="(max-width: 768px) 96px, 128px" // More responsive sizing
+                    className="rounded-full object-cover object-center transition-opacity group-hover:opacity-75"
                     onError={() => {
                       console.error("Avatar load error:", avatarUrl)
                       setAvatarError(true)
                     }}
-                    priority
-                    sizes="96px"
-                    style={{
-                      objectFit: "cover",
-                      objectPosition: "center",
-                      maxWidth: "100%",
-                      height: "auto"
-                    }} />
+                  />
                 ) : (
                   <Avatar className="h-full w-full">
                     <AvatarFallback className="bg-[#4599e3] text-white text-2xl">
@@ -502,5 +478,5 @@ export default function ProfileDialog({
         userEmail={userProfile?.email || user?.email}
       />
     </>
-  );
+  )
 }

@@ -13,13 +13,16 @@ interface Seat {
   row: string
   number: number
   type: "available" | "sold" | "user-select"
+  seatId: string
 }
 
 interface SeatPickerProps {
-  selectedRoom: string
+  seats: { seatNumber: string; status: "available" | "booked" | "reserved" }[]
+  soldSeats: string[]
+  selectedSeats: string[]
+  onSeatsChange: (selectedSeats: string[]) => void
+  showtimeId: string | null
   selectionMode: "single" | "pair" | "triple" | "group4"
-  onSeatsChange: (selectedSeats: string[], soldSeats: string[]) => void
-  showtimeId: string | null // Added to track showtime-specific seats
 }
 
 interface SeatPickerRef {
@@ -27,70 +30,67 @@ interface SeatPickerRef {
 }
 
 const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
-  ({ selectedRoom, selectionMode, onSeatsChange, showtimeId }, ref) => {
-    const [selectedSeats, setSelectedSeats] = useState<string[]>([])
-    const [soldSeats, setSoldSeats] = useState<string[]>([])
+  (
+    {
+      seats,
+      soldSeats,
+      selectedSeats,
+      onSeatsChange,
+      showtimeId,
+      selectionMode,
+    },
+    ref
+  ) => {
     const [hoveredSeats, setHoveredSeats] = useState<string[]>([])
     const { toast } = useToast()
 
-    const rows = ["A", "B", "C", "D", "E", "F", "G", "H"]
-    const seatsPerRow = 18
-
-    useEffect(() => {
-      console.log("SeatPicker Inputs:", {
-        selectedRoom,
-        showtimeId,
-        selectionMode,
-      })
-      // Reset seats when room or showtime changes
-      setSelectedSeats([])
-      setSoldSeats([])
-      console.log("Reset Seats for new room/showtime:", {
-        selectedSeats: [],
-        soldSeats: [],
-      })
-    }, [selectedRoom, showtimeId])
+    const rows = seats.length
+      ? Array.from(
+          new Set(seats.map((seat) => seat.seatNumber.charAt(0)))
+        ).sort()
+      : []
 
     const seatsData = rows.map((row) => ({
       row,
-      seats: Array(seatsPerRow)
-        .fill(null)
-        .map((_, i) => {
-          const seatNumber = i + 1
-          const seatId = `${row}${seatNumber}`
-          let isSold = false
-
-          if (soldSeats.includes(seatId)) {
-            isSold = true
-          } else if (selectedRoom === "C1") {
-            isSold = seatNumber <= 5
-          } else if (selectedRoom === "C2") {
-            isSold = seatNumber >= 14
-          } else if (selectedRoom === "C3") {
-            isSold = seatNumber >= 7 && seatNumber <= 12
-          }
-
+      seats: seats
+        .filter((seat) => seat.seatNumber.startsWith(row))
+        .map((seat) => {
+          const seatNumber = parseInt(seat.seatNumber.slice(1))
+          const seatId = seat.seatNumber
           return {
             row,
             number: seatNumber,
-            type: isSold
-              ? "sold"
-              : selectedSeats.includes(seatId)
-              ? "user-select"
-              : "available",
+            seatId: seatId,
+            type:
+              soldSeats.includes(seatId) ||
+              seat.status === "booked" ||
+              seat.status === "reserved"
+                ? "sold"
+                : selectedSeats.includes(seatId)
+                ? "user-select"
+                : "available",
           } as Seat
-        }),
+        })
+        .sort((a, b) => a.number - b.number),
     }))
 
     useEffect(() => {
+      console.log("SeatPicker Inputs:", { showtimeId, selectionMode, seats })
       console.log("SeatPicker State Update:", { selectedSeats, soldSeats })
-      onSeatsChange(selectedSeats, soldSeats)
-    }, [selectedSeats, soldSeats, onSeatsChange])
+      onSeatsChange(selectedSeats)
+    }, [
+      selectedSeats,
+      soldSeats,
+      onSeatsChange,
+      showtimeId,
+      seats,
+      selectionMode,
+    ])
 
     const handleSeatClick = (seat: Seat) => {
       if (seat.type === "sold") return
 
-      const seatId = `${seat.row}${seat.number}`
+      const seatId = seat.seatId
       const seatsToSelect =
         selectionMode === "single"
           ? 1
@@ -101,7 +101,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
           : 4
 
       const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
-      const startIndex = seat.number - 1
+      const startIndex = rowSeats.findIndex((s) => s.seatId === seatId)
 
       if (selectedSeats.includes(seatId)) {
         let seatsToRemove: string[] = []
@@ -110,14 +110,12 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
           if (currentIndex >= rowSeats.length) break
 
           const currentSeat = rowSeats[currentIndex]
-          const currentSeatId = `${currentSeat.row}${currentSeat.number}`
+          const currentSeatId = currentSeat.seatId
           if (selectedSeats.includes(currentSeatId)) {
             seatsToRemove.push(currentSeatId)
           }
         }
-        setSelectedSeats((prev) =>
-          prev.filter((id) => !seatsToRemove.includes(id))
-        )
+        onSeatsChange(selectedSeats.filter((id) => !seatsToRemove.includes(id)))
         return
       }
 
@@ -138,7 +136,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         const currentSeat = rowSeats[currentIndex]
         if (currentSeat.type === "sold") break
 
-        const currentSeatId = `${currentSeat.row}${currentSeat.number}`
+        const currentSeatId = currentSeat.seatId
         if (!selectedSeats.includes(currentSeatId)) {
           seatsToAdd.push(currentSeatId)
         }
@@ -153,7 +151,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         return
       }
 
-      setSelectedSeats([...selectedSeats, ...seatsToAdd])
+      onSeatsChange([...selectedSeats, ...seatsToAdd])
     }
 
     const handleMouseEnter = (seat: Seat) => {
@@ -169,7 +167,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
           : 4
 
       const rowSeats = seatsData.find((r) => r.row === seat.row)?.seats || []
-      const startIndex = seat.number - 1
+      const startIndex = rowSeats.findIndex((s) => s.seatId === seat.seatId)
       let seatsToHighlight: string[] = []
 
       for (let i = 0; i < seatsToSelect; i++) {
@@ -179,7 +177,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         const currentSeat = rowSeats[currentIndex]
         if (currentSeat.type === "sold") break
 
-        const currentSeatId = `${currentSeat.row}${currentSeat.number}`
+        const currentSeatId = currentSeat.seatId
         seatsToHighlight.push(currentSeatId)
       }
 
@@ -205,7 +203,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
       }
 
       setSoldSeats((prev) => [...prev, ...selectedSeats])
-      setSelectedSeats([])
+      onSeatsChange([])
       toast({
         title: "Success!",
         description: `${selectedSeats.length} seats marked as sold`,
@@ -276,7 +274,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
               </span>
               <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 flex-1 justify-center">
                 {row.seats.map((seat) => {
-                  const seatId = `${seat.row}${seat.number}`
+                  const seatId = seat.seatId
                   const isSelected = selectedSeats.includes(seatId)
                   const isHovered = hoveredSeats.includes(seatId)
 

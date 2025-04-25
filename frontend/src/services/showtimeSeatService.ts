@@ -48,7 +48,9 @@ export const getSeatsByShowtime = async (
   showtimeId: string
 ): Promise<ApiResponse<ShowtimeSeat[]>> => {
   try {
-    const res = await axiosJWT.get(`${API_URL}/showtime/${showtimeId}`)
+    const res = await axiosJWT.get(
+      `${API_URL}/showtimeseat/showtime/${showtimeId}`
+    )
     // Log response để kiểm tra
     console.log("getSeatsByShowtime response:", res.data)
 
@@ -84,7 +86,7 @@ export const updateSeatStatus = async (
 ): Promise<ApiResponse<ShowtimeSeat>> => {
   try {
     const res = await axiosJWT.put(
-      `${API_URL}/showtime-seats/showtime/${showtimeId}/seat/${seatId}`,
+      `${API_URL}/showtimeseat/showtime/${showtimeId}/seat/${seatId}`,
       data
     )
     return {

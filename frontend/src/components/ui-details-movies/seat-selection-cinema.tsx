@@ -51,7 +51,6 @@ interface Theater {
 interface Showtime {
   id: string
   movieId: number
-  movieTitle?: string
   roomId: string | { _id: string; [key: string]: any }
   roomNumber: string
   startTime: string
@@ -68,6 +67,12 @@ interface TimeOption {
 interface SeatSelectionProps {
   movieInfo: MovieInfo
   theaters: Theater[]
+}
+
+interface Seat {
+  id: string
+  seatNumber: string
+  status: "available" | "booked" | "reserved"
 }
 
 interface SeatPickerRef {
@@ -106,9 +111,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [timeOptions, setTimeOptions] = useState<TimeOption[]>([])
   const [bookingDetails, setBookingDetails] = useState<any | null>(null)
   const [priceWarning, setPriceWarning] = useState<string | null>(null)
-  const [availableSeats, setAvailableSeats] = useState<
-    { id: string; seatNumber: string; status: string }[]
-  >([])
+  const [availableSeats, setAvailableSeats] = useState<Seat[]>([])
   const [soldSeats, setSoldSeats] = useState<string[]>([])
   const seatPickerRef = useRef<SeatPickerRef>(null)
 
@@ -373,139 +376,239 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
   useEffect(() => {
     const fetchSeats = async () => {
-      if (!showtimeId) return
+      if (!showtimeId) {
+        console.log("showtimeId is null, skipping fetchSeats")
+        setAvailableSeats([])
+        setSoldSeats([])
+        setError("Vui lòng chọn suất chiếu.")
+        return
+      }
       try {
+        console.log("Fetching seats for showtimeId:", showtimeId)
         const seatResponse = await getSeatsByShowtime(showtimeId)
         console.log("seatResponse:", seatResponse)
-        const seats =
-          seatResponse.seats?.map((seat: any) => ({
-            id: seat.seatId,
-            seatNumber: seat.seatNumber,
-            status: seat.status,
-          })) || []
+        if (!seatResponse.seats || seatResponse.seats.length === 0) {
+          console.warn("No seats returned for showtimeId:", showtimeId)
+          setError("Không có ghế khả dụng cho suất chiếu này.")
+          setAvailableSeats([])
+          setSoldSeats([])
+          return
+        }
+        const seats: Seat[] = seatResponse.seats.map((seat: any) => ({
+          id: seat.seatId,
+          seatNumber: seat.seatNumber,
+          status: seat.status as "available" | "booked" | "reserved",
+        }))
         setAvailableSeats(seats)
         setSoldSeats(
           seats
-            .filter((seat: any) => seat.status === "booked")
-            .map((seat: any) => seat.seatNumber)
+            .filter(
+              (seat) => seat.status === "booked" || seat.status === "reserved"
+            )
+            .map((seat) => seat.seatNumber)
         )
-        // Reset selectedSeats nếu ghế không còn available
         setSelectedSeats((prev) =>
           prev.filter((seatNumber) =>
             seats.some(
-              (s: any) =>
-                s.seatNumber === seatNumber && s.status === "available"
+              (s) => s.seatNumber === seatNumber && s.status === "available"
             )
           )
         )
+        setError(null)
       } catch (error: any) {
         setError(error.message || "Không thể lấy danh sách ghế.")
+        console.error("fetchSeats error:", error)
+        setAvailableSeats([])
+        setSoldSeats([])
       }
     }
     fetchSeats()
   }, [showtimeId])
 
-  const handleSeatsChange = (
-    newSelectedSeats: string[],
-    newSoldSeats: string[]
-  ) => {
+  const handleSeatsChange = (newSelectedSeats: string[]) => {
     setSelectedSeats(newSelectedSeats)
-    setSoldSeats(newSoldSeats)
   }
 
-  const handleBuyClick = () => {
-    console.log("handleBuyClick called with state:", {
+  const handleBuyClick = async () => {
+    console.log("handleBuyClick state:", {
       selectedSeats,
       showtimeId,
       ticketPrice,
       selectedRoom,
       selectedTime,
+      movieInfo,
+      selectedTheater,
+      selectedDate,
     })
+    const token = localStorage.getItem("access_token")
+    console.log("Token in handleBuyClick:", token ? "Present" : "Missing")
+    if (!token) {
+      setError("Vui lòng đăng nhập để tiếp tục đặt vé!")
+      console.warn("No access_token found in handleBuyClick")
+      window.location.href = "/login"
+      return
+    }
     if (selectedSeats.length === 0) {
       setError("Vui lòng chọn ít nhất một ghế!")
-      console.warn("Không có ghế nào được chọn")
       return
     }
     if (!showtimeId) {
       setError("Vui lòng chọn lịch chiếu hợp lệ!")
-      console.warn("showtimeId không hợp lệ:", showtimeId)
       return
     }
-
-    setIsPaymentOpen(true)
+    try {
+      setError(null)
+      const seatResponse = await getSeatsByShowtime(showtimeId)
+      console.log("seatResponse in handleBuyClick:", seatResponse)
+      if (!seatResponse.seats || seatResponse.seats.length === 0) {
+        setError("Không có ghế khả dụng cho suất chiếu này.")
+        return
+      }
+      const invalidSeats = selectedSeats.filter(
+        (seatNumber) =>
+          !seatResponse.seats.find(
+            (s: any) => s.seatNumber === seatNumber && s.status === "available"
+          )
+      )
+      if (invalidSeats.length > 0) {
+        setError(
+          `Ghế ${invalidSeats.join(", ")} không hợp lệ hoặc đã được đặt!`
+        )
+        return
+      }
+      setIsPaymentOpen(true)
+    } catch (error: any) {
+      setError(error.message || "Không thể kiểm tra trạng thái ghế!")
+      console.error("Lỗi khi kiểm tra ghế:", error)
+    }
   }
 
-  const handlePaymentConfirm = async (method: string) => {
+  const handlePaymentConfirm = async (
+    method: string,
+    cardDetails?: {
+      holderName: string
+      cardNumber: string
+      expiry: string
+      cvv: string
+    }
+  ) => {
     console.log("handlePaymentConfirm called with:", {
       showtimeId,
       selectedSeats,
       ticketPrice,
       method,
+      cardDetails,
     })
+    if (!showtimeId) {
+      setError("Lịch chiếu không hợp lệ!")
+      console.error("No showtimeId in handlePaymentConfirm")
+      return
+    }
+    const token = localStorage.getItem("access_token")
+    console.log(
+      "Token in handlePaymentConfirm:",
+      token ? `Present: ${token}` : "Missing"
+    )
+    if (!token) {
+      setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!")
+      console.warn("No access_token found in handlePaymentConfirm")
+      localStorage.removeItem("access_token")
+      window.location.href = "/login"
+      return
+    }
+    // Kiểm tra token hết hạn
+    try {
+      const decoded = JSON.parse(atob(token.split(".")[1]))
+      const exp = decoded.exp * 1000 // Convert to milliseconds
+      if (Date.now() > exp) {
+        setError("Token đã hết hạn. Vui lòng đăng nhập lại!")
+        console.warn("Token expired in handlePaymentConfirm:", decoded)
+        localStorage.removeItem("access_token")
+        window.location.href = "/login"
+        return
+      }
+    } catch (err) {
+      console.error("Error decoding token:", err)
+      setError("Token không hợp lệ. Vui lòng đăng nhập lại!")
+      localStorage.removeItem("access_token")
+      window.location.href = "/login"
+      return
+    }
     let bookingId: string | undefined
     try {
       setError(null)
-      const seatResponse = await getSeatsByShowtime(showtimeId!)
+      console.log("Checking seats for showtimeId:", showtimeId)
+      const seatResponse = await getSeatsByShowtime(showtimeId)
       console.log("seatResponse:", seatResponse)
+      if (!seatResponse.seats || seatResponse.seats.length === 0) {
+        setError("Không có ghế khả dụng cho suất chiếu này.")
+        console.error("No seats available for showtimeId:", showtimeId)
+        return
+      }
       const seatIds = selectedSeats
         .map(
           (seatNumber) =>
-            seatResponse.seats?.find((s) => s.seatNumber === seatNumber)?.seatId
+            seatResponse.seats.find(
+              (s: any) =>
+                s.seatNumber === seatNumber && s.status === "available"
+            )?.seatId
         )
         .filter((id): id is string => !!id)
-
+      console.log("seatIds:", seatIds)
       if (seatIds.length !== selectedSeats.length) {
-        setError("Một số ghế đã chọn không hợp lệ hoặc không còn trống!")
-        console.warn("seatIds không khớp với selectedSeats:", {
-          seatIds,
-          selectedSeats,
-        })
+        setError("Một số ghế không hợp lệ hoặc đã được đặt!")
+        console.error("Invalid seats detected:", { selectedSeats, seatIds })
         return
       }
-
+      console.log("Creating booking with:", { showtimeId, seatIds })
       const bookingResponse = await createBooking({
-        showtimeId: showtimeId!,
+        showtimeId,
         seatIds,
       })
       console.log("bookingResponse:", bookingResponse)
       bookingId = bookingResponse.data?.booking._id
-
       if (!bookingId) {
         setError("Không thể tạo đặt vé!")
-        console.warn(
-          "Không lấy được bookingId từ bookingResponse:",
-          bookingResponse
-        )
+        console.error("Failed to create booking:", bookingResponse)
         return
       }
-
+      console.log("Creating payment with:", {
+        bookingId,
+        amount: ticketCount * ticketPrice,
+        paymentMethod: method,
+      })
       const paymentResponse = await createPayment({
         bookingId,
         amount: ticketCount * ticketPrice,
-        paymentMethod: "paypal",
+        paymentMethod: method as "paypal",
       })
       console.log("paymentResponse:", paymentResponse)
-
-      if (paymentResponse.data?.approveUrl) {
-        localStorage.setItem(
-          "pendingBooking",
-          JSON.stringify({ showtimeId, selectedSeats, bookingId, ticketPrice })
-        )
-        window.location.href = paymentResponse.data.approveUrl
-      } else {
+      if (!paymentResponse.approveUrl) {
         setError("Không thể khởi tạo thanh toán!")
-        console.warn(
-          "Không lấy được approveUrl từ paymentResponse:",
-          paymentResponse
-        )
+        console.error("No approveUrl in paymentResponse:", paymentResponse)
         await deleteBooking(bookingId)
+        return
       }
+      localStorage.setItem(
+        "pendingBooking",
+        JSON.stringify({ showtimeId, selectedSeats, bookingId, ticketPrice })
+      )
+      console.log("Redirecting to PayPal:", paymentResponse.approveUrl)
+      window.location.href = paymentResponse.approveUrl
     } catch (error: any) {
-      console.error("Lỗi trong handlePaymentConfirm:", error)
+      console.error("Lỗi trong handlePaymentConfirm:", {
+        message: error.message || "Unknown error",
+        response: error.response?.data || "No response data",
+        status: error.response?.status || "No status",
+        stack: error.stack,
+      })
       setError(
-        error.message || "Đã xảy ra lỗi trong quá trình đặt vé hoặc thanh toán"
+        error.response?.data?.message ||
+          error.message ||
+          "Không thể xử lý thanh toán. Vui lòng thử lại sau."
       )
       if (bookingId) {
+        console.log("Deleting booking due to error:", bookingId)
         await deleteBooking(bookingId)
       }
     }
@@ -531,11 +634,16 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           return
         }
 
+        console.log("Capturing payment with token:", token)
         const captureResponse = await capturePayment({ token })
         console.log("captureResponse:", captureResponse)
-        const payment = captureResponse.data?.payment
+        const payment = captureResponse.payment
 
         if (payment?.status === "completed") {
+          console.log(
+            "Payment completed, updating seat status for:",
+            selectedSeats
+          )
           const seatResponse = await getSeatsByShowtime(showtimeId)
           for (const seatNumber of selectedSeats) {
             const seat = seatResponse.seats?.find(
@@ -564,8 +672,8 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               },
               seats: selectedSeats.map((seat) => ({
                 seatNumber: seat,
-                row: parseInt(seat.match(/\d+/)?.[0] || "0"),
-                column: seat.match(/[A-Z]+/)?.[0]?.charCodeAt(0) - 64,
+                row: seat.match(/[A-Z]+/)?.[0] || "",
+                column: parseInt(seat.match(/\d+/)?.[0] || "0"),
               })),
               showtime: { startTime: selectedTime, endTime: "" },
             },
@@ -583,15 +691,24 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             document.title,
             window.location.pathname
           )
+          console.log("Payment capture completed, booking details set")
         } else {
           setError("Thanh toán chưa được hoàn tất!")
           console.warn("Thanh toán không hoàn tất:", captureResponse)
           await deleteBooking(bookingId)
         }
       } catch (error: any) {
-        console.error("Lỗi trong handlePaymentCapture:", error)
+        console.error("Lỗi trong handlePaymentCapture:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        })
         setError(error.message || "Không thể xác nhận thanh toán")
         if (pendingBooking.bookingId) {
+          console.log(
+            "Deleting booking due to capture error:",
+            pendingBooking.bookingId
+          )
           await deleteBooking(pendingBooking.bookingId)
         }
       }
@@ -636,6 +753,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     selectedRoom,
     timeOptions,
   ])
+
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
       {error && <div className="text-red-500 mb-4 font-semibold">{error}</div>}
@@ -778,13 +896,17 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               )}
             </div>
             <div className="w-full md:w-2/3">
+              {error && (
+                <div className="text-center text-red-500 mb-4">{error}</div>
+              )}
               <SeatPicker
                 ref={seatPickerRef}
-                selectedRoom={selectedRoom}
+                seats={availableSeats}
+                soldSeats={soldSeats}
+                selectedSeats={selectedSeats}
+                onSeatsChange={handleSeatsChange}
                 showtimeId={showtimeId}
                 selectionMode={selectionMode}
-                onSeatsChange={handleSeatsChange}
-                soldSeats={soldSeats}
               />
             </div>
           </div>

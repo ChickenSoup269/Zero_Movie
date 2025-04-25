@@ -69,7 +69,26 @@ const PaymentDialog = ({
     return `payment:${movieTitle}:${totalAmount}:${Date.now()}`
   }
 
+  const validateExpiryDate = (expiry: string) => {
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) return false
+    const [month, year] = expiry.split("/").map(Number)
+    if (month < 1 || month > 12) return false
+    const currentYear = new Date().getFullYear() % 100 // Last 2 digits
+    const currentMonth = new Date().getMonth() + 1
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return false
+    }
+    return true
+  }
+
   const handleConfirm = () => {
+    console.log("handleConfirm called with:", {
+      paymentMethod,
+      holderName,
+      cardNumber,
+      expiry,
+      cvv,
+    })
     setError(null)
     if (paymentMethod === "card") {
       if (!holderName || !cardNumber || !expiry || !cvv) {
@@ -77,15 +96,15 @@ const PaymentDialog = ({
         return
       }
       if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber)) {
-        setError("Số thẻ không hợp lệ!")
+        setError("Số thẻ không hợp lệ (16 chữ số)!")
         return
       }
-      if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-        setError("Ngày hết hạn không hợp lệ (MM/YY)!")
+      if (!validateExpiryDate(expiry)) {
+        setError("Ngày hết hạn không hợp lệ (MM/YY, phải trong tương lai)!")
         return
       }
       if (!/^\d{3}$/.test(cvv)) {
-        setError("CVV không hợp lệ!")
+        setError("CVV không hợp lệ (3 chữ số)!")
         return
       }
       onConfirm("card", { holderName, cardNumber, expiry, cvv })
@@ -98,6 +117,7 @@ const PaymentDialog = ({
     setCardNumber("")
     setExpiry("")
     setCvv("")
+    setShowQR(false)
     onClose()
   }
 
@@ -338,8 +358,9 @@ const PaymentDialog = ({
                       className="flex flex-col items-center"
                     >
                       <QRCodeSVG value={generateQRData()} size={150} />
-                      <p className="text-sm text-gray-400 mt-2">
+                      <p className="text-sm text-gray-400 mt-2 text-center">
                         Quét mã QR bằng ứng dụng thanh toán (VietQR, MoMo, v.v.)
+                        rồi nhấn "Thanh toán" để xác nhận.
                       </p>
                     </motion.div>
                   )}
@@ -370,7 +391,6 @@ const PaymentDialog = ({
                 <Button
                   onClick={handleConfirm}
                   className="bg-[#4599e3] text-white hover:bg-[#3a82c2] flex items-center gap-2"
-                  disabled={paymentMethod === "qr" && showQR}
                 >
                   <Lock className="w-4 h-4" />
                   Thanh toán

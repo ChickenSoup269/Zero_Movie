@@ -19,14 +19,6 @@ export const PaymentSummary = ({
   totalAmount,
   currency = "đ",
 }: PaymentSummaryProps) => {
-  console.log("PaymentSummary Props:", {
-    selectedSeats,
-    selectedTime,
-    selectedDate,
-    originalPrice,
-    savings,
-    totalAmount,
-  })
   return (
     <div className="bg-transparent text-gray-500 rounded-md p-4 sm:p-5">
       <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
