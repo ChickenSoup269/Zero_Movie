@@ -38,10 +38,11 @@ interface Showtime {
   id: string
   movieId: number
   movieTitle?: string
-  roomId: string
+  roomId: string | { _id: string; [key: string]: any }
   roomNumber: string
   startTime: string
   endTime: string
+  price?: number | null
 }
 
 // Interface for cinema request (matched with backend input)
@@ -112,26 +113,36 @@ export const getShowtimesByCinemaId = async (
     const query = new URLSearchParams()
     if (date) query.append("date", date)
     if (movieId) query.append("movieId", movieId)
-    const res = await axiosJWT.get(`${API_URL}/cinemas/${cinemaId}/showtimes`)
+    const queryString = query.toString() ? `?${query.toString()}` : ""
+    const res = await axiosJWT.get(
+      `${API_URL}/cinemas/${cinemaId}/showtimes${queryString}`
+    )
+    console.log("Raw API response từ getShowtimesByCinemaId:", res.data)
+
     return {
       message: res.data.message,
-      cinema: {
-        id: res.data.cinema._id,
-        name: res.data.cinema.name,
-        address: res.data.cinema.address,
-        createdAt: res.data.cinema.createdAt,
-        updatedAt: res.data.cinema.updatedAt,
-      },
-      showtimes: res.data.showtimes.map((showtime: any) => ({
-        id: showtime._id,
-        movieId: showtime.movieId,
-        movieTitle: showtime.movieTitle,
-        roomId: showtime.roomId,
-        roomNumber: showtime.roomNumber,
-        startTime: showtime.startTime,
-
-        endTime: showtime.endTime,
-      })),
+      cinema: res.data.cinema
+        ? {
+            id: res.data.cinema._id,
+            name: res.data.cinema.name,
+            address: res.data.cinema.address,
+            createdAt: res.data.cinema.createdAt,
+            updatedAt: res.data.cinema.updatedAt,
+          }
+        : undefined,
+      showtimes: res.data.showtimes.map((showtime: any) => {
+        console.log("Showtime trước ánh xạ:", showtime)
+        return {
+          id: showtime._id,
+          movieId: showtime.movieId,
+          movieTitle: showtime.movieTitle,
+          roomId: showtime.roomId?._id || showtime.roomId, // Lấy _id nếu roomId là object
+          roomNumber: showtime.roomNumber,
+          startTime: showtime.startTime,
+          endTime: showtime.endTime,
+          price: showtime.price !== undefined ? showtime.price : null,
+        }
+      }),
     }
   } catch (error) {
     const axiosError = error as AxiosError

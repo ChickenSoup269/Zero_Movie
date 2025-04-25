@@ -52,11 +52,11 @@ interface Showtime {
   id: string
   movieId: number
   movieTitle?: string
-  roomId: string
+  roomId: string | { _id: string; [key: string]: any }
   roomNumber: string
   startTime: string
   endTime: string
-  price: number | null
+  price?: number | null
 }
 
 interface TimeOption {
@@ -133,15 +133,18 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       setSelectedTheater(theaters[0])
       console.log("Đặt rạp mặc định:", theaters[0])
     } else if (theaters.length === 0) {
-      setError("Không tìm thấy rạp chiếu phim")
+      setError(
+        "Không tìm thấy rạp chiếu phim. Vui lòng kiểm tra danh sách rạp."
+      )
       console.warn("Danh sách rạp rỗng")
     }
   }, [theaters])
 
   // Kiểm tra movieInfo.tmdbId
   useEffect(() => {
+    console.log("movieInfo:", movieInfo)
     if (!movieInfo.tmdbId) {
-      setError("Thông tin phim không hợp lệ")
+      setError("Thông tin phim không hợp lệ. Vui lòng chọn phim khác.")
       console.warn("movieInfo.tmdbId không hợp lệ:", movieInfo)
     }
   }, [movieInfo])
@@ -201,13 +204,19 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
   useEffect(() => {
     const fetchShowtimes = async () => {
-      if (!selectedTheater?.id || !selectedDate || !movieInfo.tmdbId) {
+      if (
+        !selectedTheater?.id ||
+        !selectedDate ||
+        !movieInfo.tmdbId ||
+        !selectedRoom
+      ) {
         console.warn("Thiếu tham số cần thiết để lấy lịch chiếu:", {
           cinemaId: selectedTheater?.id,
           date: selectedDate,
           tmdbId: movieInfo.tmdbId,
+          selectedRoom,
         })
-        setError("Vui lòng chọn rạp, ngày và phim hợp lệ")
+        setError("Vui lòng chọn rạp, ngày, phim và phòng hợp lệ")
         setTimeOptions([])
         setShowtimeId(null)
         setSelectedTime("")
@@ -221,17 +230,25 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           cinemaId: selectedTheater.id,
           date: format(selectedDate, "yyyy-MM-dd"),
           movieId: movieInfo.tmdbId.toString(),
+          selectedRoom,
         })
         const response = await getShowtimesByCinemaId(
           selectedTheater.id,
           format(selectedDate, "yyyy-MM-dd"),
           movieInfo.tmdbId.toString()
         )
-        console.log("Phản hồi lịch chiếu:", response)
+        console.log("Raw API response:", response)
 
         if (!response.showtimes || response.showtimes.length === 0) {
           console.warn("Không tìm thấy lịch chiếu cho phim và ngày đã chọn")
-          setError("Không tìm thấy lịch chiếu cho phim và ngày đã chọn")
+          setError(
+            `Không tìm thấy lịch chiếu cho phim "${
+              movieInfo.title
+            }" vào ngày ${format(
+              selectedDate,
+              "dd/MM/yyyy"
+            )}. Vui lòng chọn ngày hoặc phim khác.`
+          )
           setTimeOptions([])
           setShowtimeId(null)
           setSelectedTime("")
@@ -239,19 +256,44 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           return
         }
 
-        // Lọc showtimes theo movieId
+        // Lọc showtimes theo movieId và roomId
         const filteredShowtimes: Showtime[] = response.showtimes.filter(
-          (showtime: Showtime) => showtime.movieId === movieInfo.tmdbId
+          (showtime: Showtime) => {
+            const roomId =
+              typeof showtime.roomId === "string"
+                ? showtime.roomId
+                : showtime.roomId?._id
+            console.log("Showtime kiểm tra:", {
+              id: showtime.id,
+              movieId: showtime.movieId,
+              roomId,
+              selectedRoom,
+              price: showtime.price,
+            })
+            return (
+              showtime.movieId === movieInfo.tmdbId && roomId === selectedRoom
+            )
+          }
         )
         console.log("Lịch chiếu đã lọc:", filteredShowtimes)
 
         if (filteredShowtimes.length === 0) {
           console.warn(
-            "Không có lịch chiếu nào khớp với movieId:",
-            movieInfo.tmdbId
+            "Không có lịch chiếu nào khớp với movieId và roomId:",
+            movieInfo.tmdbId,
+            selectedRoom,
+            "Available showtimes:",
+            response.showtimes
           )
           setError(
-            `Không tìm thấy lịch chiếu cho phim với ID ${movieInfo.tmdbId}`
+            `Không tìm thấy lịch chiếu cho phim "${
+              movieInfo.title
+            }" tại phòng "${
+              roomOptions.find((opt) => opt.value === selectedRoom)?.label
+            }" vào ngày ${format(
+              selectedDate,
+              "dd/MM/yyyy"
+            )}. Vui lòng chọn phòng hoặc ngày khác.`
           )
           setTimeOptions([])
           setShowtimeId(null)
@@ -262,13 +304,20 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
         // Xử lý price
         let hasInvalidPrice = false
+        const defaultPrice = 80000
         const options: TimeOption[] = filteredShowtimes.map((showtime) => {
           const date = parseShowtimeDate(showtime.startTime)
           const timeString = format(date, "HH:mm")
           const price =
-            showtime.price && showtime.price > 0 ? showtime.price : 10
+            showtime.price && showtime.price > 0 ? showtime.price : defaultPrice
+          console.log("Giá vé showtime:", {
+            showtimeId: showtime.id,
+            price: showtime.price,
+          })
           if (!showtime.price || showtime.price <= 0) {
-            console.warn("Price không hợp lệ, dùng giá mặc định 10:", showtime)
+            console.warn(
+              `Price missing or invalid for showtime ${showtime.id}, using default: ${defaultPrice}`
+            )
             hasInvalidPrice = true
           }
           return {
@@ -281,7 +330,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
         if (hasInvalidPrice) {
           setPriceWarning(
-            "Một số suất chiếu có giá không hợp lệ, đang sử dụng giá tạm thời 10đ"
+            "Giá vé không khả dụng cho suất chiếu này. Đang sử dụng giá mặc định 80,000đ. Vui lòng kiểm tra dữ liệu API."
           )
         }
 
@@ -302,17 +351,23 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         }
       } catch (error: any) {
         console.error("Lỗi khi lấy lịch chiếu:", error)
-        setError(error.message || "Không thể lấy lịch chiếu")
+        setError(error.message || "Không thể lấy lịch chiếu. Vui lòng thử lại.")
         setTimeOptions([])
         setShowtimeId(null)
         setSelectedTime("")
         setTicketPrice(0)
       }
     }
-    if (selectedTheater?.id) {
+    if (selectedTheater?.id && selectedRoom) {
       fetchShowtimes()
     }
-  }, [selectedTheater?.id, selectedDate, movieInfo.tmdbId])
+  }, [
+    selectedTheater?.id,
+    selectedDate,
+    movieInfo.tmdbId,
+    movieInfo.title,
+    selectedRoom,
+  ])
 
   const handleSeatsChange = (
     newSelectedSeats: string[],
@@ -323,16 +378,26 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   }
 
   const handleBuyClick = () => {
+    console.log("handleBuyClick called with state:", {
+      selectedSeats,
+      showtimeId,
+      ticketPrice,
+      selectedRoom,
+      selectedTime,
+    })
     if (selectedSeats.length === 0) {
       setError("Vui lòng chọn ít nhất một ghế!")
+      console.warn("Không có ghế nào được chọn")
       return
     }
     if (!showtimeId) {
       setError("Vui lòng chọn lịch chiếu hợp lệ!")
+      console.warn("showtimeId không hợp lệ:", showtimeId)
       return
     }
     if (!localStorage.getItem("token")) {
       setError("Vui lòng đăng nhập để tiếp tục đặt vé!")
+      console.warn("Chưa đăng nhập")
       window.location.href = "/login"
       return
     }
@@ -340,9 +405,17 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   }
 
   const handlePaymentConfirm = async (method: string) => {
+    console.log("handlePaymentConfirm called with:", {
+      showtimeId,
+      selectedSeats,
+      ticketPrice,
+      method,
+    })
+    let bookingId: string | undefined
     try {
       setError(null)
       const seatResponse = await getSeatsByShowtime(showtimeId!)
+      console.log("seatResponse:", seatResponse)
       const seatIds = selectedSeats
         .map(
           (seatNumber) =>
@@ -352,6 +425,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
       if (seatIds.length !== selectedSeats.length) {
         setError("Một số ghế đã chọn không hợp lệ hoặc không còn trống!")
+        console.warn("seatIds không khớp với selectedSeats:", {
+          seatIds,
+          selectedSeats,
+        })
         return
       }
 
@@ -359,10 +436,15 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         showtimeId: showtimeId!,
         seatIds,
       })
-      const bookingId = bookingResponse.data?.booking._id
+      console.log("bookingResponse:", bookingResponse)
+      bookingId = bookingResponse.data?.booking._id
 
       if (!bookingId) {
         setError("Không thể tạo đặt vé!")
+        console.warn(
+          "Không lấy được bookingId từ bookingResponse:",
+          bookingResponse
+        )
         return
       }
 
@@ -371,6 +453,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         amount: ticketCount * ticketPrice,
         paymentMethod: "paypal",
       })
+      console.log("paymentResponse:", paymentResponse)
 
       if (paymentResponse.data?.approveUrl) {
         localStorage.setItem(
@@ -380,9 +463,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         window.location.href = paymentResponse.data.approveUrl
       } else {
         setError("Không thể khởi tạo thanh toán!")
+        console.warn(
+          "Không lấy được approveUrl từ paymentResponse:",
+          paymentResponse
+        )
         await deleteBooking(bookingId)
       }
     } catch (error: any) {
+      console.error("Lỗi trong handlePaymentConfirm:", error)
       setError(
         error.message || "Đã xảy ra lỗi trong quá trình đặt vé hoặc thanh toán"
       )
@@ -408,10 +496,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
         if (!showtimeId || !bookingId) {
           setError("Trạng thái đặt vé không hợp lệ!")
+          console.warn("pendingBooking không hợp lệ:", pendingBooking)
           return
         }
 
         const captureResponse = await capturePayment({ token })
+        console.log("captureResponse:", captureResponse)
         const payment = captureResponse.data?.payment
 
         if (payment?.status === "completed") {
@@ -464,9 +554,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           )
         } else {
           setError("Thanh toán chưa được hoàn tất!")
+          console.warn("Thanh toán không hoàn tất:", captureResponse)
           await deleteBooking(bookingId)
         }
       } catch (error: any) {
+        console.error("Lỗi trong handlePaymentCapture:", error)
         setError(error.message || "Không thể xác nhận thanh toán")
         if (pendingBooking.bookingId) {
           await deleteBooking(pendingBooking.bookingId)
@@ -513,7 +605,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     selectedRoom,
     timeOptions,
   ])
-
   return (
     <div className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-6 rounded-lg">
       {error && <div className="text-red-500 mb-4 font-semibold">{error}</div>}
@@ -577,7 +668,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               delay={0.3}
             />
             <CustomDropdown
-              label="Ghế"
+              label="Chế độ chọn ghế"
               value={selectionMode}
               onChange={(value) =>
                 setSelectionMode(
