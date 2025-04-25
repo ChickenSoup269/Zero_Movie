@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { CreditCard, Lock, QrCode } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Image from "next/image"
+import { format } from "date-fns"
 
 interface PaymentDialogProps {
   isOpen: boolean
@@ -31,6 +32,12 @@ interface PaymentDialogProps {
   originalPrice: number
   savings: number
   totalAmount: number
+  movieTitle?: string
+  theaterName?: string
+  selectedSeats?: string[]
+  selectedTime?: string
+  selectedDate?: Date
+  selectedRoom?: string
 }
 
 const PaymentDialog = ({
@@ -40,8 +47,14 @@ const PaymentDialog = ({
   originalPrice,
   savings,
   totalAmount,
+  movieTitle,
+  theaterName,
+  selectedSeats,
+  selectedTime,
+  selectedDate,
+  selectedRoom,
 }: PaymentDialogProps) => {
-  const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card">(
+  const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card" | "qr">(
     "paypal"
   )
   const [showQR, setShowQR] = useState(false)
@@ -49,23 +62,42 @@ const PaymentDialog = ({
   const [cardNumber, setCardNumber] = useState("")
   const [expiry, setExpiry] = useState("")
   const [cvv, setCvv] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   const generateQRData = () => {
-    const timestamp = Date.now()
-    const randomNum = Math.floor(Math.random() * 1000000)
-    return `payment:${timestamp}:${randomNum}:${totalAmount}`
+    // Giả lập VietQR hoặc MoMo
+    return `payment:${movieTitle}:${totalAmount}:${Date.now()}`
   }
 
   const handleConfirm = () => {
+    setError(null)
     if (paymentMethod === "card") {
       if (!holderName || !cardNumber || !expiry || !cvv) {
-        alert("Please fill in all card details!")
+        setError("Vui lòng điền đầy đủ thông tin thẻ!")
+        return
+      }
+      if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber)) {
+        setError("Số thẻ không hợp lệ!")
+        return
+      }
+      if (!/^\d{2}\/\d{2}$/.test(expiry)) {
+        setError("Ngày hết hạn không hợp lệ (MM/YY)!")
+        return
+      }
+      if (!/^\d{3}$/.test(cvv)) {
+        setError("CVV không hợp lệ!")
         return
       }
       onConfirm("card", { holderName, cardNumber, expiry, cvv })
     } else if (paymentMethod === "paypal") {
       onConfirm("paypal")
+    } else if (paymentMethod === "qr") {
+      onConfirm("qr")
     }
+    setHolderName("")
+    setCardNumber("")
+    setExpiry("")
+    setCvv("")
     onClose()
   }
 
@@ -130,13 +162,33 @@ const PaymentDialog = ({
             animate="visible"
             exit="exit"
           >
-            <DialogContent className="sm:max-w-[425px] bg-white text-black">
+            <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white">
               <DialogHeader>
                 <DialogTitle className="text-center text-lg font-bold">
-                  Payment
+                  Xác nhận thanh toán
                 </DialogTitle>
               </DialogHeader>
               <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Thông tin đơn hàng</h4>
+                  <p>
+                    <strong>Phim:</strong> {movieTitle || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Rạp:</strong> {theaterName || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Phòng:</strong> {selectedRoom || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Thời gian:</strong> {selectedTime} -{" "}
+                    {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "N/A"}
+                  </p>
+                  <p>
+                    <strong>Ghế:</strong>{" "}
+                    {selectedSeats?.join(", ") || "Chưa chọn ghế"}
+                  </p>
+                </div>
                 <Button
                   onClick={() => {
                     setPaymentMethod("paypal")
@@ -145,8 +197,8 @@ const PaymentDialog = ({
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "paypal" && !showQR
                       ? "bg-[#4599e3] text-white"
-                      : "bg-white text-black"
-                  } hover:bg-[#4599e3] hover:text-white`}
+                      : "bg-gray-700 text-white"
+                  } hover:bg-[#4599e3]`}
                 >
                   <AnimatePresence mode="wait">
                     {paymentMethod === "paypal" && !showQR ? (
@@ -195,25 +247,27 @@ const PaymentDialog = ({
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "card" && !showQR
                       ? "bg-[#4599e3] text-white"
-                      : "bg-white text-black"
-                  } hover:bg-[#4599e3] hover:text-white`}
+                      : "bg-gray-700 text-white"
+                  } hover:bg-[#4599e3]`}
                 >
                   <CreditCard className="w-5 h-5" />
-                  <span>Pay with Card</span>
+                  <span>Thẻ tín dụng</span>
                 </Button>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-px bg-gray-300"></div>
-                  <Button
-                    onClick={() => setShowQR(!showQR)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 ${
-                      showQR ? "bg-[#4599e3] text-white" : "bg-white text-black"
-                    } hover:bg-[#4599e3] hover:text-white`}
-                  >
-                    <QrCode className="w-5 h-5" />
-                    <span>QR Code</span>
-                  </Button>
-                  <div className="flex-1 h-px bg-gray-300"></div>
-                </div>
+                <Button
+                  onClick={() => {
+                    setPaymentMethod("qr")
+                    setShowQR(true)
+                  }}
+                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
+                    paymentMethod === "qr" && showQR
+                      ? "bg-[#4599e3] text-white"
+                      : "bg-gray-700 text-white"
+                  } hover:bg-[#4599e3]`}
+                >
+                  <QrCode className="w-5 h-5" />
+                  <span>Mã QR</span>
+                </Button>
+                {error && <div className="text-red-500 text-sm">{error}</div>}
                 <AnimatePresence mode="wait">
                   {paymentMethod === "card" && !showQR && (
                     <motion.div
@@ -226,17 +280,17 @@ const PaymentDialog = ({
                       className="space-y-4"
                     >
                       <div>
-                        <Label htmlFor="holder-name">Card Holder Name</Label>
+                        <Label htmlFor="holder-name">Tên chủ thẻ</Label>
                         <Input
                           id="holder-name"
-                          placeholder="Enter your full name"
+                          placeholder="Nhập tên đầy đủ"
                           value={holderName}
                           onChange={(e) => setHolderName(e.target.value)}
-                          className="mt-1"
+                          className="mt-1 bg-gray-700 text-white border-gray-600"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="card-number">Card Number</Label>
+                        <Label htmlFor="card-number">Số thẻ</Label>
                         <Input
                           id="card-number"
                           placeholder="0000 0000 0000 0000"
@@ -244,12 +298,12 @@ const PaymentDialog = ({
                           onChange={(e) =>
                             setCardNumber(formatCardNumber(e.target.value))
                           }
-                          className="mt-1"
+                          className="mt-1 bg-gray-700 text-white border-gray-600"
                         />
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <Label htmlFor="expiry">Expiry Date</Label>
+                          <Label htmlFor="expiry">Ngày hết hạn</Label>
                           <Input
                             id="expiry"
                             placeholder="MM/YY"
@@ -257,7 +311,7 @@ const PaymentDialog = ({
                             onChange={(e) =>
                               setExpiry(formatExpiry(e.target.value))
                             }
-                            className="mt-1"
+                            className="mt-1 bg-gray-700 text-white border-gray-600"
                           />
                         </div>
                         <div className="flex-1">
@@ -267,15 +321,13 @@ const PaymentDialog = ({
                             placeholder="CVV"
                             value={cvv}
                             onChange={(e) => setCvv(formatCvv(e.target.value))}
-                            className="mt-1"
+                            className="mt-1 bg-gray-700 text-white border-gray-600"
                           />
                         </div>
                       </div>
                     </motion.div>
                   )}
-                </AnimatePresence>
-                <AnimatePresence mode="wait">
-                  {showQR && (
+                  {paymentMethod === "qr" && showQR && (
                     <motion.div
                       key="qr-code"
                       variants={contentVariants}
@@ -283,38 +335,45 @@ const PaymentDialog = ({
                       animate="visible"
                       exit="exit"
                       transition={{ duration: 0.3 }}
-                      className="flex justify-center"
+                      className="flex flex-col items-center"
                     >
                       <QRCodeSVG value={generateQRData()} size={150} />
+                      <p className="text-sm text-gray-400 mt-2">
+                        Quét mã QR bằng ứng dụng thanh toán (VietQR, MoMo, v.v.)
+                      </p>
                     </motion.div>
                   )}
                 </AnimatePresence>
                 <div className="text-center space-y-1">
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>Original Price</span>
-                    <span>{originalPrice.toFixed(2)}đ</span>
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Giá gốc</span>
+                    <span>{originalPrice.toLocaleString()}đ</span>
                   </div>
                   <div className="flex justify-between text-sm text-green-500">
-                    <span>Savings</span>
-                    <span>-{savings.toFixed(2)}đ</span>
+                    <span>Tiết kiệm</span>
+                    <span>-{savings.toLocaleString()}đ</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span>{totalAmount.toFixed(2)}đ</span>
+                    <span>Tổng cộng</span>
+                    <span>{totalAmount.toLocaleString()}đ</span>
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={onClose}>
-                  Cancel
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="bg-gray-700 text-white hover:bg-gray-600"
+                >
+                  Hủy
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="bg-black text-white hover:bg-gray-800 flex items-center gap-2"
-                  disabled={showQR}
+                  className="bg-[#4599e3] text-white hover:bg-[#3a82c2] flex items-center gap-2"
+                  disabled={paymentMethod === "qr" && showQR}
                 >
                   <Lock className="w-4 h-4" />
-                  Checkout
+                  Thanh toán
                 </Button>
               </DialogFooter>
             </DialogContent>

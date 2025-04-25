@@ -60,7 +60,7 @@ export const PaymentSummary = ({
               Original Price
             </span>
             <span className="text-white font-semibold text-sm sm:text-base">
-              {originalPrice.toFixed(2)}
+              {originalPrice.toLocaleString("vi-VN")}
               {currency}
             </span>
           </div>
@@ -69,7 +69,7 @@ export const PaymentSummary = ({
               Savings
             </span>
             <span className="text-green-500 font-semibold text-sm sm:text-base">
-              -{savings.toFixed(2)}
+              -{savings.toLocaleString("vi-VN")}
               {currency}
             </span>
           </div>
@@ -79,7 +79,7 @@ export const PaymentSummary = ({
                 Total
               </span>
               <span className="text-white font-bold text-lg sm:text-xl">
-                {totalAmount.toFixed(2)}
+                {totalAmount.toLocaleString("vi-VN")}
                 {currency}
               </span>
             </div>
@@ -88,7 +88,7 @@ export const PaymentSummary = ({
       </div>
       <div className="mt-4 sm:mt-5 sm:p-3 rounded text-xs sm:text-sm text-gray-700">
         <p>
-          You saved {savings.toFixed(2)}
+          You saved {savings.toLocaleString("vi-VN")}
           {currency} with our special discount!
         </p>
       </div>

@@ -85,7 +85,6 @@ const parseShowtimeDate = (dateString: string): Date => {
 
 const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([])
-  const [soldSeats, setSoldSeats] = useState<string[]>([])
   const [ticketCount, setTicketCount] = useState(0)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date("2025-04-21"))
   const [ticketId, setTicketId] = useState<string>("")
@@ -107,7 +106,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [timeOptions, setTimeOptions] = useState<TimeOption[]>([])
   const [bookingDetails, setBookingDetails] = useState<any | null>(null)
   const [priceWarning, setPriceWarning] = useState<string | null>(null)
-
+  const [availableSeats, setAvailableSeats] = useState<
+    { id: string; seatNumber: string; status: string }[]
+  >([])
+  const [soldSeats, setSoldSeats] = useState<string[]>([])
   const seatPickerRef = useRef<SeatPickerRef>(null)
 
   const typeOptions = [
@@ -368,6 +370,40 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     movieInfo.title,
     selectedRoom,
   ])
+
+  useEffect(() => {
+    const fetchSeats = async () => {
+      if (!showtimeId) return
+      try {
+        const seatResponse = await getSeatsByShowtime(showtimeId)
+        console.log("seatResponse:", seatResponse)
+        const seats =
+          seatResponse.seats?.map((seat: any) => ({
+            id: seat.seatId,
+            seatNumber: seat.seatNumber,
+            status: seat.status,
+          })) || []
+        setAvailableSeats(seats)
+        setSoldSeats(
+          seats
+            .filter((seat: any) => seat.status === "booked")
+            .map((seat: any) => seat.seatNumber)
+        )
+        // Reset selectedSeats nếu ghế không còn available
+        setSelectedSeats((prev) =>
+          prev.filter((seatNumber) =>
+            seats.some(
+              (s: any) =>
+                s.seatNumber === seatNumber && s.status === "available"
+            )
+          )
+        )
+      } catch (error: any) {
+        setError(error.message || "Không thể lấy danh sách ghế.")
+      }
+    }
+    fetchSeats()
+  }, [showtimeId])
 
   const handleSeatsChange = (
     newSelectedSeats: string[],
@@ -759,6 +795,14 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             originalPrice={originalPrice}
             savings={savings}
             totalAmount={totalAmount}
+            movieTitle={movieInfo.title}
+            theaterName={selectedTheater?.name}
+            selectedSeats={selectedSeats}
+            selectedTime={selectedTime}
+            selectedDate={selectedDate}
+            selectedRoom={
+              roomOptions.find((opt) => opt.value === selectedRoom)?.label
+            }
           />
         </>
       )}
