@@ -395,12 +395,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       console.warn("showtimeId không hợp lệ:", showtimeId)
       return
     }
-    if (!localStorage.getItem("token")) {
-      setError("Vui lòng đăng nhập để tiếp tục đặt vé!")
-      console.warn("Chưa đăng nhập")
-      window.location.href = "/login"
-      return
-    }
+
     setIsPaymentOpen(true)
   }
 
@@ -668,7 +663,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               delay={0.3}
             />
             <CustomDropdown
-              label="Chế độ chọn ghế"
+              label="Ghế"
               value={selectionMode}
               onChange={(value) =>
                 setSelectionMode(

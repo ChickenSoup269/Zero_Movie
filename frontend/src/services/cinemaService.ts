@@ -113,10 +113,7 @@ export const getShowtimesByCinemaId = async (
     const query = new URLSearchParams()
     if (date) query.append("date", date)
     if (movieId) query.append("movieId", movieId)
-    const queryString = query.toString() ? `?${query.toString()}` : ""
-    const res = await axiosJWT.get(
-      `${API_URL}/cinemas/${cinemaId}/showtimes${queryString}`
-    )
+    const res = await axiosJWT.get(`${API_URL}/cinemas/${cinemaId}/showtimes`)
     console.log("Raw API response từ getShowtimesByCinemaId:", res.data)
 
     return {
@@ -136,7 +133,7 @@ export const getShowtimesByCinemaId = async (
           id: showtime._id,
           movieId: showtime.movieId,
           movieTitle: showtime.movieTitle,
-          roomId: showtime.roomId?._id || showtime.roomId, // Lấy _id nếu roomId là object
+          roomId: showtime.roomId?._id || showtime.roomId,
           roomNumber: showtime.roomNumber,
           startTime: showtime.startTime,
           endTime: showtime.endTime,
