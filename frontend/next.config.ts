@@ -6,6 +6,7 @@ const nextConfig = {
       "image.tmdb.org",
       "raw.githubusercontent.com",
       "www.edigitalagency.com.au",
+      "cdn-icons-png.flaticon.com",
     ],
 
     // Cấu hình nâng cao cho các host cụ thể

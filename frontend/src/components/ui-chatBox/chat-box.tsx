@@ -6,7 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar } from "@/components/ui/avatar"
-import { Send, Loader2, MessageSquareMore, X } from "lucide-react"
+import {
+  Send,
+  Loader2,
+  MessageSquareMore,
+  X,
+  Maximize2,
+  Minimize2,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService"
 import { MovieService } from "@/services/movieService"
@@ -23,7 +30,21 @@ interface Message {
 async function processMovieQuery(query: string) {
   // Convert query to lowercase for easier matching
   const lowerQuery = query.toLowerCase().trim()
-
+  const validateMovieData = (movie) => {
+    // Đảm bảo tmdbId là một số hợp lệ
+    if (
+      movie.tmdbId === undefined ||
+      movie.tmdbId === null ||
+      isNaN(Number(movie.tmdbId))
+    ) {
+      // Gán một giá trị mặc định hoặc giá trị từ ID khác nếu có
+      movie.tmdbId = movie.id || 0 // Sử dụng ID khác hoặc giá trị mặc định
+    } else {
+      // Đảm bảo tmdbId là số
+      movie.tmdbId = Number(movie.tmdbId)
+    }
+    return movie
+  }
   // Movie count query
   if (
     lowerQuery.includes("bao nhiêu phim") ||
@@ -35,7 +56,9 @@ async function processMovieQuery(query: string) {
   ) {
     try {
       const movies = await MovieService.getAllMovies()
-      return `Hiện tại hệ thống có ${movies.length} phim.`
+      // Kiểm tra và sửa dữ liệu
+      const validatedMovies = movies.map(validateMovieData)
+      return `Hiện tại hệ thống có ${validatedMovies.length} phim.`
     } catch (error: any) {
       return `Rất tiếc, tôi không thể lấy thông tin về số lượng phim: ${error.message}`
     }
@@ -51,8 +74,9 @@ async function processMovieQuery(query: string) {
   ) {
     try {
       const movies = await MovieService.getAllMovies()
-      // Sort by popularity
-      const featuredMovies = [...movies]
+      // Validate dữ liệu trước khi sử dụng
+      const validatedMovies = movies.map(validateMovieData)
+      const featuredMovies = [...validatedMovies]
         .sort((a, b) => b.popularity - a.popularity)
         .slice(0, 5)
 
@@ -461,6 +485,7 @@ export default function ChatBox() {
   const [isOpen, setIsOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isProfileLoading, setIsProfileLoading] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false) // State mới cho chế độ toàn màn hình
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -471,11 +496,11 @@ export default function ChatBox() {
       try {
         setIsProfileLoading(true)
         const response = await UserService.getProfile()
-        const role = response.data.role // Adjust based on your API response structure
+        const role = response.data.role
         setUserRole(role)
       } catch (err: any) {
         console.error("Failed to fetch user profile:", err.message)
-        setUserRole(null) // Handle unauthenticated or error cases
+        setUserRole(null)
       } finally {
         setIsProfileLoading(false)
       }
@@ -489,6 +514,20 @@ export default function ChatBox() {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [messages, isOpen])
+
+  // Thêm event listener cho phím ESC để thoát chế độ toàn màn hình
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleEscKey)
+    return () => {
+      window.removeEventListener("keydown", handleEscKey)
+    }
+  }, [isFullscreen])
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -537,10 +576,18 @@ export default function ChatBox() {
 
   const toggleChat = () => {
     setIsOpen(!isOpen)
+    // Đóng chế độ toàn màn hình khi đóng chat
+    if (isFullscreen && !isOpen) {
+      setIsFullscreen(false)
+    }
+  }
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
   }
 
   // Define allowed roles for displaying the chat box
-  const allowedRoles = ["admin", "user"] // Added "user" to allow regular users to use the chat
+  const allowedRoles = ["admin", "user"]
 
   // Don't render anything while profile is loading or if user doesn't have the required role
   if (isProfileLoading || !userRole || !allowedRoles.includes(userRole)) {
@@ -574,51 +621,85 @@ export default function ChatBox() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {/* Toggle Button */}
-      <Button
-        onClick={toggleChat}
-        className="rounded-full h-12 w-12 bg-blue-400 dark:bg-white shadow-gray-500/50 hover:bg-blue-500 text-white dark:text-black hover:text-white flex items-center justify-center shadow-lg duration-300"
-      >
-        {isOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <MessageSquareMore className="h-6 w-6" />
-        )}
-      </Button>
+    <div
+      className={cn(
+        "fixed z-50",
+        isFullscreen ? "inset-0 bg-background/95" : "bottom-4 right-4"
+      )}
+    >
+      {/* Toggle Button - Chỉ hiển thị khi không ở chế độ toàn màn hình */}
+      {!isFullscreen && (
+        <Button
+          onClick={toggleChat}
+          className="rounded-full h-12 w-12 bg-blue-400 dark:bg-white shadow-gray-500/50 hover:bg-blue-500 text-white dark:text-black hover:text-white flex items-center justify-center shadow-lg duration-300"
+        >
+          {isOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <MessageSquareMore className="h-6 w-6" />
+          )}
+        </Button>
+      )}
+
       {/* Chat Window with Animation */}
       <AnimatePresence>
-        {isOpen && (
+        {(isOpen || isFullscreen) && (
           <motion.div
-            variants={chatWindowVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            className="flex flex-col h-96 w-80 sm:w-96 bg-background rounded-lg border shadow-lg overflow-hidden mt-2"
+            variants={!isFullscreen ? chatWindowVariants : undefined}
+            initial={!isFullscreen ? "closed" : false}
+            animate={!isFullscreen ? "open" : false}
+            exit={!isFullscreen ? "closed" : false}
+            className={cn(
+              "flex flex-col bg-background border shadow-lg overflow-hidden",
+              isFullscreen
+                ? "h-full w-full rounded-none"
+                : "h-96 w-80 sm:w-96 rounded-lg mt-2"
+            )}
           >
             {/* Chat header */}
-            <div className="bg-black p-3 text-primary-foreground flex items-center gap-2">
-              <Avatar className="h-8 w-8 flex items-center justify-center">
-                <Image
-                  src="/logo2.png"
-                  alt="Zero Movies Logo"
-                  width={100}
-                  height={80}
-                  className="cursor-pointer transition-transform duration-300 hover:scale-105"
-                  style={{
-                    maxWidth: "100%",
-                    height: "auto",
-                  }}
-                />
-              </Avatar>
-              <div>
-                <h3 className="font-medium text-sm">Gemini X Zero</h3>
-                <p className="text-xs opacity-90">Powered by Google Gemini</p>
+            <div className="bg-black p-3 text-primary-foreground flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8 flex items-center justify-center">
+                  <Image
+                    src="/logo2.png"
+                    alt="Zero Movies Logo"
+                    width={100}
+                    height={80}
+                    className="cursor-pointer transition-transform duration-300 hover:scale-105"
+                    style={{
+                      maxWidth: "100%",
+                      height: "auto",
+                    }}
+                  />
+                </Avatar>
+                <div>
+                  <h3 className="font-medium text-sm">Gemini X Zero</h3>
+                  <p className="text-xs opacity-90">Powered by Google Gemini</p>
+                </div>
               </div>
+
+              {/* Nút chuyển đổi toàn màn hình */}
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0 rounded-full hover:bg-gray-800"
+                onClick={toggleFullscreen}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-4 w-4 text-white" />
+                ) : (
+                  <Maximize2 className="h-4 w-4 text-white" />
+                )}
+              </Button>
             </div>
 
             {/* Messages area */}
-            <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+            <ScrollArea
+              className={cn(
+                "flex-1 p-4",
+                isFullscreen ? "max-h-[calc(100vh-140px)]" : ""
+              )}
+              ref={scrollAreaRef}
+            >
               {messages.length === 0 && (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
                   Xin chào! Tôi là trợ lý AI của Zero Movies. Hãy nhập "help" để
@@ -636,7 +717,8 @@ export default function ChatBox() {
                 >
                   <div
                     className={cn(
-                      "max-w-xs sm:max-w-sm relative group",
+                      isFullscreen ? "max-w-2xl" : "max-w-xs sm:max-w-sm",
+                      "relative group",
                       msg.role === "user" ? "order-1" : "order-0"
                     )}
                   >

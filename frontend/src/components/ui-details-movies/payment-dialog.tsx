@@ -357,7 +357,17 @@ const PaymentDialog = ({
                       transition={{ duration: 0.3 }}
                       className="flex flex-col items-center"
                     >
-                      <QRCodeSVG value={generateQRData()} size={150} />
+                      <Image
+                        src="/qr.jpg"
+                        alt="Zero Movies Logo"
+                        width={120}
+                        height={80}
+                        className="cursor-pointer transition-transform duration-300 hover:scale-105 rounded-sm"
+                        style={{
+                          maxWidth: "100%",
+                          height: "auto",
+                        }}
+                      />
                       <p className="text-sm text-gray-400 mt-2 text-center">
                         Quét mã QR bằng ứng dụng thanh toán (VietQR, MoMo, v.v.)
                         rồi nhấn "Thanh toán" để xác nhận.
