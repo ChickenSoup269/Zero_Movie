@@ -12,21 +12,30 @@ if (!API_URL) {
 }
 
 // Add token to requests via interceptor for authenticated endpoints
-axiosJWT.interceptors.request.use((config) => {
-  if (config.method === "put") {
-    const token = localStorage.getItem("token")
-    if (token) {
+axiosJWT.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access_token")
+    console.log("showtimeSeat request URL:", config.url)
+    console.log(
+      "Token in showtimeSeat interceptor:",
+      token ? `Present: ${token}` : "Missing"
+    )
+    if (token && config.method === "put") {
       config.headers.Authorization = `Bearer ${token}`
     }
+    return config
+  },
+  (error) => {
+    console.error("showtimeSeat request interceptor error:", error)
+    return Promise.reject(error)
   }
-  return config
-})
+)
 
 // Interface for showtime-seat data (matched with backend response)
 interface ShowtimeSeat {
-  id: string
+  id: string // ShowtimeSeat._id
   showtimeId: string
-  seatId: string
+  seatId: string // Seat._id
   seatNumber: string
   status: "available" | "booked" | "reserved"
 }
@@ -43,7 +52,7 @@ interface ApiResponse<T = any> {
   seats?: T[]
 }
 
-// Get seats by showtime ID (GET /showtime-seats/showtime/:showtimeId)
+// Get seats by showtime ID (GET /showtimeseat/showtime/:showtimeId)
 export const getSeatsByShowtime = async (
   showtimeId: string
 ): Promise<ApiResponse<ShowtimeSeat[]>> => {
@@ -51,10 +60,8 @@ export const getSeatsByShowtime = async (
     const res = await axiosJWT.get(
       `${API_URL}/showtimeseat/showtime/${showtimeId}`
     )
-    // Log response để kiểm tra
     console.log("getSeatsByShowtime response:", res.data)
 
-    // Kiểm tra seats tồn tại và là mảng
     if (!res.data.seats || !Array.isArray(res.data.seats)) {
       return { message: res.data.message || "Không có ghế nào", seats: [] }
     }
@@ -62,7 +69,7 @@ export const getSeatsByShowtime = async (
     return {
       message: res.data.message,
       seats: res.data.seats
-        .filter((seat: any) => seat._id && seat.seatId && seat.seatNumber) // Lọc các seat hợp lệ
+        .filter((seat: any) => seat._id && seat.seatId && seat.seatNumber)
         .map((seat: any) => ({
           id: seat._id.toString(),
           showtimeId: seat.showtimeId?.toString() || "",
@@ -74,14 +81,19 @@ export const getSeatsByShowtime = async (
   } catch (error) {
     const axiosError = error as AxiosError
     const errorData = axiosError.response?.data as { message?: string }
+    console.error("getSeatsByShowtime error:", {
+      message: axiosError.message,
+      response: errorData,
+      status: axiosError.response?.status,
+    })
     throw new Error(errorData?.message || axiosError.message)
   }
 }
 
-// Update seat status (PUT /showtime-seats/showtime/:showtimeId/seat/:seatId)
+// Update seat status (PUT /showtimeseat/showtime/:showtimeId/seat/:seatId)
 export const updateSeatStatus = async (
   showtimeId: string,
-  seatId: string,
+  seatId: string, // ShowtimeSeat._id
   data: UpdateSeatStatusRequest
 ): Promise<ApiResponse<ShowtimeSeat>> => {
   try {
@@ -89,6 +101,7 @@ export const updateSeatStatus = async (
       `${API_URL}/showtimeseat/showtime/${showtimeId}/seat/${seatId}`,
       data
     )
+    console.log("updateSeatStatus response:", res.data)
     return {
       message: res.data.message,
       seat: {
@@ -102,6 +115,11 @@ export const updateSeatStatus = async (
   } catch (error) {
     const axiosError = error as AxiosError
     const errorData = axiosError.response?.data as { message?: string }
+    console.error("updateSeatStatus error:", {
+      message: axiosError.message,
+      response: errorData,
+      status: axiosError.response?.status,
+    })
     throw new Error(errorData?.message || axiosError.message)
   }
 }

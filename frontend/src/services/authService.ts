@@ -1,4 +1,3 @@
-// services/authService.js
 import axios, { AxiosError } from "axios"
 
 const axiosJWT = axios.create()
@@ -8,6 +7,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
+
+// Add token to requests via interceptor
+axiosJWT.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 export const register = async (data: {
   username: string
@@ -34,6 +42,9 @@ export const login = async (data: { email: string; password: string }) => {
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }
+    const { accessToken, refreshToken } = res.data
+    localStorage.setItem("access_token", accessToken)
+    localStorage.setItem("refresh_token", refreshToken)
     return res.data
   } catch (error) {
     const axiosError = error as AxiosError
@@ -43,15 +54,20 @@ export const login = async (data: { email: string; password: string }) => {
 
 export const refreshToken = async (refreshToken: string) => {
   try {
-    const res = await axiosJWT.post(`${API_URL}/auth/refresh`, {
+    const res = await axiosJWT.post(`${API_URL}/auth/refresh-token`, {
       refreshToken,
     })
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }
-    return res.data // Backend trả về { accessToken, refreshToken }
+    const { accessToken, refreshToken: newRefreshToken } = res.data
+    localStorage.setItem("access_token", accessToken)
+    localStorage.setItem("refresh_token", newRefreshToken)
+    return res.data
   } catch (error) {
     const axiosError = error as AxiosError
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
     throw axiosError.response ? axiosError.response.data : axiosError
   }
 }
@@ -64,9 +80,13 @@ export const logout = async (refreshToken: string) => {
     if (res.data.status === "ERR") {
       throw new Error(res.data.message)
     }
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
     return res.data
   } catch (error) {
     const axiosError = error as AxiosError
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
     throw axiosError.response ? axiosError.response.data : axiosError
   }
 }
