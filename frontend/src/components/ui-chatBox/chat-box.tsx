@@ -6,14 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar } from "@/components/ui/avatar"
-import { Send, Loader2, MessageSquareMore } from "lucide-react"
+import { Send, Loader2, MessageSquareMore, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService"
 import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
-
 interface Message {
   role: "user" | "bot"
   content: string
@@ -579,9 +578,13 @@ export default function ChatBox() {
       {/* Toggle Button */}
       <Button
         onClick={toggleChat}
-        className="rounded-full h-12 w-12 bg-blue-400 dark:bg-white shadow-gray-500/50 hover:bg-blue-500 text-white dark:text-black hover:text-white flex items-center justify-center shadow-lg duration-300 "
+        className="rounded-full h-12 w-12 bg-blue-400 dark:bg-white shadow-gray-500/50 hover:bg-blue-500 text-white dark:text-black hover:text-white flex items-center justify-center shadow-lg duration-300"
       >
-        <MessageSquareMore className="h-6 w-6 " />
+        {isOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <MessageSquareMore className="h-6 w-6" />
+        )}
       </Button>
       {/* Chat Window with Animation */}
       <AnimatePresence>

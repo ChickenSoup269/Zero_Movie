@@ -10,7 +10,6 @@ import {
   Filter,
   Download,
   Upload,
-  Save,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -51,7 +49,6 @@ import {
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { format } from "date-fns"
-import { Toast } from "@/components/ui/toast"
 
 // Default initial tasks
 const initialTasks = [
