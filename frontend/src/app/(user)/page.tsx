@@ -7,6 +7,7 @@ import Movies from "@/components/ui-home/movies"
 import { GenreService } from "@/services/genreService"
 import actorAgeData from "@/data/actorAgeData"
 import { MovieService } from "@/services/movieService"
+import { useUser } from "@/hooks/use-user" // Import the useUser hook
 
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original"
 
@@ -70,58 +71,69 @@ interface ActorAgeInfo {
 
 export default function Home() {
   const [slides, setSlides] = useState<Slide[]>([])
-  const [, setGenres] = useState<Genre[]>([])
+  const [genres, setGenres] = useState<Genre[]>([])
   const [selectedGenre] = useState<string | null>(null)
   const [searchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Use the useUser hook to get user data and authentication status
+  const { user, isLoggedIn, loading: userLoading } = useUser()
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
 
-        // Lấy danh sách thể loại
+        // Fetch genres
         const genresData = await GenreService.getGenres()
         setGenres(
           genresData.map((genre) => ({ ...genre, id: genre.id.toString() }))
         )
 
-        // Lấy phim
+        // Fetch movies based on login status
         let moviesArray: Movie[] = []
         if (searchQuery) {
-          // Tìm kiếm phim theo tiêu đề
+          // Search movies by title
           moviesArray = (await MovieService.searchMovies(searchQuery)).map(
             (movie) => ({
               ...movie,
-              id: movie._id, // Map _id to id
+              id: movie._id,
             })
           )
         } else if (selectedGenre) {
-          // Lấy phim theo thể loại
+          // Fetch movies by genre
           moviesArray = (
             await GenreService.getMoviesByGenre(selectedGenre)
           ).map((movie) => ({
             ...movie,
-            id: movie._id, // Map _id to id
+            id: movie._id,
           }))
+        } else if (isLoggedIn && user?.id) {
+          // Fetch recommendations for logged-in user
+          moviesArray = (await MovieService.getRecommendations(user.id)).map(
+            (movie) => ({
+              ...movie,
+              id: movie._id,
+            })
+          )
         } else {
-          // Lấy tất cả phim
+          // Fetch all movies for non-logged-in users
           moviesArray = (await MovieService.getAllMovies()).map((movie) => ({
             ...movie,
-            id: movie._id, // Map _id to id
+            id: movie._id,
           }))
         }
 
         const genreMap = await GenreService.getGenreMap()
 
-        // Tạo map từ actorAgeData
+        // Create map from actorAgeData
         const actorAgeMap = new Map<number, ActorAgeInfo>()
         actorAgeData.movies.forEach((movie) => {
           actorAgeMap.set(movie.id, movie)
         })
 
-        // Ánh xạ phim thành slides
+        // Map movies to slides
         const mappedSlides: Slide[] = moviesArray.map((movie) => {
           const releaseDate = new Date(movie.releaseDate)
           const genreNames =
@@ -169,10 +181,13 @@ export default function Home() {
       }
     }
 
-    fetchData()
-  }, [selectedGenre, searchQuery]) // Chạy lại khi selectedGenre hoặc searchQuery thay đổi
+    // Only fetch data if user loading is complete
+    if (!userLoading) {
+      fetchData()
+    }
+  }, [selectedGenre, searchQuery, isLoggedIn, user, userLoading])
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen text-white flex items-center justify-center">
         Loading...

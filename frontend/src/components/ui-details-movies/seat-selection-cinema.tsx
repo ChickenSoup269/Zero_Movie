@@ -94,7 +94,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date("2025-04-21"))
   const [ticketId, setTicketId] = useState<string>("")
   const [selectedTime, setSelectedTime] = useState<string>("")
-  const [selectedType, setSelectedType] = useState<string>("2D")
+
   const [selectedRoom, setSelectedRoom] = useState<string>("")
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
   const [selectionMode, setSelectionMode] = useState<
@@ -115,11 +115,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [soldSeats, setSoldSeats] = useState<string[]>([])
   const seatPickerRef = useRef<SeatPickerRef>(null)
 
-  const typeOptions = [
-    { value: "2D", label: "2D" },
-    { value: "3D", label: "3D" },
-    { value: "IMAX", label: "IMAX" },
-  ]
   const modeOptions = [
     { value: "single", label: "Single" },
     { value: "pair", label: "Pair (2 seats)" },
@@ -791,13 +786,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               }}
               options={timeOptions}
               delay={0}
-            />
-            <CustomDropdown
-              label="Loại vé"
-              value={selectedType}
-              onChange={setSelectedType}
-              options={typeOptions}
-              delay={0.1}
             />
             <CustomDropdown
               label="Phòng chiếu"
