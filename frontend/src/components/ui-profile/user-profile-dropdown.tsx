@@ -24,7 +24,6 @@ import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import axios from "axios"
 import { useRouter } from "next/navigation"
 
-// Create an axios instance for JWT handling
 const axiosJWT = axios.create()
 
 interface UserProfileDropdownProps {
@@ -39,6 +38,7 @@ export default function UserProfileDropdown({
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
+  const [ticketCount, setTicketCount] = useState<number>(0)
   const { logout } = useUser()
   const router = useRouter()
 
@@ -54,6 +54,18 @@ export default function UserProfileDropdown({
     duration: 5000,
   })
 
+  // Lấy số lượng vé từ localStorage
+  useEffect(() => {
+    const updateTicketCount = () => {
+      const tickets = JSON.parse(localStorage.getItem("ticketCount") || "[]")
+      setTicketCount(tickets.length)
+    }
+    updateTicketCount()
+    // Lắng nghe sự thay đổi của localStorage
+    window.addEventListener("storage", updateTicketCount)
+    return () => window.removeEventListener("storage", updateTicketCount)
+  }, [])
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (isLoggedIn && user?.id) {
@@ -62,12 +74,6 @@ export default function UserProfileDropdown({
           setUserProfile(response.data)
           setAvatarError(false)
         } catch (error: any) {
-          console.error(
-            "Error fetching user profile:",
-            error.response?.data,
-            error.response?.status,
-            error.message
-          )
           errorToast.showToast({
             description:
               error.response?.data?.message ||
@@ -85,18 +91,21 @@ export default function UserProfileDropdown({
     setAvatarError(false)
   }
 
+  // Mở ProfileDialog với tab tickets
+  const openTicketsTab = () => {
+    setIsProfileDialogOpen(true)
+    // Truyền thông tin để mở tab tickets
+    localStorage.setItem("activeProfileTab", "tickets")
+  }
+
   useEffect(() => {
     const responseInterceptor = axiosJWT.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config
-
-        // Kiểm tra lỗi 401 và đảm bảo không lặp lại yêu cầu
         if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true // Đánh dấu yêu cầu đã thử lại
-
+          originalRequest._retry = true
           try {
-            // Thử làm mới token (nếu backend hỗ trợ)
             const refreshToken = localStorage.getItem("refresh_token")
             if (refreshToken) {
               const refreshResponse = await axios.post(
@@ -105,27 +114,19 @@ export default function UserProfileDropdown({
               )
               const newAccessToken = refreshResponse.data.access_token
               localStorage.setItem("access_token", newAccessToken)
-
-              // Cập nhật header Authorization và thử lại yêu cầu gốc
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
               return axiosJWT(originalRequest)
             } else {
-              // Không có refresh token, tiến hành logout
               await handleAutoLogout()
             }
           } catch (refreshError) {
-            // Lỗi khi làm mới token, tiến hành logout
             await handleAutoLogout()
           }
         }
         return Promise.reject(error)
       }
     )
-
-    return () => {
-      // Cleanup interceptor khi component unmount
-      axiosJWT.interceptors.response.eject(responseInterceptor)
-    }
+    return () => axiosJWT.interceptors.response.eject(responseInterceptor)
   }, [logout])
 
   const handleAutoLogout = async () => {
@@ -134,10 +135,8 @@ export default function UserProfileDropdown({
       sessionExpiredToast.showToast({
         description: "Your session has expired. Please log in again.",
       })
-      console.log("Auto logout due to expired token")
       router.push("/login")
     } catch (error) {
-      console.error("Error during auto logout:", error)
       router.push("/login")
     }
   }
@@ -163,8 +162,9 @@ export default function UserProfileDropdown({
                     borderRadius: "50%",
                     aspectRatio: "1/1",
                     maxWidth: "100%",
-                    height: "auto"
-                  }} />
+                    height: "auto",
+                  }}
+                />
               ) : (
                 <Avatar className="h-full w-full">
                   <AvatarFallback
@@ -180,6 +180,15 @@ export default function UserProfileDropdown({
                       .toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
+              )}
+              {/* Badge hiển thị số lượng vé */}
+              {ticketCount > 0 && (
+                <div
+                  className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center cursor-pointer"
+                  onClick={openTicketsTab}
+                >
+                  {ticketCount}
+                </div>
               )}
             </div>
           </div>
@@ -204,7 +213,10 @@ export default function UserProfileDropdown({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem
-              onClick={() => setIsProfileDialogOpen(true)}
+              onClick={() => {
+                setIsProfileDialogOpen(true)
+                localStorage.setItem("activeProfileTab", "profile")
+              }}
               className="flex items-center space-x-2"
             >
               <User className="h-4 w-4" />
@@ -216,11 +228,15 @@ export default function UserProfileDropdown({
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/orders" className="flex items-center space-x-2">
-                <Ticket className="h-4 w-4" />
-                <span>My Tickets</span>
-              </Link>
+            <DropdownMenuItem
+              onClick={() => {
+                setIsProfileDialogOpen(true)
+                localStorage.setItem("activeProfileTab", "tickets")
+              }}
+              className="flex items-center space-x-2"
+            >
+              <Ticket className="h-4 w-4" />
+              <span>My Tickets</span>
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>
@@ -252,5 +268,5 @@ export default function UserProfileDropdown({
         onProfileUpdate={handleProfileUpdate}
       />
     </>
-  );
+  )
 }

@@ -20,7 +20,7 @@ import {
   updateSeatStatus,
 } from "@/services/showtimeSeatService"
 import { createBooking, deleteBooking } from "@/services/bookingService"
-import { createPayment, capturePayment } from "@/services/paymentService"
+import { createPayment } from "@/services/paymentService"
 import { refreshToken } from "@/services/authService"
 import UserService from "@/services/userService"
 import axios from "axios"
@@ -926,7 +926,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         while (retryCount < maxRetries) {
           try {
             console.log("Capturing payment with token:", token)
-            captureResponse = await capturePayment({ token })
+
             console.log("captureResponse:", captureResponse)
             break
           } catch (captureError: any) {

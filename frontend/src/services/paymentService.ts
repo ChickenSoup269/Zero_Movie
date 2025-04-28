@@ -42,30 +42,9 @@ axiosJWT.interceptors.request.use(
   }
 )
 
-axiosJWT.interceptors.request.use(
-  (config) => {
-    const token = getAuthToken()
-    console.log("Request URL:", config.url)
-    console.log(
-      "Token in interceptor:",
-      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
-    )
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    } else {
-      console.warn("No access_token found for request:", config.url)
-    }
-    return config
-  },
-  (error) => {
-    console.error("Request interceptor error:", error)
-    return Promise.reject(error)
-  }
-)
-
 export interface CreatePaymentRequest {
   bookingId: string
-  amount: number // Lưu ý: amount ở frontend là VND, backend sẽ convert sang AUD
+  amount: number
   paymentMethod: string
 }
 
@@ -80,18 +59,6 @@ export interface CreatePaymentResponse {
   }
   orderId: string
   approveUrl: string
-}
-
-export interface CapturePaymentResponse {
-  message: string
-  payment: {
-    _id: string
-    bookingId: string
-    userId: string
-    amount: number
-    status: string
-    transactionId: string
-  }
 }
 
 export const createPayment = async (
@@ -155,46 +122,6 @@ export const createPayment = async (
     }
 
     console.error("createPayment error:", errorDetails)
-    throw new Error(errorMessage)
-  }
-}
-
-export const capturePayment = async (query: {
-  token: string
-}): Promise<CapturePaymentResponse> => {
-  try {
-    console.log("Capturing payment with token:", query.token)
-    const res = await axiosJWT.post(`${API_URL}/payments/capture`, {
-      token: query.token,
-    })
-    console.log("capturePayment response:", res.data)
-    return res.data
-  } catch (error: any) {
-    const isAxiosError = axios.isAxiosError(error)
-    let errorMessage = "Lỗi khi xác nhận thanh toán."
-    let errorDetails: any = {
-      message: error.message || "Unknown error",
-      response: error.response?.data || "No response data",
-      status: error.response?.status || "No status",
-      requestUrl: error.config?.url || "Unknown URL",
-      stack: error.stack,
-    }
-
-    if (isAxiosError) {
-      const axiosError = error as AxiosError
-      const errorData = axiosError.response?.data as
-        | { message?: string }
-        | undefined
-      errorDetails = {
-        ...errorDetails,
-        message: errorData?.message || axiosError.message || "Unknown error",
-        response: errorData || axiosError.response || "No response data",
-        status: axiosError.response?.status || "No status",
-      }
-      errorMessage = errorData?.message || axiosError.message || errorMessage
-    }
-
-    console.error("capturePayment error:", errorDetails)
     throw new Error(errorMessage)
   }
 }

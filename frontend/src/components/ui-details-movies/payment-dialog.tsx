@@ -16,9 +16,10 @@ import { CreditCard, Lock, QrCode } from "lucide-react"
 import Image from "next/image"
 import { format } from "date-fns"
 import { QRCodeSVG } from "qrcode.react"
-import UserService from "@/services/userService" // Giả định đường dẫn tới UserService
+import { useToast } from "@/hooks/use-toast"
+import UserService from "@/services/userService"
+import { useRouter } from "next/navigation"
 
-// Định nghĩa interface cho Ticket
 interface Theater {
   id: number
   name: string
@@ -39,10 +40,9 @@ interface TicketProps {
   selectedDate: Date | undefined
   ticketId: string
   selectedRoom: string
-  username: string // Thêm username vào props
+  username: string
 }
 
-// Component Ticket (thay CUSTOMER bằng username, bỏ TYPE)
 const Ticket = ({
   theater,
   movieInfo,
@@ -57,7 +57,7 @@ const Ticket = ({
     cinema: theater.name,
     movie: movieInfo.movieTitle,
     director: movieInfo.director,
-    name: username || "Guest", // Sử dụng username, mặc định là "Guest" nếu không có
+    name: username || "Guest",
     seats: selectedSeats.join(", ") || "None",
     time: selectedTime,
     ticketId: ticketId || "None",
@@ -85,7 +85,6 @@ const Ticket = ({
               {username || "Guest"}
             </p>
           </div>
-          {/* Bỏ phần TYPE */}
         </div>
         <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
           <div>
@@ -182,24 +181,53 @@ const PaymentDialog = ({
   const [error, setError] = useState<string | null>(null)
   const [approveUrl, setApproveUrl] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [username, setUsername] = useState<string>("") // State để lưu username
+  const [username, setUsername] = useState<string>("")
+  const { toast } = useToast()
+  const router = useRouter()
 
   // Gọi API để lấy username
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await UserService.getProfile()
-        const userProfile = response.data // Giả định response.data chứa thông tin profile
+        const userProfile = response.data
         setUsername(userProfile.username || "Guest")
       } catch (err) {
         console.error("Failed to fetch user profile:", err)
-        setUsername("Guest") // Mặc định nếu lỗi
+        setUsername("Guest")
       }
     }
     if (isOpen) {
       fetchProfile()
     }
   }, [isOpen])
+
+  // Làm mới trang sau 8 giây khi có approveUrl (PayPal)
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (approveUrl) {
+      timer = setTimeout(() => {
+        router.push("/ticket")
+        router.refresh() // Làm mới trang
+      }, 8000)
+    }
+    return () => clearTimeout(timer)
+  }, [approveUrl, router])
+
+  // Thông báo khi chọn card hoặc qr
+  const handlePaymentMethodChange = (method: "paypal" | "card" | "qr") => {
+    setPaymentMethod(method)
+    setShowQR(method === "qr")
+    setApproveUrl(null)
+    setError(null)
+    if (method === "card" || method === "qr") {
+      toast({
+        title: "Thông báo",
+        description: "Tính năng thanh toán này hiện chưa được hỗ trợ.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const generateQRData = () =>
     `payment:${movieTitle}:${totalAmount}:${Date.now()}`
@@ -220,37 +248,30 @@ const PaymentDialog = ({
     setError(null)
     setIsProcessing(true)
     try {
-      if (paymentMethod === "card") {
-        if (!holderName || !cardNumber || !expiry || !cvv)
-          throw new Error("Vui lòng điền đầy đủ thông tin thẻ!")
-        if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber))
-          throw new Error("Số thẻ không hợp lệ (16 chữ số)!")
-        if (!validateExpiryDate(expiry))
-          throw new Error(
-            "Ngày hết hạn không hợp lệ (MM/YY, phải trong tương lai)!"
-          )
-        if (!/^\d{3}$/.test(cvv))
-          throw new Error("CVV không hợp lệ (3 chữ số)!")
-        await onConfirm("card", { holderName, cardNumber, expiry, cvv })
-        setHolderName("")
-        setCardNumber("")
-        setExpiry("")
-        setCvv("")
-        setShowQR(false)
-        onClose()
+      if (paymentMethod === "card" || paymentMethod === "qr") {
+        toast({
+          title: "Thông báo",
+          description: `Tính năng thanh toán bằng ${
+            paymentMethod === "card" ? "thẻ" : "QR"
+          } hiện chưa được hỗ trợ.`,
+          variant: "destructive",
+        })
       } else if (paymentMethod === "paypal") {
         const result = await onConfirm("paypal")
         if (result?.error) throw new Error(result.error)
-        if (result?.approveUrl) setApproveUrl(result.approveUrl)
-        else throw new Error("Không nhận được link thanh toán PayPal.")
-      } else if (paymentMethod === "qr") {
-        await onConfirm("qr")
-        setHolderName("")
-        setCardNumber("")
-        setExpiry("")
-        setCvv("")
-        setShowQR(false)
-        onClose()
+        if (result?.approveUrl) {
+          setApproveUrl(result.approveUrl)
+          // Lưu vé tạm thời (sẽ được xác nhận trong handlePaymentCapture của SeatSelection)
+          const currentTickets = JSON.parse(
+            localStorage.getItem("ticketCount") || "[]"
+          )
+          localStorage.setItem(
+            "ticketCount",
+            JSON.stringify([...currentTickets, ...(selectedSeats || [])])
+          )
+        } else {
+          throw new Error("Không nhận được link thanh toán PayPal.")
+        }
       }
     } catch (err: any) {
       setError(err.message || "Lỗi khi xử lý thanh toán.")
@@ -315,7 +336,7 @@ const PaymentDialog = ({
     selectedDate,
     ticketId: ticketId || "N/A",
     selectedRoom: selectedRoom || "N/A",
-    username, // Truyền username vào Ticket
+    username,
   }
 
   return (
@@ -340,12 +361,7 @@ const PaymentDialog = ({
                   <Ticket {...ticketProps} />
                 </div>
                 <Button
-                  onClick={() => {
-                    setPaymentMethod("paypal")
-                    setShowQR(false)
-                    setApproveUrl(null)
-                    setError(null)
-                  }}
+                  onClick={() => handlePaymentMethodChange("paypal")}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "paypal" && !showQR
                       ? "bg-[#4599e3] text-white"
@@ -392,12 +408,7 @@ const PaymentDialog = ({
                   <span>PayPal</span>
                 </Button>
                 <Button
-                  onClick={() => {
-                    setPaymentMethod("card")
-                    setShowQR(false)
-                    setApproveUrl(null)
-                    setError(null)
-                  }}
+                  onClick={() => handlePaymentMethodChange("card")}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "card" && !showQR
                       ? "bg-[#4599e3] text-white"
@@ -408,12 +419,7 @@ const PaymentDialog = ({
                   <span>Thẻ tín dụng</span>
                 </Button>
                 <Button
-                  onClick={() => {
-                    setPaymentMethod("qr")
-                    setShowQR(true)
-                    setApproveUrl(null)
-                    setError(null)
-                  }}
+                  onClick={() => handlePaymentMethodChange("qr")}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "qr" && showQR
                       ? "bg-[#4599e3] text-white"

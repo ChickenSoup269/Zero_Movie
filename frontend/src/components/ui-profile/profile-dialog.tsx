@@ -5,19 +5,41 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
-import { Camera } from "lucide-react"
+import { Camera, Ticket } from "lucide-react"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import UserService from "@/services/userService"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import SettingsTabContent from "./settings-tab-content"
 import ProfileTabContent from "./profile-tab-content"
+import ProfileTickets from "./profile-tickets"
+import axios from "axios"
 
-// Other code remains the same...
+const axiosJWT = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  headers: { "Content-Type": "application/json" },
+})
+
+const getAuthToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("access_token")
+  }
+  return null
+}
+
+axiosJWT.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 export default function ProfileDialog({
   open,
@@ -32,7 +54,6 @@ export default function ProfileDialog({
   userProfile: any
   onProfileUpdate: (updatedProfile: any) => void
 }) {
-  // Your existing state declarations remain the same...
   const [formData, setFormData] = useState({
     fullName: userProfile?.fullName || user?.fullName || "",
     username: userProfile?.username || user?.username || "",
@@ -50,9 +71,9 @@ export default function ProfileDialog({
   const [isEditingFullName, setIsEditingFullName] = useState(false)
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
+  const [tickets, setTickets] = useState<any[]>([])
   const isOnline = userProfile?.isOnline || user?.isOnline || true
 
-  // Your existing toast and methods remain the same...
   const errorToast = ErrorToast({
     title: "Error",
     description: "Failed to update profile.",
@@ -65,29 +86,43 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
-  // Enhanced tab animation variants
+  // Lấy danh sách vé
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const response = await axiosJWT.get("/bookings/my-bookings")
+        setTickets(response.data.bookings || [])
+      } catch (error: any) {
+        errorToast.showToast({
+          description:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to load tickets.",
+        })
+      }
+    }
+    if (open && activeTab === "tickets") {
+      fetchTickets()
+    }
+  }, [open, activeTab])
+
+  // Mở tab tickets từ localStorage
+  useEffect(() => {
+    if (open) {
+      const savedTab = localStorage.getItem("activeProfileTab")
+      if (savedTab) {
+        setActiveTab(savedTab)
+        localStorage.removeItem("activeProfileTab") // Xóa sau khi sử dụng
+      }
+    }
+  }, [open])
+
   const tabVariants = {
-    hidden: {
-      opacity: 0,
-      y: 20,
-      scale: 0.95,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.4, ease: "easeOut" },
-    },
-    exit: {
-      opacity: 0,
-      y: -20,
-      scale: 0.95,
-      transition: { duration: 0.3, ease: "easeIn" },
-    },
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -20, scale: 0.95 },
   }
 
-  // Your existing methods remain the same...
   useEffect(() => {
     setAvatarError(false)
     setBackgroundError(false)
@@ -126,7 +161,6 @@ export default function ProfileDialog({
         })
         return
       }
-      console.log("Selected avatar file:", file)
       setAvatarFile(file)
       setAvatarError(false)
       setFormData((prev) => ({ ...prev, avatar: URL.createObjectURL(file) }))
@@ -150,7 +184,6 @@ export default function ProfileDialog({
         })
         return
       }
-      console.log("Selected background file:", file)
       setBackgroundFile(file)
       setBackgroundError(false)
       setFormData((prev) => ({
@@ -163,7 +196,6 @@ export default function ProfileDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
     try {
       const profileData = {
         fullName: formData.fullName,
@@ -171,36 +203,21 @@ export default function ProfileDialog({
         avatarFile: avatarFile || undefined,
         backgroundFile: backgroundFile || undefined,
       }
-
-      console.log("Submitting profile data:", profileData)
       const response = await UserService.updateProfile(profileData)
-      console.log("Profile update response:", response.data)
-
-      // Lấy profile mới nhất
       const profileResponse = await UserService.getProfile()
       const updatedProfile = profileResponse.data
-      console.log("Fetched profile:", updatedProfile)
-
-      // Cập nhật formData
       setFormData({
         fullName: updatedProfile.fullName || "",
         username: updatedProfile.username || "",
         avatar: updatedProfile.avatar || "",
         backgroundImage: updatedProfile.backgroundImage || "",
       })
-
       onProfileUpdate(updatedProfile)
       successToast.showToast()
       setAvatarFile(null)
       setBackgroundFile(null)
       onOpenChange(false)
     } catch (error: any) {
-      console.error("Error updating profile:", {
-        message: error.message || "Unknown error",
-        response: error.response?.data || null,
-        status: error.response?.status || null,
-        config: error.config || null,
-      })
       errorToast.showToast({
         description:
           error.response?.data?.message ||
@@ -245,9 +262,8 @@ export default function ProfileDialog({
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
           <DialogHeader className="relative">
             <div className="relative h-40 w-full group">
-              {/* Background image với overlay */}
               {formData.backgroundImage && !backgroundError ? (
-                <div className="relative h-40 w-full ">
+                <div className="relative h-40 w-full">
                   <Image
                     src={backgroundUrl || "/default-background.png"}
                     alt="Background"
@@ -257,7 +273,6 @@ export default function ProfileDialog({
                     className="object-cover transition-opacity group-hover:opacity-70"
                     onError={() => setBackgroundError(true)}
                   />
-                  {/* Overlay đen khi hover */}
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               ) : (
@@ -267,8 +282,6 @@ export default function ProfileDialog({
                   </span>
                 </div>
               )}
-
-              {/* Camera icon chỉ hiện khi hover */}
               <label
                 htmlFor="background-upload"
                 className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
@@ -285,8 +298,6 @@ export default function ProfileDialog({
                 />
               </label>
             </div>
-
-            {/* Avatar với hiệu ứng online */}
             <div className="absolute left-6 top-24 h-24 w-24 group">
               <div className="relative h-full w-full rounded-full border-2 border-white shadow-lg dark:shadow-gray-500/90">
                 {formData.avatar && !avatarError ? (
@@ -295,12 +306,9 @@ export default function ProfileDialog({
                     alt={formData.fullName || "User avatar"}
                     fill
                     priority
-                    sizes="(max-width: 768px) 96px, 128px" // More responsive sizing
+                    sizes="(max-width: 768px) 96px, 128px"
                     className="rounded-full object-cover object-center transition-opacity group-hover:opacity-75"
-                    onError={() => {
-                      console.error("Avatar load error:", avatarUrl)
-                      setAvatarError(true)
-                    }}
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
                   <Avatar className="h-full w-full">
@@ -324,15 +332,11 @@ export default function ProfileDialog({
                     onChange={handleAvatarChange}
                   />
                 </label>
-
-                {/* Hiệu ứng online (chấm xanh) */}
                 {isOnline && (
                   <div className="absolute bottom-1 right-1 h-4 w-4 bg-blue-400 rounded-full border-2 border-white animate-pulse"></div>
                 )}
               </div>
             </div>
-
-            {/* Username và title cùng hàng */}
             <div className="flex items-end justify-between pt-16 px-6">
               <div className="flex flex-col">
                 <h3 className="text-xl font-semibold">
@@ -350,7 +354,6 @@ export default function ProfileDialog({
                   )}
                 </div>
               </div>
-
               <motion.h3
                 className="text-sm font-mono text-blue-400 pr-5"
                 initial={{ opacity: 0, y: 5 }}
@@ -365,7 +368,6 @@ export default function ProfileDialog({
               </motion.h3>
             </div>
           </DialogHeader>
-
           <Tabs
             defaultValue="profile"
             className="w-full px-6 relative"
@@ -374,12 +376,12 @@ export default function ProfileDialog({
             <TabsList className="flex relative bg-transparent mb-4 capitalize cursor-pointer">
               {["profile", "settings", "tickets", "movies"].map((tab) => (
                 <TabsTrigger key={tab} value={tab} asChild>
-                  <div className="relative px-4 py-2 ">
+                  <div className="relative px-4 py-2">
                     {tab}
                     {activeTab === tab && (
                       <motion.div
                         layoutId="tabIndicator"
-                        className="absolute bottom-0 left-4 right-4 h-1 bg-blue-400 rounded-full shadow-xl "
+                        className="absolute bottom-0 left-4 right-4 h-1 bg-blue-400 rounded-full shadow-xl"
                         transition={{
                           type: "spring",
                           bounce: 0.2,
@@ -391,7 +393,6 @@ export default function ProfileDialog({
                 </TabsTrigger>
               ))}
             </TabsList>
-
             <div className="relative overflow-scroll min-h-[275px]">
               <AnimatePresence mode="wait">
                 {activeTab === "profile" && (
@@ -434,21 +435,7 @@ export default function ProfileDialog({
                   </motion.div>
                 )}
                 {activeTab === "tickets" && (
-                  <motion.div
-                    key="tickets-tab"
-                    variants={tabVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="absolute w-full"
-                  >
-                    <div className="py-6">
-                      <h3 className="text-lg font-medium">My Tickets</h3>
-                      <p className="text-muted-foreground mt-2">
-                        You don't have any tickets yet.
-                      </p>
-                    </div>
-                  </motion.div>
+                  <ProfileTickets isActive={activeTab === "tickets"} />
                 )}
                 {activeTab === "movies" && (
                   <motion.div
