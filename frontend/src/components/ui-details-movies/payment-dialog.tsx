@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -18,7 +19,7 @@ import { format } from "date-fns"
 import { QRCodeSVG } from "qrcode.react"
 import { useToast } from "@/hooks/use-toast"
 import UserService from "@/services/userService"
-import { useRouter } from "next/navigation"
+import emailjs from "@emailjs/browser"
 
 interface Theater {
   id: number
@@ -182,37 +183,41 @@ const PaymentDialog = ({
   const [approveUrl, setApproveUrl] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [username, setUsername] = useState<string>("")
+  const [userEmail, setUserEmail] = useState<string>("")
   const { toast } = useToast()
-  const router = useRouter()
 
-  // Gọi API để lấy username
+  // Gọi API để lấy username và email
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await UserService.getProfile()
         const userProfile = response.data
         setUsername(userProfile.username || "Guest")
+        setUserEmail(userProfile.email || "")
+        if (!userProfile.email) {
+          console.warn("No email found in user profile")
+          toast({
+            title: "Cảnh báo",
+            description:
+              "Không tìm thấy email trong hồ sơ người dùng. Vui lòng cập nhật email để nhận hóa đơn.",
+            variant: "destructive",
+          })
+        }
       } catch (err) {
         console.error("Failed to fetch user profile:", err)
         setUsername("Guest")
+        setUserEmail("")
+        toast({
+          title: "Lỗi",
+          description: "Không thể lấy thông tin hồ sơ người dùng.",
+          variant: "destructive",
+        })
       }
     }
     if (isOpen) {
       fetchProfile()
     }
   }, [isOpen])
-
-  // Làm mới trang sau 8 giây khi có approveUrl (PayPal)
-  useEffect(() => {
-    let timer: NodeJS.Timeout
-    if (approveUrl) {
-      timer = setTimeout(() => {
-        router.push("/ticket")
-        router.refresh() // Làm mới trang
-      }, 8000)
-    }
-    return () => clearTimeout(timer)
-  }, [approveUrl, router])
 
   // Thông báo khi chọn card hoặc qr
   const handlePaymentMethodChange = (method: "paypal" | "card" | "qr") => {
@@ -229,21 +234,6 @@ const PaymentDialog = ({
     }
   }
 
-  const generateQRData = () =>
-    `payment:${movieTitle}:${totalAmount}:${Date.now()}`
-
-  const validateExpiryDate = (value: string) => {
-    if (!/^\d{2}\/\d{2}$/.test(value)) return false
-    const [month, year] = value.split("/").map(Number)
-    if (month < 1 || month > 12) return false
-    const currentYear = new Date().getFullYear() % 100
-    const currentMonth = new Date().getMonth() + 1
-    return !(
-      year < currentYear ||
-      (year === currentYear && month < currentMonth)
-    )
-  }
-
   const handleConfirm = async () => {
     setError(null)
     setIsProcessing(true)
@@ -257,24 +247,95 @@ const PaymentDialog = ({
           variant: "destructive",
         })
       } else if (paymentMethod === "paypal") {
+        // Step 1: Call onConfirm to get the PayPal approveUrl
         const result = await onConfirm("paypal")
         if (result?.error) throw new Error(result.error)
-        if (result?.approveUrl) {
-          setApproveUrl(result.approveUrl)
-          // Lưu vé tạm thời (sẽ được xác nhận trong handlePaymentCapture của SeatSelection)
-          const currentTickets = JSON.parse(
-            localStorage.getItem("ticketCount") || "[]"
-          )
-          localStorage.setItem(
-            "ticketCount",
-            JSON.stringify([...currentTickets, ...(selectedSeats || [])])
-          )
-        } else {
+        if (!result?.approveUrl) {
           throw new Error("Không nhận được link thanh toán PayPal.")
         }
+
+        const approveUrl = result.approveUrl
+        setApproveUrl(approveUrl) // Still set the state to display the link in the dialog
+
+        // Step 2: Save ticket notification
+        const newNotification = {
+          id: Date.now().toString(),
+          movieTitle: movieTitle || "Unknown Movie",
+          seats: selectedSeats?.join(", ") || "N/A",
+          showtimeId: ticketId,
+          createdAt: new Date().toISOString(),
+        }
+        const currentNotifications = JSON.parse(
+          localStorage.getItem("ticketNotifications") || "[]"
+        )
+        localStorage.setItem(
+          "ticketNotifications",
+          JSON.stringify([...currentNotifications, newNotification])
+        )
+
+        // Step 3: Send email via EmailJS with the approveUrl
+        if (!userEmail) {
+          throw new Error("Không tìm thấy email người dùng để gửi hóa đơn.")
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(userEmail)) {
+          throw new Error("Email người dùng không hợp lệ: " + userEmail)
+        }
+
+        const templateParams = {
+          // Regular params matching your template
+          name: username || "Guest",
+          account_name: "MovieBooking",
+          movie_title: movieTitle || "N/A",
+          seats: selectedSeats?.join(", ") || "N/A",
+          showtime: selectedTime || "N/A",
+          room: selectedRoom || "N/A",
+          date: selectedDate ? format(selectedDate, "dd/MM/yyyy") : "N/A",
+          theater_name: theaterName || "N/A",
+          theater_address: theaterAddress || "N/A",
+          ticket_id: ticketId || "N/A",
+          total: `${totalAmount.toLocaleString()}đ`,
+          action_url: `${window.location.origin}/profile#tickets`,
+
+          paypal_link: approveUrl, // Add the PayPal approveUrl
+          user_email: userEmail,
+          email: userEmail,
+          to_email: userEmail,
+          recipient: userEmail,
+          to: userEmail,
+          from_name: "MovieBooking System",
+          reply_to: userEmail,
+        }
+        console.log("Sending email with params:", templateParams)
+
+        await emailjs.send(
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ORDER_MOVIE_ID!,
+          templateParams,
+          {
+            publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
+          }
+        )
+
+        toast({
+          title: "Email đã được gửi!",
+          description:
+            "Vui lòng kiểm tra email để hoàn tất thanh toán qua PayPal.",
+        })
+
+        // Đóng dialog sau khi gửi email thành công
+        onClose()
       }
     } catch (err: any) {
+      console.error("Error in handleConfirm:", err)
       setError(err.message || "Lỗi khi xử lý thanh toán.")
+      toast({
+        title: "Lỗi",
+        description: err.message || "Lỗi khi xử lý thanh toán.",
+        variant: "destructive",
+      })
     } finally {
       setIsProcessing(false)
     }

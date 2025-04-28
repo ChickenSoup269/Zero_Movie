@@ -3,43 +3,25 @@
 "use client"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion, AnimatePresence } from "framer-motion"
-import { Camera, Ticket } from "lucide-react"
+import { Camera } from "lucide-react"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { getFullImageUrl } from "@/utils/getFullImageUrl"
 import UserService from "@/services/userService"
 import ForgotPasswordDialog from "@/components/ui-login/forgot-password-dialog"
 import SettingsTabContent from "./settings-tab-content"
 import ProfileTabContent from "./profile-tab-content"
 import ProfileTickets from "./profile-tickets"
-import axios from "axios"
-
-const axiosJWT = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: { "Content-Type": "application/json" },
-})
-
-const getAuthToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("access_token")
-  }
-  return null
-}
-
-axiosJWT.interceptors.request.use(
-  (config) => {
-    const token = getAuthToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 export default function ProfileDialog({
   open,
@@ -47,12 +29,16 @@ export default function ProfileDialog({
   user,
   userProfile,
   onProfileUpdate,
+  onNotificationsCleared,
+  ticketNotifications,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: any
   userProfile: any
   onProfileUpdate: (updatedProfile: any) => void
+  onNotificationsCleared: () => void
+  ticketNotifications: any[]
 }) {
   const [formData, setFormData] = useState({
     fullName: userProfile?.fullName || user?.fullName || "",
@@ -71,7 +57,6 @@ export default function ProfileDialog({
   const [isEditingFullName, setIsEditingFullName] = useState(false)
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
-  const [tickets, setTickets] = useState<any[]>([])
   const isOnline = userProfile?.isOnline || user?.isOnline || true
 
   const errorToast = ErrorToast({
@@ -86,58 +71,31 @@ export default function ProfileDialog({
     duration: 3000,
   })
 
-  // Lấy danh sách vé
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const response = await axiosJWT.get("/bookings/my-bookings")
-        setTickets(response.data.bookings || [])
-      } catch (error: any) {
-        errorToast.showToast({
-          description:
-            error.response?.data?.message ||
-            error.message ||
-            "Failed to load tickets.",
-        })
-      }
-    }
-    if (open && activeTab === "tickets") {
-      fetchTickets()
-    }
-  }, [open, activeTab])
-
   // Mở tab tickets từ localStorage
   useEffect(() => {
     if (open) {
       const savedTab = localStorage.getItem("activeProfileTab")
       if (savedTab) {
         setActiveTab(savedTab)
-        localStorage.removeItem("activeProfileTab") // Xóa sau khi sử dụng
+        localStorage.removeItem("activeProfileTab")
       }
     }
   }, [open])
+
+  // Xóa thông báo khi chuyển sang tab tickets
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    if (tab === "tickets") {
+      localStorage.setItem("ticketNotifications", "[]")
+      onNotificationsCleared()
+    }
+  }
 
   const tabVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -20, scale: 0.95 },
   }
-
-  useEffect(() => {
-    setAvatarError(false)
-    setBackgroundError(false)
-    setFormData({
-      fullName: userProfile?.fullName || user?.fullName || "",
-      username: userProfile?.username || user?.username || "",
-      avatar: userProfile?.avatar || user?.avatar || "",
-      backgroundImage:
-        userProfile?.backgroundImage || user?.backgroundImage || "",
-    })
-    setAvatarFile(null)
-    setBackgroundFile(null)
-    setIsEditingFullName(false)
-    setIsEditingUsername(false)
-  }, [user, userProfile])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -260,6 +218,9 @@ export default function ProfileDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px] w-[90%] p-0 overflow-hidden">
+          <VisuallyHidden>
+            <DialogTitle>Profile Settings</DialogTitle>
+          </VisuallyHidden>
           <DialogHeader className="relative">
             <div className="relative h-40 w-full group">
               {formData.backgroundImage && !backgroundError ? (
@@ -371,13 +332,20 @@ export default function ProfileDialog({
           <Tabs
             defaultValue="profile"
             className="w-full px-6 relative"
-            onValueChange={setActiveTab}
+            onValueChange={handleTabChange}
           >
             <TabsList className="flex relative bg-transparent mb-4 capitalize cursor-pointer">
               {["profile", "settings", "tickets", "movies"].map((tab) => (
                 <TabsTrigger key={tab} value={tab} asChild>
                   <div className="relative px-4 py-2">
                     {tab}
+                    {tab === "tickets" && ticketNotifications.length > 0 && (
+                      <div className="absolute top-0 right-1">
+                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-3 w-3 flex items-center justify-center">
+                          {ticketNotifications.length}
+                        </div>
+                      </div>
+                    )}
                     {activeTab === tab && (
                       <motion.div
                         layoutId="tabIndicator"

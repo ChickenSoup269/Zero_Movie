@@ -38,7 +38,7 @@ export default function UserProfileDropdown({
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
-  const [ticketCount, setTicketCount] = useState<number>(0)
+  const [ticketNotifications, setTicketNotifications] = useState<any[]>([])
   const { logout } = useUser()
   const router = useRouter()
 
@@ -54,16 +54,17 @@ export default function UserProfileDropdown({
     duration: 5000,
   })
 
-  // Lấy số lượng vé từ localStorage
+  // Lấy danh sách thông báo vé từ localStorage
   useEffect(() => {
-    const updateTicketCount = () => {
-      const tickets = JSON.parse(localStorage.getItem("ticketCount") || "[]")
-      setTicketCount(tickets.length)
+    const updateNotifications = () => {
+      const notifications = JSON.parse(
+        localStorage.getItem("ticketNotifications") || "[]"
+      )
+      setTicketNotifications(notifications)
     }
-    updateTicketCount()
-    // Lắng nghe sự thay đổi của localStorage
-    window.addEventListener("storage", updateTicketCount)
-    return () => window.removeEventListener("storage", updateTicketCount)
+    updateNotifications()
+    window.addEventListener("storage", updateNotifications)
+    return () => window.removeEventListener("storage", updateNotifications)
   }, [])
 
   useEffect(() => {
@@ -94,7 +95,6 @@ export default function UserProfileDropdown({
   // Mở ProfileDialog với tab tickets
   const openTicketsTab = () => {
     setIsProfileDialogOpen(true)
-    // Truyền thông tin để mở tab tickets
     localStorage.setItem("activeProfileTab", "tickets")
   }
 
@@ -141,6 +141,11 @@ export default function UserProfileDropdown({
     }
   }
 
+  // Callback để xóa thông báo từ ProfileDialog
+  const handleNotificationsCleared = () => {
+    setTicketNotifications([])
+  }
+
   const isAdmin = userProfile?.role === "admin"
   const avatarUrl = getFullImageUrl(userProfile?.avatar || user?.avatar || "")
 
@@ -149,7 +154,7 @@ export default function UserProfileDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div className="relative h-8 w-8">
-            <div className="relative w-full h-full rounded-full overflow-hidden cursor-pointer">
+            <div className="relative w-full h-full rounded-full  cursor-pointer">
               {avatarUrl && !avatarError ? (
                 <Image
                   src={avatarUrl}
@@ -181,13 +186,15 @@ export default function UserProfileDropdown({
                   </AvatarFallback>
                 </Avatar>
               )}
-              {/* Badge hiển thị số lượng vé */}
-              {ticketCount > 0 && (
+              {/* Hiển thị thông báo vé mới với chuông và số lượng */}
+              {ticketNotifications.length > 0 && (
                 <div
-                  className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center cursor-pointer"
+                  className="absolute -top-1 -right-1 cursor-pointer"
                   onClick={openTicketsTab}
                 >
-                  {ticketCount}
+                  <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {ticketNotifications.length}
+                  </div>
                 </div>
               )}
             </div>
@@ -229,14 +236,23 @@ export default function UserProfileDropdown({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => {
-                setIsProfileDialogOpen(true)
-                localStorage.setItem("activeProfileTab", "tickets")
-              }}
+              onClick={openTicketsTab}
               className="flex items-center space-x-2"
             >
               <Ticket className="h-4 w-4" />
-              <span>My Tickets</span>
+              <span>
+                My Tickets{" "}
+                {ticketNotifications.length > 0 && (
+                  <div
+                    className="absolute -top-1 -right-1 cursor-pointer"
+                    onClick={openTicketsTab}
+                  >
+                    <div className="absolute top-3 right-10 bg-red-500 rounded-md text-sm text-white px-4 h-4 w-4 flex items-center justify-center">
+                      {ticketNotifications.length}
+                    </div>
+                  </div>
+                )}
+              </span>
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>
@@ -266,6 +282,8 @@ export default function UserProfileDropdown({
         user={user}
         userProfile={userProfile}
         onProfileUpdate={handleProfileUpdate}
+        onNotificationsCleared={handleNotificationsCleared}
+        ticketNotifications={ticketNotifications}
       />
     </>
   )
