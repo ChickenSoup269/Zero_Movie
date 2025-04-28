@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
@@ -13,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CreditCard, Lock, QrCode } from "lucide-react"
+import { CreditCard, Lock, QrCode, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { format } from "date-fns"
 import { QRCodeSVG } from "qrcode.react"
@@ -67,56 +68,58 @@ const Ticket = ({
   })
 
   return (
-    <div className="bg-white text-black flex flex-col sm:flex-row overflow-hidden rounded-md">
-      <div className="w-full sm:w-2/3 p-3 sm:p-4 border-b-2 sm:border-b-0 sm:border-r-2 border-dotted border-black shadow-lg shadow-blue-500/50">
-        <h4 className="text-base sm:text-lg font-bold text-[#4599e3]">
+    <div className="bg-white text-black flex flex-col sm:flex-row overflow-hidden rounded-md text-xs shadow-xl">
+      <div className="w-full sm:w-2/3 p-2 sm:p-3 border-b-2 sm:border-b-0 sm:border-r-2 border-dotted border-black shadow-md shadow-blue-500/30">
+        <h4 className="text-sm sm:text-base font-bold text-[#4599e3]">
           {theater.name}
         </h4>
-        <p className="text-xs text-gray-500">{theater.address}</p>
-        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+        <p className="text-[0.65rem] text-gray-500">{theater.address}</p>
+        <div className="mt-1 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
           <div>
-            <span className="text-gray-500 text-xs sm:text-sm">MOVIE</span>
-            <p className="font-semibold text-sm sm:text-base">
+            <span className="text-gray-500 text-[0.65rem]">MOVIE</span>
+            <p className="font-semibold text-xs sm:text-sm">
               {movieInfo.movieTitle}
             </p>
           </div>
           <div>
-            <span className="text-gray-500 text-xs sm:text-sm">CUSTOMER</span>
-            <p className="font-semibold text-sm sm:text-base">
+            <span className="text-gray-500 text-[0.65rem]">CUSTOMER</span>
+            <p className="font-semibold text-xs sm:text-sm">
               {username || "Guest"}
             </p>
           </div>
         </div>
-        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+        <div className="mt-1 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
           <div>
-            <span className="text-gray-500 text-xs sm:text-sm">SEAT</span>
-            <p className="font-semibold text-sm sm:text-base">
+            <span className="text-gray-500 text-[0.65rem]">SEAT</span>
+            <p className="font-semibold text-xs sm:text-sm">
               {selectedSeats.join(", ") || "None"}
             </p>
           </div>
           <div>
-            <span className="text-gray-500 text-xs sm:text-sm">TIME</span>
-            <p className="font-semibold text-sm sm:text-base">{selectedTime}</p>
+            <span className="text-gray-500 text-[0.65rem]">TIME</span>
+            <p className="font-semibold text-xs sm:text-sm">{selectedTime}</p>
           </div>
           <div>
-            <span className="text-gray-500 text-xs sm:text-sm">DATE</span>
-            <p className="font-semibold text-sm sm:text-base">
+            <span className="text-gray-500 text-[0.65rem]">DATE</span>
+            <p className="font-semibold text-xs sm:text-sm">
               {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "12/07/2022"}
             </p>
           </div>
         </div>
       </div>
-      <div className="w-full sm:w-1/3 p-3 sm:p-4 bg-[#4599e3] shadow-lg shadow-blue-500/50 text-white flex flex-col items-center justify-between rounded-b-md sm:rounded-b-none sm:rounded-r-md">
+      <div className="w-full sm:w-1/3 p-2 sm:p-3 bg-[#4599e3] shadow-md shadow-blue-500/30 text-white flex flex-col items-center justify-between rounded-b-md sm:rounded-b-none sm:rounded-r-md">
         <div className="text-center">
-          <p className="text-2xl sm:text-4xl font-bold">{selectedRoom}</p>
-          <p className="text-xs sm:text-sm">ROOM</p>
-          <p className="text-[10px] mt-1">Ticket ID: {ticketId || "None"}</p>
+          <p className="text-xl sm:text-2xl font-bold">{selectedRoom}</p>
+          <p className="text-[0.65rem]">ROOM</p>
+          <p className="text-[0.5rem] mt-0.5">
+            Ticket ID: {ticketId || "None"}
+          </p>
         </div>
-        <div className="bg-white p-1 rounded">
+        <div className="bg-white p-0.5 rounded">
           <QRCodeSVG
             value={qrCodeContent}
-            size={60}
-            className="sm:w-[80px] sm:h-[80px]"
+            size={40}
+            className="sm:w-[60px] sm:h-[60px]"
           />
         </div>
       </div>
@@ -184,6 +187,7 @@ const PaymentDialog = ({
   const [isProcessing, setIsProcessing] = useState(false)
   const [username, setUsername] = useState<string>("")
   const [userEmail, setUserEmail] = useState<string>("")
+  const [isTicketVisible, setIsTicketVisible] = useState(true)
   const { toast } = useToast()
 
   // Gọi API để lấy username và email
@@ -217,7 +221,7 @@ const PaymentDialog = ({
     if (isOpen) {
       fetchProfile()
     }
-  }, [isOpen])
+  }, [isOpen, toast])
 
   // Thông báo khi chọn card hoặc qr
   const handlePaymentMethodChange = (method: "paypal" | "card" | "qr") => {
@@ -287,7 +291,7 @@ const PaymentDialog = ({
         const templateParams = {
           // Regular params matching your template
           name: username || "Guest",
-          account_name: "MovieBooking",
+          account_name: "ZeroMove",
           movie_title: movieTitle || "N/A",
           seats: selectedSeats?.join(", ") || "N/A",
           showtime: selectedTime || "N/A",
@@ -355,6 +359,13 @@ const PaymentDialog = ({
       .slice(0, 5)
   const formatCvv = (value: string) => value.replace(/\D/g, "").slice(0, 3)
 
+  // Tạo mã QR ngẫu nhiên (dựa trên timestamp và một số ngẫu nhiên)
+  const generateQRData = () => {
+    const timestamp = Date.now()
+    const randomNum = Math.floor(Math.random() * 1000000)
+    return `payment:${timestamp}:${randomNum}:${totalAmount}`
+  }
+
   const contentVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
@@ -379,6 +390,11 @@ const PaymentDialog = ({
       y: 10,
       transition: { duration: 0.2, ease: "easeIn" },
     },
+  }
+  const ticketVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
   }
 
   const ticketProps: TicketProps = {
@@ -410,24 +426,54 @@ const PaymentDialog = ({
             animate="visible"
             exit="exit"
           >
-            <DialogContent className="sm:max-w-[600px] bg-gray-800 text-white">
+            <DialogContent className="sm:max-w-[400px]">
               <DialogHeader>
                 <DialogTitle className="text-center text-lg font-bold">
-                  Xác nhận thanh toán
+                  Thông tin thanh toán
                 </DialogTitle>
               </DialogHeader>
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-semibold">Thông tin vé</h4>
-                  <Ticket {...ticketProps} />
+                  <div className="flex items-center justify-between">
+                    {isTicketVisible ? (
+                      <p className="font-mono text-sm"></p>
+                    ) : (
+                      <p className="font-mono text-sm">Xem thông tin vé</p>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsTicketVisible(!isTicketVisible)}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                      {isTicketVisible ? (
+                        <Eye className="w-4 h-4" />
+                      ) : (
+                        <EyeOff className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <AnimatePresence>
+                    {isTicketVisible && (
+                      <motion.div
+                        variants={ticketVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <Ticket {...ticketProps} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <Button
                   onClick={() => handlePaymentMethodChange("paypal")}
-                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
+                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg ${
                     paymentMethod === "paypal" && !showQR
                       ? "bg-[#4599e3] text-white"
-                      : "bg-gray-700 text-white"
-                  } hover:bg-[#4599e3]`}
+                      : "bg-white text-black"
+                  } hover:bg-[#4599e3] hover:text-white`}
                 >
                   <AnimatePresence mode="wait">
                     {paymentMethod === "paypal" && !showQR ? (
@@ -470,26 +516,30 @@ const PaymentDialog = ({
                 </Button>
                 <Button
                   onClick={() => handlePaymentMethodChange("card")}
-                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
+                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg ${
                     paymentMethod === "card" && !showQR
                       ? "bg-[#4599e3] text-white"
-                      : "bg-gray-700 text-white"
-                  } hover:bg-[#4599e3]`}
+                      : "bg-white text-black"
+                  } hover:bg-[#4599e3] hover:text-white`}
                 >
                   <CreditCard className="w-5 h-5" />
                   <span>Thẻ tín dụng</span>
                 </Button>
-                <Button
-                  onClick={() => handlePaymentMethodChange("qr")}
-                  className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
-                    paymentMethod === "qr" && showQR
-                      ? "bg-[#4599e3] text-white"
-                      : "bg-gray-700 text-white"
-                  } hover:bg-[#4599e3]`}
-                >
-                  <QrCode className="w-5 h-5" />
-                  <span>Mã QR</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                  <Button
+                    onClick={() => handlePaymentMethodChange("qr")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 ${
+                      paymentMethod === "qr" && showQR
+                        ? "bg-[#4599e3] text-white"
+                        : "bg-white text-black"
+                    } hover:bg-[#4599e3] hover:text-white`}
+                  >
+                    <QrCode className="w-5 h-5" />
+                    <span>Mã QR</span>
+                  </Button>
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                </div>
                 {error && <div className="text-red-500 text-sm">{error}</div>}
                 <AnimatePresence mode="wait">
                   {paymentMethod === "paypal" && !showQR && approveUrl && (
@@ -532,7 +582,7 @@ const PaymentDialog = ({
                           placeholder="Nhập tên đầy đủ"
                           value={holderName}
                           onChange={(e) => setHolderName(e.target.value)}
-                          className="mt-1 bg-gray-700 text-white border-gray-600"
+                          className="mt-1 text-white border-gray-600"
                         />
                       </div>
                       <div>
@@ -544,7 +594,7 @@ const PaymentDialog = ({
                           onChange={(e) =>
                             setCardNumber(formatCardNumber(e.target.value))
                           }
-                          className="mt-1 bg-gray-700 text-white border-gray-600"
+                          className="mt-1 text-white border-gray-600"
                         />
                       </div>
                       <div className="flex gap-2">
@@ -557,7 +607,7 @@ const PaymentDialog = ({
                             onChange={(e) =>
                               setExpiry(formatExpiry(e.target.value))
                             }
-                            className="mt-1 bg-gray-700 text-white border-gray-600"
+                            className="mt-1 text-white border-gray-600"
                           />
                         </div>
                         <div className="flex-1">
@@ -567,7 +617,7 @@ const PaymentDialog = ({
                             placeholder="CVV"
                             value={cvv}
                             onChange={(e) => setCvv(formatCvv(e.target.value))}
-                            className="mt-1 bg-gray-700 text-white border-gray-600"
+                            className="mt-1 text-white border-gray-600"
                           />
                         </div>
                       </div>
@@ -583,14 +633,7 @@ const PaymentDialog = ({
                       transition={{ duration: 0.3 }}
                       className="flex flex-col items-center"
                     >
-                      <Image
-                        src="/qr.jpg"
-                        alt="Zero Movies Logo"
-                        width={120}
-                        height={80}
-                        className="cursor-pointer transition-transform duration-300 hover:scale-105 rounded-sm"
-                        style={{ maxWidth: "100%", height: "auto" }}
-                      />
+                      <QRCodeSVG value={generateQRData()} size={150} />
                       <p className="text-sm text-gray-400 mt-2 text-center">
                         Quét mã QR bằng ứng dụng thanh toán (VietQR, MoMo, v.v.)
                         rồi nhấn "Thanh toán" để xác nhận.
@@ -626,14 +669,14 @@ const PaymentDialog = ({
                     setShowQR(false)
                     onClose()
                   }}
-                  className="bg-gray-700 text-white hover:bg-gray-600"
+                  className="border-gray-300 hover:bg-gray-500"
                   disabled={isProcessing || isLoading}
                 >
                   Hủy
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="bg-[#4599e3] text-white hover:bg-[#3a82c2] flex items-center gap-2"
+                  className="bg-black dark:bg-blue-400 text-white hover:bg-gray-500 flex items-center gap-2"
                   disabled={isProcessing || isLoading || !!approveUrl}
                 >
                   <Lock className="w-4 h-4" />
