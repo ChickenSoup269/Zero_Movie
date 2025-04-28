@@ -28,7 +28,7 @@ interface PaymentDialogProps {
       expiry: string
       cvv: string
     }
-  ) => void
+  ) => Promise<{ approveUrl?: string; error?: string } | void> // Trả về approveUrl hoặc lỗi
   originalPrice: number
   savings: number
   totalAmount: number
@@ -38,6 +38,7 @@ interface PaymentDialogProps {
   selectedTime?: string
   selectedDate?: Date
   selectedRoom?: string
+  isLoading?: boolean // Thêm prop để hiển thị trạng thái loading
 }
 
 const PaymentDialog = ({
@@ -53,6 +54,7 @@ const PaymentDialog = ({
   selectedTime,
   selectedDate,
   selectedRoom,
+  isLoading,
 }: PaymentDialogProps) => {
   const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card" | "qr">(
     "paypal"
@@ -63,15 +65,17 @@ const PaymentDialog = ({
   const [expiry, setExpiry] = useState("")
   const [cvv, setCvv] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [approveUrl, setApproveUrl] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const generateQRData = () => {
     // Giả lập VietQR hoặc MoMo
     return `payment:${movieTitle}:${totalAmount}:${Date.now()}`
   }
 
-  const validateExpiryDate = (expiry: string) => {
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) return false
-    const [month, year] = expiry.split("/").map(Number)
+  const validateExpiryDate = (value: string) => {
+    if (!/^\d{2}\/\d{2}$/.test(value)) return false
+    const [month, year] = value.split("/").map(Number)
     if (month < 1 || month > 12) return false
     const currentYear = new Date().getFullYear() % 100 // Last 2 digits
     const currentMonth = new Date().getMonth() + 1
@@ -81,7 +85,7 @@ const PaymentDialog = ({
     return true
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     console.log("handleConfirm called with:", {
       paymentMethod,
       holderName,
@@ -90,35 +94,55 @@ const PaymentDialog = ({
       cvv,
     })
     setError(null)
-    if (paymentMethod === "card") {
-      if (!holderName || !cardNumber || !expiry || !cvv) {
-        setError("Vui lòng điền đầy đủ thông tin thẻ!")
-        return
+    setIsProcessing(true)
+
+    try {
+      if (paymentMethod === "card") {
+        if (!holderName || !cardNumber || !expiry || !cvv) {
+          throw new Error("Vui lòng điền đầy đủ thông tin thẻ!")
+        }
+        if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber)) {
+          throw new Error("Số thẻ không hợp lệ (16 chữ số)!")
+        }
+        if (!validateExpiryDate(expiry)) {
+          throw new Error(
+            "Ngày hết hạn không hợp lệ (MM/YY, phải trong tương lai)!"
+          )
+        }
+        if (!/^\d{3}$/.test(cvv)) {
+          throw new Error("CVV không hợp lệ (3 chữ số)!")
+        }
+        await onConfirm("card", { holderName, cardNumber, expiry, cvv })
+        setHolderName("")
+        setCardNumber("")
+        setExpiry("")
+        setCvv("")
+        setShowQR(false)
+        onClose()
+      } else if (paymentMethod === "paypal") {
+        const result = await onConfirm("paypal")
+        if (result?.error) {
+          throw new Error(result.error)
+        }
+        if (result?.approveUrl) {
+          setApproveUrl(result.approveUrl)
+        } else {
+          throw new Error("Không nhận được link thanh toán PayPal.")
+        }
+      } else if (paymentMethod === "qr") {
+        await onConfirm("qr")
+        setHolderName("")
+        setCardNumber("")
+        setExpiry("")
+        setCvv("")
+        setShowQR(false)
+        onClose()
       }
-      if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber)) {
-        setError("Số thẻ không hợp lệ (16 chữ số)!")
-        return
-      }
-      if (!validateExpiryDate(expiry)) {
-        setError("Ngày hết hạn không hợp lệ (MM/YY, phải trong tương lai)!")
-        return
-      }
-      if (!/^\d{3}$/.test(cvv)) {
-        setError("CVV không hợp lệ (3 chữ số)!")
-        return
-      }
-      onConfirm("card", { holderName, cardNumber, expiry, cvv })
-    } else if (paymentMethod === "paypal") {
-      onConfirm("paypal")
-    } else if (paymentMethod === "qr") {
-      onConfirm("qr")
+    } catch (err: any) {
+      setError(err.message || "Lỗi khi xử lý thanh toán.")
+    } finally {
+      setIsProcessing(false)
     }
-    setHolderName("")
-    setCardNumber("")
-    setExpiry("")
-    setCvv("")
-    setShowQR(false)
-    onClose()
   }
 
   const formatCardNumber = (value: string) => {
@@ -213,6 +237,8 @@ const PaymentDialog = ({
                   onClick={() => {
                     setPaymentMethod("paypal")
                     setShowQR(false)
+                    setApproveUrl(null)
+                    setError(null)
                   }}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "paypal" && !showQR
@@ -263,6 +289,8 @@ const PaymentDialog = ({
                   onClick={() => {
                     setPaymentMethod("card")
                     setShowQR(false)
+                    setApproveUrl(null)
+                    setError(null)
                   }}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "card" && !showQR
@@ -277,6 +305,8 @@ const PaymentDialog = ({
                   onClick={() => {
                     setPaymentMethod("qr")
                     setShowQR(true)
+                    setApproveUrl(null)
+                    setError(null)
                   }}
                   className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border border-gray-300 ${
                     paymentMethod === "qr" && showQR
@@ -289,6 +319,29 @@ const PaymentDialog = ({
                 </Button>
                 {error && <div className="text-red-500 text-sm">{error}</div>}
                 <AnimatePresence mode="wait">
+                  {paymentMethod === "paypal" && !showQR && approveUrl && (
+                    <motion.div
+                      key="paypal-link"
+                      variants={contentVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      transition={{ duration: 0.3 }}
+                      className="space-y-2 text-center"
+                    >
+                      <p className="text-sm text-gray-400">
+                        Click link để thanh toán qua PayPal:
+                      </p>
+                      <a
+                        href={approveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-4 py-2 bg-[#0070BA] text-white rounded-lg hover:bg-[#005EA6] transition-colors"
+                      >
+                        Thanh toán qua PayPal
+                      </a>
+                    </motion.div>
+                  )}
                   {paymentMethod === "card" && !showQR && (
                     <motion.div
                       key="card-form"
@@ -393,17 +446,28 @@ const PaymentDialog = ({
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={onClose}
+                  onClick={() => {
+                    setApproveUrl(null)
+                    setError(null)
+                    setHolderName("")
+                    setCardNumber("")
+                    setExpiry("")
+                    setCvv("")
+                    setShowQR(false)
+                    onClose()
+                  }}
                   className="bg-gray-700 text-white hover:bg-gray-600"
+                  disabled={isProcessing || isLoading}
                 >
                   Hủy
                 </Button>
                 <Button
                   onClick={handleConfirm}
                   className="bg-[#4599e3] text-white hover:bg-[#3a82c2] flex items-center gap-2"
+                  disabled={isProcessing || isLoading || !!approveUrl}
                 >
                   <Lock className="w-4 h-4" />
-                  Thanh toán
+                  {isProcessing || isLoading ? "Đang xử lý..." : "Thanh toán"}
                 </Button>
               </DialogFooter>
             </DialogContent>

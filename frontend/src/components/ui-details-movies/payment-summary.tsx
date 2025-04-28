@@ -10,6 +10,87 @@ interface PaymentSummaryProps {
   currency?: string
 }
 
+// Hàm đọc số thành chữ
+const readNumber = (number: number): string => {
+  const unitTest = [
+    "",
+    "một",
+    "hai",
+    "ba",
+    "bốn",
+    "năm",
+    "sáu",
+    "bảy",
+    "tám",
+    "chín",
+  ]
+  const scaleTexts = [
+    "",
+    "nghìn",
+    "triệu",
+    "tỷ",
+    "nghìn tỷ",
+    "triệu tỷ",
+    "tỷ tỷ",
+  ]
+
+  const readThreeDigits = (num: number, hasScale: boolean = false): string => {
+    const hundreds = Math.floor(num / 100)
+    const remainder = num % 100
+    const tens = Math.floor(remainder / 10)
+    const units = remainder % 10
+
+    let result = ""
+
+    if (hundreds > 0) {
+      result += unitTest[hundreds] + " trăm "
+    } else if (hasScale && (tens > 0 || units > 0)) {
+      result += "không trăm "
+    }
+
+    if (tens > 1) {
+      result += unitTest[tens] + " mươi "
+    } else if (tens === 1) {
+      result += "mười "
+    } else if (hasScale && units > 0) {
+      result += "lẻ "
+    }
+
+    if (tens > 1 && units === 1) {
+      result += "mốt "
+    } else if (tens > 0 && units === 5) {
+      result += "lăm "
+    } else if (units > 0) {
+      result += unitTest[units] + " "
+    }
+
+    return result.trim()
+  }
+
+  let result = ""
+  let index = 0
+  let absNumber = Math.abs(number)
+  const lastIndex = Math.floor(String(absNumber).length / 3)
+
+  if (!absNumber) return "Không đồng"
+
+  do {
+    const hasScale = index !== lastIndex
+    const threeDigits = readThreeDigits(absNumber % 1000, hasScale)
+
+    if (threeDigits) {
+      result = `${threeDigits} ${scaleTexts[index]} ${result}`
+    }
+
+    absNumber = Math.floor(absNumber / 1000)
+    index++
+  } while (absNumber > 0)
+
+  result = (number < 0 ? "âm " : "") + result.trim() + " đồng"
+
+  return result.charAt(0).toUpperCase() + result.slice(1)
+}
+
 export const PaymentSummary = ({
   selectedSeats,
   selectedTime,
@@ -78,10 +159,10 @@ export const PaymentSummary = ({
           </div>
         </div>
       </div>
-      <div className="mt-4 sm:mt-5 sm:p-3 rounded text-xs sm:text-sm text-gray-700">
-        <p>
-          You saved {savings.toLocaleString("vi-VN")}
-          {currency} with our special discount!
+      <div className="mt-4 sm:mt-5  rounded sm:text-sm text-white">
+        <p className="mt-1 font-medium">
+          Thành tiền:{" "}
+          <span className="text-gray-600">{readNumber(totalAmount)}</span>
         </p>
       </div>
     </div>

@@ -10,6 +10,7 @@ import DatePicker from "./date-picker"
 import SeatPicker from "./seat-picker"
 import { PaymentSummary } from "./payment-summary"
 import PaymentDialog from "./payment-dialog"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import CustomDropdown from "@/components/ui-dropdown/custom-dropdown"
 import { getRoomsByCinemaId } from "@/services/roomService"
@@ -125,10 +126,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const [timeOptions, setTimeOptions] = useState<TimeOption[]>([])
   const [bookingDetails, setBookingDetails] = useState<any | null>(null)
   const [priceWarning, setPriceWarning] = useState<string | null>(null)
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
   const [availableSeats, setAvailableSeats] = useState<Seat[]>([])
   const [soldSeats, setSoldSeats] = useState<string[]>([])
   const seatPickerRef = useRef<SeatPickerRef>(null)
   const { toast } = useToast()
+  const router = useRouter()
 
   const typeOptions = [
     { value: "2D", label: "2D" },
@@ -343,7 +346,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         }
 
         let hasInvalidPrice = false
-        const defaultPrice = 80000
+        const defaultPrice = 75000 // Cập nhật giá vé mặc định dựa trên booking
         const options: TimeOption[] = filteredShowtimes.map((showtime) => {
           const date = parseShowtimeDate(showtime.startTime)
           const timeString = format(date, "HH:mm")
@@ -361,12 +364,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
 
         if (hasInvalidPrice) {
           setPriceWarning(
-            "Giá vé không khả dụng cho suất chiếu này. Đang sử dụng giá mặc định 80,000đ."
+            "Giá vé không khả dụng cho suất chiếu này. Đang sử dụng giá mặc định 75,000đ."
           )
           toast({
             title: "Cảnh báo",
             description:
-              "Giá vé không khả dụng. Đang sử dụng giá mặc định 80,000đ.",
+              "Giá vé không khả dụng. Đang sử dụng giá mặc định 75,000đ.",
             variant: "default",
           })
         }
@@ -441,7 +444,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           return
         }
         const seats: Seat[] = seatResponse.seats.map((seat: any) => ({
-          id: seat.id,
+          id: seat._id || seat.id, // Đảm bảo lấy _id
           seatNumber: seat.seatNumber,
           status: seat.status as "available" | "booked" | "reserved",
         }))
@@ -523,7 +526,15 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     setIsPaymentOpen(true)
   }
 
-  const handlePaymentConfirm = async () => {
+  const handlePaymentConfirm = async (
+    method: string,
+    cardDetails?: {
+      holderName: string
+      cardNumber: string
+      expiry: string
+      cvv: string
+    }
+  ): Promise<{ approveUrl?: string; error?: string } | void> => {
     if (!movieInfo) {
       setError("Thông tin phim không khả dụng.")
       toast({
@@ -531,7 +542,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         description: "Thông tin phim không khả dụng.",
         variant: "destructive",
       })
-      return
+      return { error: "Thông tin phim không khả dụng." }
     }
     setIsLoading(true)
     try {
@@ -564,7 +575,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         token = refreshResponse.accessToken
         localStorage.setItem("access_token", token)
         localStorage.setItem("refresh_token", refreshResponse.refreshToken)
-        console.log("New token after refresh:", token)
+        console.log("New token after refresh:", token.slice(0, 10) + "...")
       }
 
       // Kiểm tra session
@@ -581,87 +592,196 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       if (!seatResponse.seats || seatResponse.seats.length === 0) {
         throw new Error("Không có ghế khả dụng cho suất chiếu này.")
       }
-      const invalidSeats = selectedSeats.filter(
-        (seatNumber) =>
-          !seatResponse.seats.find(
-            (s: any) => s.seatNumber === seatNumber && s.status === "available"
+
+      // Lấy seatIds và kiểm tra trạng thái
+      const seatIds = selectedSeats
+        .map((seatNumber) => {
+          const seat = seatResponse.seats.find(
+            (s: any) => s.seatNumber === seatNumber
           )
-      )
+          if (!seat) {
+            return null
+          }
+          if (seat.status !== "available") {
+            return { seatNumber, status: seat.status }
+          }
+          return seat._id || seat.id
+        })
+        .filter((item) => typeof item === "string") as string[]
+
+      const invalidSeats = selectedSeats
+        .map((seatNumber, index) => {
+          const result = seatIds[index]
+          if (!result) {
+            return { seatNumber, error: "Ghế không tồn tại" }
+          }
+          if (typeof result !== "string") {
+            return { seatNumber, error: `Ghế ${result.status}` }
+          }
+          return null
+        })
+        .filter((item) => item !== null) as {
+        seatNumber: string
+        error: string
+      }[]
+
       if (invalidSeats.length > 0) {
-        throw new Error(
-          `Ghế ${invalidSeats.join(", ")} không hợp lệ hoặc đã được đặt!`
-        )
+        const errorMessage = invalidSeats
+          .map((s) => `${s.seatNumber}: ${s.error}`)
+          .join(", ")
+        throw new Error(`Ghế không khả dụng: ${errorMessage}`)
       }
 
-      // Lấy seatIds
-      const seatIds = selectedSeats
-        .map(
-          (seatNumber) =>
-            seatResponse.seats.find((s: any) => s.seatNumber === seatNumber)?.id
-        )
-        .filter((id) => id)
-      console.log("seatIds for createBooking:", seatIds)
       if (seatIds.length !== selectedSeats.length) {
         throw new Error("Không thể lấy ID của một số ghế.")
       }
 
       // Tính amount
       const amount = ticketPrice * selectedSeats.length
+      if (amount <= 0) {
+        throw new Error("Tổng giá không hợp lệ.")
+      }
 
-      // Tạo booking
+      // tạo booking
       let bookingResponse
-      try {
-        console.log("Creating booking with payload:", {
-          showtimeId,
-          seatIds,
-          totalPrice: amount,
-        })
-        bookingResponse = await createBooking({
-          showtimeId,
-          seatIds,
-          totalPrice: amount,
-        })
-        console.log("Booking response:", bookingResponse)
-      } catch (bookingError: any) {
-        throw new Error("Không thể tạo booking.")
-      }
-      if (!bookingResponse.data?.booking?._id) {
-        throw new Error("Không thể tạo booking.")
+      let retryCount = 0
+      const maxRetries = 3
+      while (retryCount < maxRetries) {
+        try {
+          console.log(
+            `Attempt ${retryCount + 1} - Creating booking with payload:`,
+            {
+              showtimeId,
+              seatIds,
+              totalPrice: amount,
+            }
+          )
+          bookingResponse = await createBooking(
+            {
+              showtimeId,
+              seatIds,
+            },
+            new AbortController().signal
+          )
+          console.log("Full booking response:", bookingResponse)
+
+          // Kiểm tra phản hồi từ API
+          if (!bookingResponse?.data?.booking?._id) {
+            const errorMessage =
+              bookingResponse?.data?.message ||
+              (bookingResponse?.data
+                ? JSON.stringify(bookingResponse.data)
+                : "Không có dữ liệu trong phản hồi")
+            throw new Error(`Phản hồi không hợp lệ: ${errorMessage}`)
+          }
+          break
+        } catch (bookingError: any) {
+          console.error(
+            `Failed to create booking (attempt ${retryCount + 1}):`,
+            {
+              message: bookingError.message,
+              response: bookingError.response?.data,
+              status: bookingError.response?.status,
+              headers: bookingError.response?.headers,
+              payload: { showtimeId, seatIds, totalPrice: amount },
+            }
+          )
+          retryCount++
+          if (retryCount === maxRetries) {
+            const errorMessage =
+              bookingError.message ||
+              "Không thể tạo booking do lỗi server. Vui lòng thử lại sau."
+            setError(errorMessage)
+            toast({
+              title: "Lỗi",
+              description: errorMessage,
+              variant: "destructive",
+            })
+            throw new Error(errorMessage)
+          }
+          // Kiểm tra lại ghế trước khi thử lại
+          const retrySeatResponse = await getSeatsByShowtime(showtimeId)
+          const retryInvalidSeats = selectedSeats
+            .map((seatNumber) => {
+              const seat = retrySeatResponse.seats.find(
+                (s: any) => s.seatNumber === seatNumber
+              )
+              if (!seat || seat.status !== "available") {
+                return seatNumber
+              }
+              return null
+            })
+            .filter((s) => s !== null)
+          if (retryInvalidSeats.length > 0) {
+            const errorMessage = `Ghế ${retryInvalidSeats.join(
+              ", "
+            )} không còn khả dụng.`
+            setError(errorMessage)
+            toast({
+              title: "Lỗi",
+              description: errorMessage,
+              variant: "destructive",
+            })
+            throw initiateError(errorMessage)
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
       }
 
-      // Lưu pending booking
-      localStorage.setItem(
-        "pendingBooking",
-        JSON.stringify({
-          showtimeId,
-          selectedSeats,
-          bookingId: bookingResponse.data.booking._id,
-          ticketPrice,
+      const bookingId = bookingResponse.data.booking._id
+      if (!bookingId) {
+        const errorMessage = "Booking ID không được trả về từ server."
+        setError(errorMessage)
+        toast({
+          title: "Lỗi",
+          description: errorMessage,
+          variant: "destructive",
         })
-      )
+        throw new Error(errorMessage)
+      }
 
       // Tạo payment
       let paymentResponse
       try {
-        paymentResponse = await createPayment({
-          bookingId: bookingResponse.data.booking._id,
+        console.log("Creating payment with payload:", {
+          bookingId,
           amount,
-          paymentMethod: "paypal",
+          paymentMethod: method,
+        })
+        paymentResponse = await createPayment({
+          bookingId,
+          amount,
+          paymentMethod: method,
         })
         console.log("Payment response:", paymentResponse)
       } catch (paymentError: any) {
-        await deleteBooking(bookingResponse.data.booking._id)
+        console.error("Payment creation failed:", {
+          message: paymentError.message,
+          response: paymentError.response?.data,
+          status: paymentError.response?.status,
+        })
+        await deleteBooking(bookingId)
         localStorage.removeItem("pendingBooking")
-        throw new Error("Không thể tạo yêu cầu thanh toán.")
-      }
-      if (!paymentResponse.approveUrl) {
-        await deleteBooking(bookingResponse.data.booking._id)
-        localStorage.removeItem("pendingBooking")
-        throw new Error("Không thể tạo yêu cầu thanh toán.")
+        throw new Error(
+          paymentError.response?.data?.message ||
+            "Không thể tạo yêu cầu thanh toán."
+        )
       }
 
-      // Redirect đến PayPal
-      window.location.href = paymentResponse.approveUrl
+      if (!paymentResponse.approveUrl && method === "paypal") {
+        console.error("Missing approveUrl for PayPal payment:", paymentResponse)
+        await deleteBooking(bookingId)
+        localStorage.removeItem("pendingBooking")
+        throw new Error("Không thể tạo yêu cầu thanh toán PayPal.")
+      }
+
+      // Trả về approveUrl cho PayPal
+      if (method === "paypal") {
+        return { approveUrl: paymentResponse.approveUrl }
+      }
+
+      // Xử lý các phương thức khác (card, qr)
+      setIsPaymentOpen(false)
     } catch (error: any) {
       console.error("Lỗi trong handlePaymentConfirm:", {
         message: error.message,
@@ -676,7 +796,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       })
       if (error.message.includes("đăng nhập")) {
         window.location.href = "/login"
+      } else if (error.message.includes("Ghế")) {
+        setIsPaymentOpen(false)
+        setSelectedSeats([])
       }
+      return { error: error.message || "Lỗi khi xử lý thanh toán." }
     } finally {
       setIsLoading(false)
     }
@@ -706,9 +830,52 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           throw new Error("Trạng thái đặt vé không hợp lệ!")
         }
 
-        console.log("Capturing payment with token:", token)
-        const captureResponse = await capturePayment({ token })
-        console.log("captureResponse:", captureResponse)
+        // Kiểm tra lại ghế trước khi capture
+        const seatResponse = await getSeatsByShowtime(showtimeId)
+        console.log("seatResponse before capture:", seatResponse)
+        if (!seatResponse.seats || seatResponse.seats.length === 0) {
+          throw new Error("Không có ghế khả dụng cho suất chiếu này.")
+        }
+        const invalidSeats = selectedSeats.filter(
+          (seatNumber: string) =>
+            !seatResponse.seats.find(
+              (s: any) =>
+                s.seatNumber === seatNumber && s.status === "available"
+            )
+        )
+        if (invalidSeats.length > 0) {
+          throw new Error(`Ghế ${invalidSeats.join(", ")} không còn khả dụng.`)
+        }
+
+        // Capture payment với retry logic
+        let captureResponse
+        let retryCount = 0
+        const maxRetries = 3
+        while (retryCount < maxRetries) {
+          try {
+            console.log("Capturing payment with token:", token)
+            captureResponse = await capturePayment({ token })
+            console.log("captureResponse:", captureResponse)
+            break
+          } catch (captureError: any) {
+            console.error(
+              `Failed to capture payment (attempt ${retryCount + 1}):`,
+              {
+                message: captureError.message,
+                response: captureError.response?.data,
+                status: captureError.response?.status,
+              }
+            )
+            retryCount++
+            if (retryCount === maxRetries) {
+              throw new Error(
+                captureError.response?.data?.message ||
+                  "Không thể xác nhận thanh toán sau nhiều lần thử."
+              )
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+          }
+        }
 
         if (!captureResponse.payment) {
           throw new Error("No payment data in capture response")
@@ -720,16 +887,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             "Payment completed, updating seat status for:",
             selectedSeats
           )
-          const seatResponse = await getSeatsByShowtime(showtimeId)
-          console.log("seatResponse for update:", seatResponse)
 
-          if (!seatResponse.seats || seatResponse.seats.length === 0) {
-            throw new Error("No seats available for this showtime")
-          }
-
+          // Cập nhật trạng thái ghế
           for (const seatNumber of selectedSeats) {
             const seat = seatResponse.seats.find(
-              (s) => s.seatNumber === seatNumber
+              (s: any) => s.seatNumber === seatNumber
             )
             if (seat) {
               let retryCount = 0
@@ -737,9 +899,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               while (retryCount <= maxRetries) {
                 try {
                   console.log(
-                    `Updating seat ${seat.seatNumber} (id: ${seat.id}) to booked`
+                    `Updating seat ${seat.seatNumber} (id: ${seat._id}) to booked`
                   )
-                  await updateSeatStatus(showtimeId, seat.id, {
+                  await updateSeatStatus(showtimeId, seat._id, {
                     status: "booked",
                   })
                   console.log(`Seat ${seat.seatNumber} updated successfully`)
@@ -832,19 +994,18 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           }
           setIsPaymentCompleted(true)
           setIsPaymentOpen(false)
+          setShowPaymentSuccess(true) // Set flag to show success message
 
+          // Redirect to the stored return URL
+          const returnUrl = localStorage.getItem("returnUrl") || "/ticket"
           localStorage.removeItem("pendingBooking")
+          localStorage.removeItem("returnUrl")
           window.history.replaceState(
             {},
             document.title,
             window.location.pathname
           )
-          console.log("Payment capture completed, booking details set")
-          toast({
-            title: "Thành công",
-            description: "Thanh toán hoàn tất, vé đã được đặt!",
-            variant: "default",
-          })
+          router.push(returnUrl) // Redirect to previous page
         } else {
           throw new Error("Thanh toán chưa được hoàn tất!")
         }
@@ -868,6 +1029,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           await deleteBooking(pendingBooking.bookingId)
         }
         localStorage.removeItem("pendingBooking")
+        localStorage.removeItem("returnUrl")
       }
     }
 
@@ -883,6 +1045,67 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     selectedRoom,
     toast,
   ])
+
+  useEffect(() => {
+    if (localStorage.getItem("paymentSuccess")) {
+      toast({
+        title: "Thành công",
+        description: "Thanh toán hoàn tất, vé đã được đặt!",
+        variant: "default",
+      })
+      localStorage.removeItem("paymentSuccess")
+      setIsPaymentCompleted(true)
+
+      // Restore booking details
+      const pendingBooking = JSON.parse(
+        localStorage.getItem("pendingBooking") || "{}"
+      )
+      if (pendingBooking.bookingId) {
+        setBookingDetails({
+          booking: { _id: pendingBooking.bookingId },
+          totalPrice:
+            pendingBooking.selectedSeats.length *
+            (pendingBooking.ticketPrice || 75000),
+          details: {
+            movie: { title: movieInfo?.title || "Unknown" },
+            cinema: {
+              name: selectedTheater?.name,
+              address: selectedTheater?.address,
+            },
+            room: {
+              roomNumber: roomOptions.find((opt) => opt.value === selectedRoom)
+                ?.label,
+            },
+            seats: pendingBooking.selectedSeats.map((seat: string) => ({
+              seatNumber: seat,
+              row: seat.match(/[A-Z]+/)?.[0] || "",
+              column: parseInt(seat.match(/\d+/)?.[0] || "0"),
+            })),
+            showtime: { startTime: selectedTime, endTime: "" },
+          },
+        })
+      }
+    }
+  }, [
+    movieInfo,
+    selectedTheater,
+    selectedTime,
+    roomOptions,
+    selectedRoom,
+    toast,
+  ])
+
+  // Show success toast when showPaymentSuccess is true
+  useEffect(() => {
+    if (showPaymentSuccess) {
+      toast({
+        title: "Thành công",
+        description: "Thanh toán hoàn tất, vé đã được đặt!",
+        variant: "default",
+      })
+      setShowPaymentSuccess(false) // Reset flag to prevent repeated toasts
+    }
+  }, [showPaymentSuccess, toast])
 
   if (isMovieLoading) {
     return (

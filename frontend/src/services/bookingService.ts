@@ -145,23 +145,48 @@ export const createBooking = async (
     const token = getAuthToken()
     console.log(
       "Token in createBooking:",
-      token ? `Present: ${token}` : "Missing"
+      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
     )
     if (!token) {
       console.error("No access_token found for createBooking")
       throw new Error("No access token available. Please log in.")
     }
     console.log("Creating booking with data:", data)
-    const res = await axiosJWT.post<ApiResponse<CreateBookingResponse>>(
-      "/bookings",
-      data,
-      { signal }
-    )
-    console.log("createBooking response:", res.data)
-    if (res.data.status === "ERR") {
+    const res = await axiosJWT.post<any>("/bookings", data, { signal })
+    console.log("createBooking full response:", {
+      status: res.status,
+      headers: res.headers,
+      data: res.data,
+    })
+
+    // Handle server response structure
+    if (res.data.status && res.data.status === "ERR") {
+      console.error("Server returned ERR status:", res.data)
       throw new Error(res.data.message || "Failed to create booking")
     }
-    return res.data
+
+    // Check for the server's actual response structure
+    if (!res.data.booking?._id) {
+      console.error("Invalid booking response structure:", res.data)
+      throw new Error(
+        `Invalid response: ${
+          res.data.message || JSON.stringify(res.data) || "No booking data"
+        }`
+      )
+    }
+
+    // Transform server response to match ApiResponse<CreateBookingResponse>
+    const transformedResponse: ApiResponse<CreateBookingResponse> = {
+      status: res.data.status || "OK", // Assume OK if status is missing
+      message: res.data.message,
+      data: {
+        booking: res.data.booking,
+        totalPrice: res.data.totalPrice,
+        details: res.data.details,
+      },
+    }
+
+    return transformedResponse
   } catch (error: any) {
     const isAxiosError = axios.isAxiosError(error)
     let errorMessage = "Lỗi khi tạo booking. Vui lòng thử lại."
@@ -170,8 +195,9 @@ export const createBooking = async (
       response: error.response?.data || "No response data",
       status: error.response?.status || "No status",
       requestUrl: error.config?.url || "Unknown URL",
+      requestPayload: data,
       tokenBeforeError: getAuthToken()
-        ? `Present: ${getAuthToken()}`
+        ? `Present: ${getAuthToken()?.slice(0, 10)}...`
         : "Missing",
       refreshTokenAvailable: localStorage.getItem("refresh_token")
         ? "Present"
@@ -179,7 +205,7 @@ export const createBooking = async (
     }
 
     if (isAxiosError) {
-      const axiosError = error as AxiosError<ApiResponse<unknown>>
+      const axiosError = error as AxiosError<any>
       const errorData = axiosError.response?.data as
         | { status?: string; message?: string }
         | undefined
