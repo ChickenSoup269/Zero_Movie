@@ -1,23 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { capturePayment } from "@/services/paymentService"
-import { deleteBooking } from "@/services/bookingService" // Correct import
+import { deleteBooking } from "@/services/bookingService"
 import {
   getSeatsByShowtime,
   updateSeatStatus,
 } from "@/services/showtimeSeatService"
 import { Loader2 } from "lucide-react"
-import axios from "axios" // Add axios import
+import axios from "axios"
 
 // Define types
 interface Seat {
-  _id: string
+  id: string // Changed from _id to match ShowtimeSeat
   seatNumber: string
-  row: string
-  column: number
+  showtimeId: string
+  seatId: string
   status: "available" | "reserved" | "booked"
 }
 
@@ -56,16 +55,33 @@ export default function TicketPage() {
         return
       }
 
-      let pendingBooking: any = null // Store pendingBooking for catch block
+      let pendingBooking: any = null
       try {
         setError(null)
         pendingBooking = JSON.parse(
           localStorage.getItem("pendingBooking") || "{}"
         )
+        console.log("Retrieved pendingBooking:", pendingBooking)
+
         const { showtimeId, selectedSeats, bookingId } = pendingBooking
 
-        if (!showtimeId || !bookingId || !selectedSeats) {
-          throw new Error("Trạng thái đặt vé không hợp lệ!")
+        // Detailed validation
+        if (
+          !showtimeId ||
+          !bookingId ||
+          !selectedSeats ||
+          !Array.isArray(selectedSeats)
+        ) {
+          const missingFields = []
+          if (!showtimeId) missingFields.push("showtimeId")
+          if (!bookingId) missingFields.push("bookingId")
+          if (!selectedSeats || !Array.isArray(selectedSeats))
+            missingFields.push("selectedSeats")
+          throw new Error(
+            `Trạng thái đặt vé không hợp lệ! Thiếu các trường: ${missingFields.join(
+              ", "
+            )}`
+          )
         }
 
         // Kiểm tra lại ghế trước khi capture
@@ -87,9 +103,9 @@ export default function TicketPage() {
 
         // Capture payment
         let captureResponse: CaptureResponse | undefined
-        let retryCount = 0
-        const maxRetries = 3
-        while (retryCount < maxRetries) {
+        let paymentRetryCount = 0
+        const maxPaymentRetries = 3
+        while (paymentRetryCount < maxPaymentRetries) {
           try {
             console.log("Capturing payment with token:", token)
             captureResponse = await capturePayment({ token })
@@ -97,15 +113,15 @@ export default function TicketPage() {
             break
           } catch (captureError) {
             console.error(
-              `Failed to capture payment (attempt ${retryCount + 1}):`,
+              `Failed to capture payment (attempt ${paymentRetryCount + 1}):`,
               {
                 message: (captureError as Error).message,
                 response: (captureError as any).response?.data,
                 status: (captureError as any).response?.status,
               }
             )
-            retryCount++
-            if (retryCount === maxRetries) {
+            paymentRetryCount++
+            if (paymentRetryCount === maxPaymentRetries) {
               throw new Error(
                 (captureError as any).response?.data?.message ||
                   "Không thể xác nhận thanh toán sau nhiều lần thử."
@@ -128,14 +144,14 @@ export default function TicketPage() {
             (s: Seat) => s.seatNumber === seatNumber
           )
           if (seat) {
-            let retryCount = 0
-            const maxRetries = 3
-            while (retryCount < maxRetries) {
+            let seatRetryCount = 0
+            const maxSeatRetries = 3
+            while (seatRetryCount < maxSeatRetries) {
               try {
                 console.log(
-                  `Updating seat ${seat.seatNumber} (id: ${seat._id}) to booked`
+                  `Updating seat ${seat.seatNumber} (id: ${seat.id}) to booked`
                 )
-                await updateSeatStatus(showtimeId, seat._id, {
+                await updateSeatStatus(showtimeId, seat.id, {
                   status: "booked",
                 })
                 console.log(`Seat ${seat.seatNumber} updated successfully`)
@@ -143,7 +159,7 @@ export default function TicketPage() {
               } catch (seatError) {
                 console.error(
                   `Failed to update seat ${seat.seatNumber} (attempt ${
-                    retryCount + 1
+                    seatRetryCount + 1
                   }):`,
                   {
                     message: (seatError as Error).message,
@@ -151,10 +167,10 @@ export default function TicketPage() {
                     status: (seatError as any).response?.status,
                   }
                 )
-                retryCount++
-                if (retryCount === maxRetries) {
+                seatRetryCount++
+                if (seatRetryCount === maxSeatRetries) {
                   throw new Error(
-                    `Failed to update seat ${seat.seatNumber} after ${maxRetries} attempts`
+                    `Failed to update seat ${seat.seatNumber} after ${maxSeatRetries} attempts`
                   )
                 }
                 await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -166,9 +182,9 @@ export default function TicketPage() {
         }
 
         // Update booking status to confirmed
-        let retryCount = 0
-        const maxRetries = 3
-        while (retryCount < maxRetries) {
+        let bookingRetryCount = 0
+        const maxBookingRetries = 3
+        while (bookingRetryCount < maxBookingRetries) {
           try {
             console.log("Updating booking status to confirmed:", bookingId)
             await axios.patch(
@@ -180,17 +196,19 @@ export default function TicketPage() {
             break
           } catch (bookingError) {
             console.error(
-              `Failed to update booking status (attempt ${retryCount + 1}):`,
+              `Failed to update booking status (attempt ${
+                bookingRetryCount + 1
+              }):`,
               {
                 message: (bookingError as Error).message,
                 response: (bookingError as any).response?.data,
                 status: (bookingError as any).response?.status,
               }
             )
-            retryCount++
-            if (retryCount === maxRetries) {
+            bookingRetryCount++
+            if (bookingRetryCount === maxBookingRetries) {
               console.warn(
-                `Failed to update booking status after ${maxRetries} attempts`
+                `Failed to update booking status after ${maxBookingRetries} attempts`
               )
               break
             }

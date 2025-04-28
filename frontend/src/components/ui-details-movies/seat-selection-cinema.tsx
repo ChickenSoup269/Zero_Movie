@@ -493,6 +493,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       movieInfo,
       selectedTheater,
       selectedDate,
+      availableSeats, // Log availableSeats
     })
     const token = getAuthToken()
     if (!token) {
@@ -523,7 +524,83 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       })
       return
     }
-    setIsPaymentOpen(true)
+
+    // Validate availableSeats
+    if (!availableSeats || availableSeats.length === 0) {
+      setError("Không có dữ liệu ghế khả dụng!")
+      toast({
+        title: "Lỗi",
+        description: "Không có dữ liệu ghế khả dụng!",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Generate seatIds
+    const seatIds = selectedSeats.map((seatNumber) => {
+      const seat = availableSeats.find((s) => s.seatNumber === seatNumber)
+      if (!seat || !seat.id) {
+        throw new Error(`Không tìm thấy seatId cho ghế ${seatNumber}`)
+      }
+      return seat.id
+    })
+
+    // Log seatIds
+    console.log("Generated seatIds:", seatIds)
+
+    // Store returnUrl
+    localStorage.setItem(
+      "returnUrl",
+      window.location.pathname + window.location.search
+    )
+
+    // Create booking
+    try {
+      const bookingResponse = await createBooking(
+        {
+          showtimeId,
+          seatIds,
+        },
+        new AbortController().signal
+      )
+
+      if (!bookingResponse?.data?.booking?._id) {
+        throw new Error("Không thể tạo booking!")
+      }
+
+      // Store pendingBooking
+      const pendingBooking = {
+        showtimeId,
+        selectedSeats,
+        bookingId: bookingResponse.data.booking._id,
+        ticketPrice: ticketPrice || 75000,
+      }
+      console.log("Storing pendingBooking:", pendingBooking)
+      localStorage.setItem("pendingBooking", JSON.stringify(pendingBooking))
+
+      // Initiate payment
+      setIsPaymentOpen(true)
+    } catch (error: any) {
+      console.error("createBooking error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        requestUrl: "/bookings",
+        requestPayload: { showtimeId, seatIds },
+        tokenBeforeError: token
+          ? `Present: ${token.slice(0, 10)}...`
+          : "Missing",
+        refreshTokenAvailable: localStorage.getItem("refresh_token")
+          ? "Present"
+          : "Missing",
+      })
+      setError(error.message || "Lỗi khi tạo booking.")
+      toast({
+        title: "Lỗi",
+        description: error.message || "Lỗi khi tạo booking.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handlePaymentConfirm = async (
