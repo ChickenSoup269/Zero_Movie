@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Dialog,
@@ -13,9 +13,116 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CreditCard, Lock, QrCode } from "lucide-react"
-import { QRCodeSVG } from "qrcode.react"
 import Image from "next/image"
 import { format } from "date-fns"
+import { QRCodeSVG } from "qrcode.react"
+import UserService from "@/services/userService" // Giả định đường dẫn tới UserService
+
+// Định nghĩa interface cho Ticket
+interface Theater {
+  id: number
+  name: string
+  address: string
+}
+
+interface MovieInfo {
+  type: string
+  movieTitle: string
+  director: string
+}
+
+interface TicketProps {
+  theater: Theater
+  movieInfo: MovieInfo
+  selectedSeats: string[]
+  selectedTime: string
+  selectedDate: Date | undefined
+  ticketId: string
+  selectedRoom: string
+  username: string // Thêm username vào props
+}
+
+// Component Ticket (thay CUSTOMER bằng username, bỏ TYPE)
+const Ticket = ({
+  theater,
+  movieInfo,
+  selectedSeats,
+  selectedTime,
+  selectedDate,
+  ticketId,
+  selectedRoom,
+  username,
+}: TicketProps) => {
+  const qrCodeContent = JSON.stringify({
+    cinema: theater.name,
+    movie: movieInfo.movieTitle,
+    director: movieInfo.director,
+    name: username || "Guest", // Sử dụng username, mặc định là "Guest" nếu không có
+    seats: selectedSeats.join(", ") || "None",
+    time: selectedTime,
+    ticketId: ticketId || "None",
+    date: selectedDate ? format(selectedDate, "dd/MM/yyyy") : "12/07/2022",
+    room: selectedRoom,
+  })
+
+  return (
+    <div className="bg-white text-black flex flex-col sm:flex-row overflow-hidden rounded-md">
+      <div className="w-full sm:w-2/3 p-3 sm:p-4 border-b-2 sm:border-b-0 sm:border-r-2 border-dotted border-black shadow-lg shadow-blue-500/50">
+        <h4 className="text-base sm:text-lg font-bold text-[#4599e3]">
+          {theater.name}
+        </h4>
+        <p className="text-xs text-gray-500">{theater.address}</p>
+        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+          <div>
+            <span className="text-gray-500 text-xs sm:text-sm">MOVIE</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {movieInfo.movieTitle}
+            </p>
+          </div>
+          <div>
+            <span className="text-gray-500 text-xs sm:text-sm">CUSTOMER</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {username || "Guest"}
+            </p>
+          </div>
+          {/* Bỏ phần TYPE */}
+        </div>
+        <div className="mt-1 sm:mt-2 flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+          <div>
+            <span className="text-gray-500 text-xs sm:text-sm">SEAT</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {selectedSeats.join(", ") || "None"}
+            </p>
+          </div>
+          <div>
+            <span className="text-gray-500 text-xs sm:text-sm">TIME</span>
+            <p className="font-semibold text-sm sm:text-base">{selectedTime}</p>
+          </div>
+          <div>
+            <span className="text-gray-500 text-xs sm:text-sm">DATE</span>
+            <p className="font-semibold text-sm sm:text-base">
+              {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "12/07/2022"}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="w-full sm:w-1/3 p-3 sm:p-4 bg-[#4599e3] shadow-lg shadow-blue-500/50 text-white flex flex-col items-center justify-between rounded-b-md sm:rounded-b-none sm:rounded-r-md">
+        <div className="text-center">
+          <p className="text-2xl sm:text-4xl font-bold">{selectedRoom}</p>
+          <p className="text-xs sm:text-sm">ROOM</p>
+          <p className="text-[10px] mt-1">Ticket ID: {ticketId || "None"}</p>
+        </div>
+        <div className="bg-white p-1 rounded">
+          <QRCodeSVG
+            value={qrCodeContent}
+            size={60}
+            className="sm:w-[80px] sm:h-[80px]"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface PaymentDialogProps {
   isOpen: boolean
@@ -28,17 +135,21 @@ interface PaymentDialogProps {
       expiry: string
       cvv: string
     }
-  ) => Promise<{ approveUrl?: string; error?: string } | void> // Trả về approveUrl hoặc lỗi
+  ) => Promise<{ approveUrl?: string; error?: string } | void>
   originalPrice: number
   savings: number
   totalAmount: number
   movieTitle?: string
   theaterName?: string
+  theaterAddress?: string
   selectedSeats?: string[]
   selectedTime?: string
   selectedDate?: Date
   selectedRoom?: string
-  isLoading?: boolean // Thêm prop để hiển thị trạng thái loading
+  isLoading?: boolean
+  ticketId?: string
+  movieType?: string
+  director?: string
 }
 
 const PaymentDialog = ({
@@ -50,11 +161,15 @@ const PaymentDialog = ({
   totalAmount,
   movieTitle,
   theaterName,
+  theaterAddress,
   selectedSeats,
   selectedTime,
   selectedDate,
   selectedRoom,
   isLoading,
+  ticketId,
+  movieType,
+  director,
 }: PaymentDialogProps) => {
   const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card" | "qr">(
     "paypal"
@@ -67,51 +182,55 @@ const PaymentDialog = ({
   const [error, setError] = useState<string | null>(null)
   const [approveUrl, setApproveUrl] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [username, setUsername] = useState<string>("") // State để lưu username
 
-  const generateQRData = () => {
-    // Giả lập VietQR hoặc MoMo
-    return `payment:${movieTitle}:${totalAmount}:${Date.now()}`
-  }
+  // Gọi API để lấy username
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await UserService.getProfile()
+        const userProfile = response.data // Giả định response.data chứa thông tin profile
+        setUsername(userProfile.username || "Guest")
+      } catch (err) {
+        console.error("Failed to fetch user profile:", err)
+        setUsername("Guest") // Mặc định nếu lỗi
+      }
+    }
+    if (isOpen) {
+      fetchProfile()
+    }
+  }, [isOpen])
+
+  const generateQRData = () =>
+    `payment:${movieTitle}:${totalAmount}:${Date.now()}`
 
   const validateExpiryDate = (value: string) => {
     if (!/^\d{2}\/\d{2}$/.test(value)) return false
     const [month, year] = value.split("/").map(Number)
     if (month < 1 || month > 12) return false
-    const currentYear = new Date().getFullYear() % 100 // Last 2 digits
+    const currentYear = new Date().getFullYear() % 100
     const currentMonth = new Date().getMonth() + 1
-    if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      return false
-    }
-    return true
+    return !(
+      year < currentYear ||
+      (year === currentYear && month < currentMonth)
+    )
   }
 
   const handleConfirm = async () => {
-    console.log("handleConfirm called with:", {
-      paymentMethod,
-      holderName,
-      cardNumber,
-      expiry,
-      cvv,
-    })
     setError(null)
     setIsProcessing(true)
-
     try {
       if (paymentMethod === "card") {
-        if (!holderName || !cardNumber || !expiry || !cvv) {
+        if (!holderName || !cardNumber || !expiry || !cvv)
           throw new Error("Vui lòng điền đầy đủ thông tin thẻ!")
-        }
-        if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber)) {
+        if (!/^\d{4} \d{4} \d{4} \d{4}$/.test(cardNumber))
           throw new Error("Số thẻ không hợp lệ (16 chữ số)!")
-        }
-        if (!validateExpiryDate(expiry)) {
+        if (!validateExpiryDate(expiry))
           throw new Error(
             "Ngày hết hạn không hợp lệ (MM/YY, phải trong tương lai)!"
           )
-        }
-        if (!/^\d{3}$/.test(cvv)) {
+        if (!/^\d{3}$/.test(cvv))
           throw new Error("CVV không hợp lệ (3 chữ số)!")
-        }
         await onConfirm("card", { holderName, cardNumber, expiry, cvv })
         setHolderName("")
         setCardNumber("")
@@ -121,14 +240,9 @@ const PaymentDialog = ({
         onClose()
       } else if (paymentMethod === "paypal") {
         const result = await onConfirm("paypal")
-        if (result?.error) {
-          throw new Error(result.error)
-        }
-        if (result?.approveUrl) {
-          setApproveUrl(result.approveUrl)
-        } else {
-          throw new Error("Không nhận được link thanh toán PayPal.")
-        }
+        if (result?.error) throw new Error(result.error)
+        if (result?.approveUrl) setApproveUrl(result.approveUrl)
+        else throw new Error("Không nhận được link thanh toán PayPal.")
       } else if (paymentMethod === "qr") {
         await onConfirm("qr")
         setHolderName("")
@@ -145,41 +259,30 @@ const PaymentDialog = ({
     }
   }
 
-  const formatCardNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    const formatted = cleaned
+  const formatCardNumber = (value: string) =>
+    value
+      .replace(/\D/g, "")
       .replace(/(\d{4})/g, "$1 ")
       .trim()
       .slice(0, 19)
-    return formatted
-  }
-
-  const formatExpiry = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    const formatted = cleaned
+  const formatExpiry = (value: string) =>
+    value
+      .replace(/\D/g, "")
       .replace(/(\d{2})(\d{0,2})/, "$1/$2")
       .trim()
       .slice(0, 5)
-    return formatted
-  }
-
-  const formatCvv = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    return cleaned.slice(0, 3)
-  }
+  const formatCvv = (value: string) => value.replace(/\D/g, "").slice(0, 3)
 
   const contentVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -20 },
   }
-
   const iconVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.8 },
   }
-
   const dialogVariants = {
     hidden: { opacity: 0, scale: 0.95, y: 10 },
     visible: {
@@ -196,6 +299,25 @@ const PaymentDialog = ({
     },
   }
 
+  const ticketProps: TicketProps = {
+    theater: {
+      id: 1,
+      name: theaterName || "N/A",
+      address: theaterAddress || "Unknown Address",
+    },
+    movieInfo: {
+      type: movieType || "N/A",
+      movieTitle: movieTitle || "N/A",
+      director: director || "Unknown Director",
+    },
+    selectedSeats: selectedSeats || [],
+    selectedTime: selectedTime || "N/A",
+    selectedDate,
+    ticketId: ticketId || "N/A",
+    selectedRoom: selectedRoom || "N/A",
+    username, // Truyền username vào Ticket
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <AnimatePresence>
@@ -206,7 +328,7 @@ const PaymentDialog = ({
             animate="visible"
             exit="exit"
           >
-            <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white">
+            <DialogContent className="sm:max-w-[600px] bg-gray-800 text-white">
               <DialogHeader>
                 <DialogTitle className="text-center text-lg font-bold">
                   Xác nhận thanh toán
@@ -214,24 +336,8 @@ const PaymentDialog = ({
               </DialogHeader>
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-semibold">Thông tin đơn hàng</h4>
-                  <p>
-                    <strong>Phim:</strong> {movieTitle || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Rạp:</strong> {theaterName || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Phòng:</strong> {selectedRoom || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Thời gian:</strong> {selectedTime} -{" "}
-                    {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "N/A"}
-                  </p>
-                  <p>
-                    <strong>Ghế:</strong>{" "}
-                    {selectedSeats?.join(", ") || "Chưa chọn ghế"}
-                  </p>
+                  <h4 className="font-semibold">Thông tin vé</h4>
+                  <Ticket {...ticketProps} />
                 </div>
                 <Button
                   onClick={() => {
@@ -416,10 +522,7 @@ const PaymentDialog = ({
                         width={120}
                         height={80}
                         className="cursor-pointer transition-transform duration-300 hover:scale-105 rounded-sm"
-                        style={{
-                          maxWidth: "100%",
-                          height: "auto",
-                        }}
+                        style={{ maxWidth: "100%", height: "auto" }}
                       />
                       <p className="text-sm text-gray-400 mt-2 text-center">
                         Quét mã QR bằng ứng dụng thanh toán (VietQR, MoMo, v.v.)

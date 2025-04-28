@@ -133,11 +133,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
   const { toast } = useToast()
   const router = useRouter()
 
-  const typeOptions = [
-    { value: "2D", label: "2D" },
-    { value: "3D", label: "3D" },
-    { value: "IMAX", label: "IMAX" },
-  ]
   const modeOptions = [
     { value: "single", label: "Single" },
     { value: "pair", label: "Pair (2 seats)" },
@@ -1230,13 +1225,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               options={timeOptions}
               delay={0}
             />
-            <CustomDropdown
-              label="Loại vé"
-              value={selectedType}
-              onChange={setSelectedType}
-              options={typeOptions}
-              delay={0.1}
-            />
+
             <CustomDropdown
               label="Phòng chiếu"
               value={selectedRoom}
@@ -1358,6 +1347,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             totalAmount={ticketCount * ticketPrice}
             movieTitle={movieInfo?.title}
             theaterName={selectedTheater?.name}
+            theaterAddress={selectedTheater?.address} // Đã có sẵn, đảm bảo truyền đúng
             selectedSeats={selectedSeats}
             selectedTime={selectedTime}
             selectedDate={selectedDate}
@@ -1365,6 +1355,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               roomOptions.find((opt) => opt.value === selectedRoom)?.label
             }
             isLoading={isLoading}
+            ticketId={ticketId} // Thêm ticketId nếu cần
+            movieType={selectedType} // Truyền movieType
+            director={movieInfo?.director} // Truyền director nếu có
           />
         </>
       )}
