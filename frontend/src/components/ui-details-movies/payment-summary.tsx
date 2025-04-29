@@ -160,9 +160,9 @@ export const PaymentSummary = ({
         </div>
       </div>
       <div className="mt-4 sm:mt-5  rounded sm:text-sm text-white">
-        <p className="mt-1 font-medium">
+        <p className="mt-1 font-medium text-blue-400">
           Thành tiền:{" "}
-          <span className="text-gray-600">{readNumber(totalAmount)}</span>
+          <span className="text-white">{readNumber(totalAmount)}</span>
         </p>
       </div>
     </div>

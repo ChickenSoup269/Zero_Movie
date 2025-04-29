@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react/no-unescaped-entities */
 "use client"
 import { useState, useEffect } from "react"
 import Image from "next/image"
@@ -30,7 +29,7 @@ export default function ProfileDialog({
   userProfile,
   onProfileUpdate,
   onNotificationsCleared,
-  ticketNotifications,
+  ticketNotifications = [], // Added default empty array
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,7 +37,7 @@ export default function ProfileDialog({
   userProfile: any
   onProfileUpdate: (updatedProfile: any) => void
   onNotificationsCleared: () => void
-  ticketNotifications: any[]
+  ticketNotifications?: any[] // Made optional with ?
 }) {
   const [formData, setFormData] = useState({
     fullName: userProfile?.fullName || user?.fullName || "",
@@ -214,6 +213,11 @@ export default function ProfileDialog({
     ? formData.backgroundImage
     : getFullImageUrl(formData.backgroundImage)
 
+  // Ensure ticketNotifications is always an array
+  const safeTicketNotifications = Array.isArray(ticketNotifications)
+    ? ticketNotifications
+    : []
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -339,13 +343,14 @@ export default function ProfileDialog({
                 <TabsTrigger key={tab} value={tab} asChild>
                   <div className="relative px-4 py-2">
                     {tab}
-                    {tab === "tickets" && ticketNotifications.length > 0 && (
-                      <div className="absolute top-0 right-1">
-                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-3 w-3 flex items-center justify-center">
-                          {ticketNotifications.length}
+                    {tab === "tickets" &&
+                      safeTicketNotifications.length > 0 && (
+                        <div className="absolute top-0 right-1">
+                          <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-3 w-3 flex items-center justify-center">
+                            {safeTicketNotifications.length}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                     {activeTab === tab && (
                       <motion.div
                         layoutId="tabIndicator"
