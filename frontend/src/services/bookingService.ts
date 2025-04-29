@@ -30,7 +30,7 @@ axiosJWT.interceptors.request.use(
     console.log("Booking request URL:", config.url)
     console.log(
       "Token in booking interceptor:",
-      token ? `Present: ${token}` : "Missing"
+      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
     )
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -94,21 +94,34 @@ axiosJWT.interceptors.response.use(
   }
 )
 
-// Interfaces synced with backend
+// Interfaces synced with backend response
 interface Seat {
+  seatId: string
   seatNumber: string
-  row: number
+  row: string
   column: number
+}
+
+interface Showtime {
+  startTime: string
+  endTime: string
+  price: number
 }
 
 interface Booking {
   _id: string
-  userId: string
-  movieId: string
+  userId: string | null
+  movieId: number
+  movieTitle: string
   showtimeId: string
+  showtime: Showtime
+  cinemaName: string
+  cinemaAddress: string
+  roomNumber: string
   seatIds: string[]
+  seats: Seat[]
   totalPrice: number
-  status: string
+  status: "pending" | "confirmed" | "cancelled"
 }
 
 interface BookingDetails {
@@ -148,39 +161,55 @@ export const createBooking = async (
       token ? `Present: ${token.slice(0, 10)}...` : "Missing"
     )
     if (!token) {
-      console.error("No access_token found for createBooking")
       throw new Error("No access token available. Please log in.")
     }
+
+    // Validate input
+    if (!data.showtimeId || typeof data.showtimeId !== "string") {
+      console.error("Invalid showtimeId:", data.showtimeId)
+      throw new Error("Showtime ID must be a valid string")
+    }
+    if (
+      !Array.isArray(data.seatIds) ||
+      data.seatIds.some((id) => typeof id !== "string")
+    ) {
+      console.error("Invalid seatIds:", data.seatIds)
+      throw new Error("Seat IDs must be an array of strings")
+    }
+
     console.log("Creating booking with data:", data)
-    const res = await axiosJWT.post<any>("/bookings", data, { signal })
-    console.log("createBooking full response:", {
+    const res = await axiosJWT.post("/bookings", data, { signal })
+    console.log("createBooking response:", {
       status: res.status,
-      headers: res.headers,
       data: res.data,
     })
 
     // Handle server response structure
-    if (res.data.status && res.data.status === "ERR") {
-      console.error("Server returned ERR status:", res.data)
+    if (res.data.status === "ERR" || !res.data.booking?._id) {
+      console.error("Server returned ERR or invalid response:", res.data)
       throw new Error(res.data.message || "Failed to create booking")
     }
 
-    // Check for the server's actual response structure
-    if (!res.data.booking?._id) {
-      console.error("Invalid booking response structure:", res.data)
-      throw new Error(
-        `Invalid response: ${
-          res.data.message || JSON.stringify(res.data) || "No booking data"
-        }`
-      )
-    }
-
-    // Transform server response to match ApiResponse<CreateBookingResponse>
+    // Transform server response
     const transformedResponse: ApiResponse<CreateBookingResponse> = {
-      status: res.data.status || "OK", // Assume OK if status is missing
+      status: "OK",
       message: res.data.message,
       data: {
-        booking: res.data.booking,
+        booking: {
+          _id: res.data.booking._id,
+          userId: res.data.booking.userId,
+          movieId: res.data.booking.movieId,
+          movieTitle: res.data.details.movie.title,
+          showtimeId: res.data.booking.showtimeId,
+          showtime: res.data.details.showtime,
+          cinemaName: res.data.details.cinema.name,
+          cinemaAddress: res.data.details.cinema.address,
+          roomNumber: res.data.details.room.roomNumber,
+          seatIds: res.data.booking.seatIds,
+          seats: res.data.details.seats,
+          totalPrice: res.data.booking.totalPrice,
+          status: res.data.booking.status,
+        },
         totalPrice: res.data.totalPrice,
         details: res.data.details,
       },
@@ -190,7 +219,7 @@ export const createBooking = async (
   } catch (error: any) {
     const isAxiosError = axios.isAxiosError(error)
     let errorMessage = "Lỗi khi tạo booking. Vui lòng thử lại."
-    let errorDetails: any = {
+    let errorDetails = {
       message: error.message || "Unknown error",
       response: error.response?.data || "No response data",
       status: error.response?.status || "No status",
@@ -231,32 +260,68 @@ export const getUserBookings = async (
     const token = getAuthToken()
     console.log(
       "Token in getUserBookings:",
-      token ? `Present: ${token}` : "Missing"
+      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
     )
     if (!token) {
-      console.error("No access_token found for getUserBookings")
       throw new Error("No access token available. Please log in.")
     }
     console.log("Fetching user bookings")
-    const res = await axiosJWT.get<ApiResponse<Booking[]>>(
-      "/bookings/my-bookings",
-      { signal }
-    )
-    console.log("getUserBookings response:", res.data)
-    if (res.data.status === "ERR") {
+    const res = await axiosJWT.get("/bookings/my-bookings", { signal })
+    console.log("getUserBookings raw response:", res.data)
+
+    // Handle server response structure
+    if (res.data.status === "ERR" || !res.data.bookings) {
+      console.error("Server returned ERR or invalid response:", res.data)
       throw new Error(res.data.message || "Failed to fetch bookings")
     }
-    return res.data
+
+    // Transform bookings
+    const transformedBookings: Booking[] = res.data.bookings.map(
+      (booking: any) => ({
+        _id: booking._id,
+        userId: booking.userId,
+        movieId: booking.movieId,
+        movieTitle: booking.movieTitle || "Phim không xác định",
+        showtimeId: booking.showtimeId,
+        showtime: {
+          startTime: booking.showtime?.startTime || "",
+          endTime: booking.showtime?.endTime || "",
+          price: booking.showtime?.price || 0,
+        },
+        cinemaName: booking.cinemaName || "N/A",
+        cinemaAddress: booking.cinemaAddress || "N/A",
+        roomNumber: booking.roomNumber || "N/A",
+        seatIds: booking.seatIds || [],
+        seats:
+          booking.seats?.map((seat: any) => ({
+            seatId: seat.seatId,
+            seatNumber: seat.seatNumber,
+            row: seat.row,
+            column: seat.column,
+          })) || [],
+        totalPrice: booking.totalPrice || 0,
+        status: booking.status || "unknown",
+      })
+    )
+
+    const transformedResponse: ApiResponse<Booking[]> = {
+      status: "OK",
+      message: res.data.message,
+      data: transformedBookings,
+    }
+
+    console.log("getUserBookings transformed response:", transformedResponse)
+    return transformedResponse
   } catch (error: any) {
     const isAxiosError = axios.isAxiosError(error)
     let errorMessage = "Lỗi khi lấy danh sách booking."
-    let errorDetails: any = {
+    let errorDetails = {
       message: error.message || "Unknown error",
       response: error.response?.data || "No response data",
       status: error.response?.status || "No status",
       requestUrl: error.config?.url || "Unknown URL",
       tokenBeforeError: getAuthToken()
-        ? `Present: ${getAuthToken()}`
+        ? `Present: ${getAuthToken()?.slice(0, 10)}...`
         : "Missing",
       refreshTokenAvailable: localStorage.getItem("refresh_token")
         ? "Present"
@@ -264,7 +329,7 @@ export const getUserBookings = async (
     }
 
     if (isAxiosError) {
-      const axiosError = error as AxiosError<ApiResponse<unknown>>
+      const axiosError = error as AxiosError<any>
       const errorData = axiosError.response?.data as
         | { status?: string; message?: string }
         | undefined
@@ -291,32 +356,35 @@ export const deleteBooking = async (
     const token = getAuthToken()
     console.log(
       "Token in deleteBooking:",
-      token ? `Present: ${token}` : "Missing"
+      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
     )
     if (!token) {
-      console.error("No access_token found for deleteBooking")
       throw new Error("No access token available. Please log in.")
     }
     console.log("Deleting booking with ID:", bookingId)
-    const res = await axiosJWT.delete<ApiResponse<void>>(
-      `/bookings/${bookingId}`,
-      { signal }
-    )
+    const res = await axiosJWT.delete(`/bookings/${bookingId}`, { signal })
     console.log("deleteBooking response:", res.data)
+
+    // Handle server response structure
     if (res.data.status === "ERR") {
+      console.error("Server returned ERR:", res.data)
       throw new Error(res.data.message || "Failed to delete booking")
     }
-    return res.data
+
+    return {
+      status: "OK",
+      message: res.data.message,
+    }
   } catch (error: any) {
     const isAxiosError = axios.isAxiosError(error)
     let errorMessage = "Lỗi khi xóa booking."
-    let errorDetails: any = {
+    let errorDetails = {
       message: error.message || "Unknown error",
       response: error.response?.data || "No response data",
       status: error.response?.status || "No status",
       requestUrl: error.config?.url || "Unknown URL",
       tokenBeforeError: getAuthToken()
-        ? `Present: ${getAuthToken()}`
+        ? `Present: ${getAuthToken()?.slice(0, 10)}...`
         : "Missing",
       refreshTokenAvailable: localStorage.getItem("refresh_token")
         ? "Present"
@@ -324,7 +392,7 @@ export const deleteBooking = async (
     }
 
     if (isAxiosError) {
-      const axiosError = error as AxiosError<ApiResponse<unknown>>
+      const axiosError = error as AxiosError<any>
       const errorData = axiosError.response?.data as
         | { status?: string; message?: string }
         | undefined

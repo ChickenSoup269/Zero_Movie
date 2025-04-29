@@ -3,38 +3,25 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Ticket, Trash2 } from "lucide-react"
+import { Ticket, Trash2, AlertTriangle } from "lucide-react"
 import { ErrorToast } from "@/components/ui-notification/error-toast"
 import { SuccessToast } from "@/components/ui-notification/success-toast"
 import { Button } from "@/components/ui/button"
-import axios from "axios"
-import { deleteBooking } from "@/services/bookingService"
-import { MovieService } from "@/services/movieService"
-import { getShowtimeById } from "@/services/showtimeService"
-import { getSeatsByShowtime } from "@/services/showtimeSeatService"
+import { getUserBookings, deleteBooking } from "@/services/bookingService"
+import { Badge } from "@/components/ui/badge"
 
-const axiosJWT = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: { "Content-Type": "application/json" },
-})
-
-const getAuthToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("access_token")
-  }
-  return null
+// Define interface for booking data from backend
+interface Booking {
+  _id: string
+  movieTitle: string
+  cinemaName: string
+  cinemaAddress: string
+  roomNumber: string
+  seats: { seatId: string; seatNumber: string; row: string; column: number }[]
+  showtime: { startTime: string; endTime: string; price: number }
+  totalPrice: number
+  status: string
 }
-
-axiosJWT.interceptors.request.use(
-  (config) => {
-    const token = getAuthToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 interface EnrichedTicket {
   _id: string
@@ -70,190 +57,53 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
     const fetchTickets = async () => {
       setIsLoading(true)
       try {
-        const response = await axiosJWT.get("/bookings/my-bookings")
+        const response = await getUserBookings()
         console.log("Bookings data:", JSON.stringify(response.data, null, 2))
-        const bookings = (response.data.bookings || []).filter(
-          (ticket: any) => ticket.status === "confirmed"
+
+        // Only include bookings with status "confirmed"
+        const bookings = (response.data || []).filter(
+          (ticket: Booking) => ticket.status === "confirmed"
         )
 
-        // Lấy thông tin bổ sung cho mỗi booking
-        const enrichedTickets = await Promise.all(
-          bookings.map(async (booking: any) => {
+        // Transform bookings into EnrichedTicket format
+        const enrichedTickets: EnrichedTicket[] = bookings.map(
+          (booking: Booking) => {
             console.log(`Processing booking ${booking._id}:`, {
-              movieId: booking.movieId,
-              showtimeId: booking.showtimeId,
-              seatIds: booking.seatIds,
-              cinema: booking.cinema,
-              room: booking.room,
-              details: booking.details,
+              movieTitle: booking.movieTitle,
+              cinemaName: booking.cinemaName,
+              cinemaAddress: booking.cinemaAddress,
+              roomNumber: booking.roomNumber,
+              seatIds: booking.seats,
+              showtime: booking.showtime,
+              seats: booking.seats,
+              status: booking.status,
             })
-
-            // Dữ liệu mặc định
-            let movieTitle = "Phim không xác định"
-            let cinemaName = booking.cinema?.name || "N/A"
-            let cinemaAddress = booking.cinema?.address || "N/A"
-            let roomNumber = booking.room?.roomNumber || "N/A"
-            let seatNumbers: string[] = ["N/A"]
-            let startTime = "N/A"
-            let price = booking.totalPrice || 0
-
-            // Sử dụng BookingDetails nếu có
-            if (booking.details) {
-              movieTitle = booking.details.movie?.title || movieTitle
-              cinemaName = booking.details.cinema?.name || cinemaName
-              cinemaAddress = booking.details.cinema?.address || cinemaAddress
-              roomNumber = booking.details.room?.roomNumber || roomNumber
-              seatNumbers =
-                booking.details.seats?.map((seat: any) => seat.seatNumber) ||
-                seatNumbers
-              startTime = booking.details.showtime?.startTime
-                ? new Date(booking.details.showtime.startTime).toLocaleString()
-                : startTime
-              console.log(`Used BookingDetails for booking ${booking._id}`)
-            } else {
-              console.warn(
-                `No BookingDetails for booking ${booking._id}, fetching additional data`
-              )
-
-              // Gọi API bổ sung nếu không có details
-              try {
-                if (booking.movieId && typeof booking.movieId === "number") {
-                  console.log(
-                    `Fetching movie for booking ${booking._id} with movieId:`,
-                    booking.movieId
-                  )
-                  const movie = await MovieService.getMovieByTmdbId(
-                    booking.movieId.toString()
-                  )
-                  movieTitle = movie.title || movieTitle
-                } else {
-                  console.warn(
-                    `Invalid or missing movieId for booking ${booking._id}:`,
-                    booking.movieId
-                  )
-                }
-              } catch (error) {
-                console.error(
-                  `Error fetching movie for booking ${booking._id}:`,
-                  error
-                )
-              }
-
-              // Xử lý showtimeId là chuỗi JSON
-              let showtimeId = booking.showtimeId
-              if (typeof showtimeId === "string") {
-                try {
-                  const parsed = JSON.parse(showtimeId)
-                  showtimeId = parsed._id || showtimeId
-                  console.log(
-                    `Parsed showtimeId for booking ${booking._id}:`,
-                    showtimeId
-                  )
-                } catch (error) {
-                  console.warn(
-                    `Failed to parse showtimeId for booking ${booking._id}:`,
-                    showtimeId
-                  )
-                }
-              }
-
-              try {
-                if (showtimeId && typeof showtimeId === "string") {
-                  console.log(
-                    `Fetching showtime for booking ${booking._id} with showtimeId:`,
-                    showtimeId
-                  )
-                  const showtimeResponse = await getShowtimeById(showtimeId)
-                  const showtime = showtimeResponse.showtime || {}
-                  startTime = showtime.startTime
-                    ? new Date(showtime.startTime).toLocaleString()
-                    : startTime
-                  price = showtime.price || price
-                } else {
-                  console.warn(
-                    `Invalid or missing showtimeId for booking ${booking._id}:`,
-                    showtimeId
-                  )
-                }
-              } catch (error) {
-                console.error(
-                  `Error fetching showtime for booking ${booking._id}:`,
-                  error
-                )
-              }
-
-              // Xử lý seatIds là chuỗi JSON
-              let parsedSeatIds: string[] = booking.seatIds || []
-              if (Array.isArray(parsedSeatIds)) {
-                parsedSeatIds = parsedSeatIds.map((seatId: string) => {
-                  try {
-                    const parsed = JSON.parse(seatId)
-                    return parsed._id || seatId
-                  } catch (error) {
-                    console.warn(
-                      `Failed to parse seatId for booking ${booking._id}:`,
-                      seatId
-                    )
-                    return seatId
-                  }
-                })
-                console.log(
-                  `Parsed seatIds for booking ${booking._id}:`,
-                  parsedSeatIds
-                )
-              }
-
-              try {
-                if (
-                  showtimeId &&
-                  typeof showtimeId === "string" &&
-                  parsedSeatIds.length
-                ) {
-                  console.log(
-                    `Fetching seats for booking ${booking._id} with showtimeId:`,
-                    showtimeId
-                  )
-                  const seatsResponse = await getSeatsByShowtime(showtimeId)
-                  seatNumbers = (seatsResponse.seats || [])
-                    .filter((seat: any) => parsedSeatIds.includes(seat.seatId))
-                    .map((seat: any) => seat.seatNumber)
-                  if (!seatNumbers.length) {
-                    seatNumbers = ["N/A"]
-                  }
-                } else {
-                  console.warn(
-                    `Missing seatIds or valid showtimeId for booking ${booking._id}`
-                  )
-                }
-              } catch (error) {
-                console.error(
-                  `Error fetching seats for booking ${booking._id}:`,
-                  error
-                )
-              }
-            }
 
             return {
               _id: booking._id,
-              movieTitle,
-              cinemaName,
-              cinemaAddress,
-              roomNumber,
-              seatNumbers,
-              startTime,
-              price,
+              movieTitle: booking.movieTitle || "Phim không xác định",
+              cinemaName: booking.cinemaName || "N/A",
+              cinemaAddress: booking.cinemaAddress || "N/A",
+              roomNumber: booking.roomNumber || "N/A",
+              seatNumbers: booking.seats?.map((seat) => seat.seatNumber) || [
+                "N/A",
+              ],
+              startTime: booking.showtime?.startTime
+                ? new Date(booking.showtime.startTime).toLocaleString("vi-VN", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })
+                : "N/A",
+              price: booking.totalPrice || booking.showtime?.price || 0,
               status: booking.status,
             }
-          })
+          }
         )
 
         setTickets(enrichedTickets)
       } catch (error: any) {
         errorToast.showToast({
-          description:
-            error.response?.data?.message ||
-            error.message ||
-            "Không thể tải danh sách vé.",
+          description: error.message || "Không thể tải danh sách vé.",
         })
       } finally {
         setIsLoading(false)
@@ -304,38 +154,68 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
       {isLoading ? (
         <p className="text-muted-foreground mt-2">Đang tải vé...</p>
       ) : tickets.length === 0 ? (
-        <p className="text-muted-foreground mt-2">Bạn chưa có vé nào.</p>
+        <p className="text-muted-foreground mt-2">
+          Bạn chưa có vé nào đã thanh toán.
+        </p>
       ) : (
         <div className="mt-4 space-y-4">
           {tickets.map((ticket) => (
             <div
               key={ticket._id}
-              className="p-4 bg-gray-800 rounded-lg shadow-md flex justify-between items-center"
+              className="p-4  shadow-lg rounded-lg  border-2 border-dashed outline-border flex justify-between items-center"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <Ticket className="h-5 w-5 text-blue-400" />
-                  <h4 className="font-semibold">{ticket.movieTitle}</h4>
+                  <Ticket className="h-5 w-5 text-blue-400 " />
+                  <h4 className="text-lg font-bold">
+                    Phim / <span className="">{ticket.movieTitle}</span>
+                  </h4>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">
-                  Rạp: {ticket.cinemaName}
+                {ticket.cinemaName === "N/A" || ticket.roomNumber === "N/A" ? (
+                  <p className="text-sm text-yellow-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    Thông tin rạp/phòng không đầy đủ. Vui lòng liên hệ hỗ trợ.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm  mt-1">
+                      <span className="font-bold">Rạp: </span>
+                      {ticket.cinemaName}
+                    </p>
+                    <p className="text-sm ">
+                      <span className="font-bold">Địa chỉ: </span>
+                      {ticket.cinemaAddress}
+                    </p>
+                    <p className="text-sm ">
+                      <span className="font-bold">Phòng: </span>
+                      {ticket.roomNumber}
+                    </p>
+                  </>
+                )}
+                <p className="text-sm ">
+                  <span className="font-bold">Ghế: </span>
+                  <Badge variant="outline" className="bg-blue-400 text-white">
+                    {ticket.seatNumbers.join(", ")}
+                  </Badge>
                 </p>
-                <p className="text-sm text-gray-400">
-                  Địa chỉ: {ticket.cinemaAddress}
+                <p className="text-sm ">
+                  <span className="font-bold">Thời gian: </span>
+                  {ticket.startTime}
                 </p>
-                <p className="text-sm text-gray-400">
-                  Phòng: {ticket.roomNumber}
+                <p className="text-sm ">
+                  <span className="font-bold">Giá: </span>
+                  {ticket.price.toLocaleString("vi-VN")}đ
                 </p>
-                <p className="text-sm text-gray-400">
-                  Ghế: {ticket.seatNumbers.join(", ")}
+                <p className="text-sm ">
+                  <span className="font-bold">Mã vé: </span>
+                  {ticket._id}
                 </p>
-                <p className="text-sm text-gray-400">
-                  Thời gian: {ticket.startTime}
+                <p className="text-sm ">
+                  <span className="font-bold">Trạng thái: </span>{" "}
+                  <Badge variant="outline" className="bg-green-400 text-white">
+                    Đã xác nhận
+                  </Badge>
                 </p>
-                <p className="text-sm text-gray-400">
-                  Giá: {ticket.price.toLocaleString()}đ
-                </p>
-                <p className="text-sm text-gray-400">Mã vé: {ticket._id}</p>
               </div>
               <Button
                 variant="ghost"
