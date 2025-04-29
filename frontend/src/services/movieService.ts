@@ -109,7 +109,23 @@ export class MovieService {
       const response = await axios.get(`${API_URL}/movies/search`, {
         params: { q: title },
       })
-      return response.data.movies || response.data
+
+      // Thêm bước validation dữ liệu trước khi trả về
+      const movies = response.data.movies || response.data
+      return movies.map((movie: Movie) => {
+        // Đảm bảo tmdbId là số hợp lệ
+        if (
+          movie.tmdbId === undefined ||
+          movie.tmdbId === null ||
+          Number.isNaN(Number(movie.tmdbId))
+        ) {
+          movie.tmdbId = movie.id || 0
+        } else {
+          const numericTmdbId = Number(movie.tmdbId)
+          movie.tmdbId = Number.isNaN(numericTmdbId) ? 0 : numericTmdbId
+        }
+        return movie
+      })
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Failed to search movies"
