@@ -66,7 +66,8 @@ export class BookingService {
 
     // Tính tổng giá
     const totalPrice = showtime.price * parsedSeatIds.length;
-
+    // Tạo booking với expiresAt (2 tiếng sau)
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); 
     // Tạo booking
     const booking = new Booking({
       userId: userId || null,
@@ -75,6 +76,7 @@ export class BookingService {
       seatIds: parsedSeatIds,
       totalPrice,
       status: 'pending',
+      expiresAt, 
     });
     await booking.save();
 
@@ -99,9 +101,25 @@ export class BookingService {
   static async getUserBookings(userId: string): Promise<IBooking[]> {
     if (!userId) throw new Error('User ID không hợp lệ');
     const bookings = await Booking.find({ userId })
-      .populate('movieId', 'title')
-      .populate('showtimeId', 'startTime endTime price')
-      .populate('seatIds', 'seatNumber row column');
+      .populate({
+        path: 'showtimeId',
+        select: 'startTime endTime price',
+      })
+      .populate({
+        path: 'seatIds',
+        populate: {
+          path: 'seatId',
+          model: 'Seat',
+          select: 'seatNumber row column', // Lấy từ Seat
+        },
+      });
+  
+    // Lấy thông tin phim
+    for (const booking of bookings) {
+      const movie = await Movie.findOne({ tmdbId: booking.movieId });
+      (booking as any).movieTitle = movie ? movie.title : 'Unknown';
+    }
+  
     return bookings;
   }
 
@@ -126,6 +144,7 @@ export class BookingService {
       }
 
       booking.status = 'confirmed';
+      booking.expiresAt = undefined;
       await booking.save({ session });
 
       await session.commitTransaction();
@@ -143,6 +162,7 @@ export class BookingService {
     const booking = await Booking.findById(bookingId);
     if (!booking || booking.status !== 'pending') return;
     booking.status = 'cancelled';
+    booking.expiresAt = undefined;
     await booking.save();
   }
   static async deleteBooking(bookingId: string, userId: string, role: string): Promise<void> {
