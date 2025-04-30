@@ -2,6 +2,10 @@
 "use client"
 import { useToast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
+import { Rotate3d } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
+
 import React, {
   useState,
   useEffect,
@@ -216,7 +220,7 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
     }))
 
     return (
-      <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 shadow-lg">
+      <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-4 md:px-6 lg:px-8 ">
         <div className="relative flex justify-center pt-2 sm:pt-3 md:pt-4">
           <motion.div
             className="absolute w-full h-[20px] top-0 bg-blue-500 blur-3xl opacity-20"
@@ -329,16 +333,25 @@ const SeatPicker = forwardRef<SeatPickerRef, SeatPickerProps>(
         <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 mt-2 sm:mt-3 md:mt-4 lg:mt-5 text-[10px] sm:text-xs md:text-sm text-gray-400">
           <div className="flex items-center gap-0.5 sm:gap-1">
             <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-white rounded-sm"></div>
-            <span>Available</span>
+            <span>Ghé có thể mua</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-400 rounded-sm"></div>
-            <span>Selected</span>
+            <span>Ghế đang chọn</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-600 rounded-sm"></div>
-            <span>Sold</span>
+            <span>Ghế đã bán</span>
           </div>
+          <Link
+            href="/cinema-3d"
+            className="flex items-center gap-1 hover:text-blue-400 hover:text-shadow-lg/30"
+          >
+            <Badge className="bg-blue-400 text-white hover:bg-white hover:text-black">
+              <Rotate3d className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm mr-1"></Rotate3d>
+              <span>3D View</span>
+            </Badge>
+          </Link>
         </div>
       </div>
     )
