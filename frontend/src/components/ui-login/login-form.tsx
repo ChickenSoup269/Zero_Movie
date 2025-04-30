@@ -131,8 +131,9 @@ const LoginForm = ({
                 className="mt-4 mx-auto"
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }} />{" "}
+                  height: "auto",
+                }}
+              />{" "}
               Sign In
             </CardTitle>
             <CardDescription className="text-gray-600 text-center">
@@ -230,7 +231,7 @@ const LoginForm = ({
       </form>
       <ForgotPasswordDialog open={openDialog} setOpenDialog={setOpenDialog} />
     </motion.div>
-  );
+  )
 }
 
 export default LoginForm
