@@ -11,27 +11,35 @@ if (!process.env.NEXT_PUBLIC_API_URL) {
 }
 
 // Token management
-let accessToken: string | null = localStorage.getItem("token")
+let accessToken: string | null = localStorage.getItem("access_token")
 
 export const updateToken = (token: string | null) => {
   accessToken = token
   if (token) {
-    localStorage.setItem("token", token)
+    localStorage.setItem("access_token", token)
   } else {
-    localStorage.removeItem("token")
+    localStorage.removeItem("access_token")
   }
 }
 
 // Interceptor to add token to requests
 axiosJWT.interceptors.request.use(
   (config) => {
+    console.log("Request config:", {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      hasToken: !!accessToken,
+    })
     if (accessToken && config.method !== "get") {
-      // Only add token for non-GET requests (POST, PUT, DELETE)
       config.headers.Authorization = `Bearer ${accessToken}`
     }
     return config
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("Request interceptor error:", error)
+    return Promise.reject(error)
+  }
 )
 
 // Interceptor to handle token refresh
@@ -44,6 +52,7 @@ axiosJWT.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       try {
+        console.log("Attempting to refresh token...")
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {
@@ -51,6 +60,7 @@ axiosJWT.interceptors.response.use(
           }
         )
         const newToken = response.data.accessToken
+        console.log("Token refreshed successfully:", newToken)
         updateToken(newToken)
         originalRequest.headers = {
           ...originalRequest.headers,
@@ -58,11 +68,16 @@ axiosJWT.interceptors.response.use(
         }
         return axiosJWT(originalRequest)
       } catch (refreshError) {
-        updateToken(null) // Clear token on refresh failure
+        console.error("Token refresh failed:", refreshError)
+        updateToken(null)
         localStorage.removeItem("refreshToken")
         return Promise.reject(refreshError)
       }
     }
+    console.error("Response error:", {
+      status: error.response?.status,
+      data: error.response?.data,
+    })
     return Promise.reject(error)
   }
 )
@@ -106,6 +121,7 @@ export const addComment = async (
 ): Promise<ApiResponse<Comment>> => {
   try {
     if (!accessToken) {
+      console.warn("No access token available for addComment")
       return {
         status: "ERR",
         message: "No access token available. Please log in.",
@@ -114,6 +130,7 @@ export const addComment = async (
     const res = await axiosJWT.post<ApiResponse<Comment>>("/comments", data, {
       signal,
     })
+    console.log("addComment response:", res.data)
     if (res.data.status === "ERR") {
       return {
         status: "ERR",
@@ -127,6 +144,10 @@ export const addComment = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse<Comment>>
+    console.error(
+      "addComment error:",
+      axiosError.response?.data || axiosError.message
+    )
     return (
       axiosError.response?.data || {
         status: "ERR",
@@ -146,6 +167,7 @@ export const getCommentsByMovie = async (
       `/comments/${movieId}`,
       { signal }
     )
+    console.log("getCommentsByMovie response:", res.data)
     if (res.data.status === "ERR") {
       return {
         status: "ERR",
@@ -159,6 +181,10 @@ export const getCommentsByMovie = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse<Comment[]>>
+    console.error(
+      "getCommentsByMovie error:",
+      axiosError.response?.data || axiosError.message
+    )
     return (
       axiosError.response?.data || {
         status: "ERR",
@@ -176,6 +202,7 @@ export const updateComment = async (
 ): Promise<ApiResponse<Comment>> => {
   try {
     if (!accessToken) {
+      console.warn("No access token available for updateComment")
       return {
         status: "ERR",
         message: "No access token available. Please log in.",
@@ -186,6 +213,7 @@ export const updateComment = async (
       { content },
       { signal }
     )
+    console.log("updateComment response:", res.data)
     if (res.data.status === "ERR") {
       return {
         status: "ERR",
@@ -199,6 +227,10 @@ export const updateComment = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse<Comment>>
+    console.error(
+      "updateComment error:",
+      axiosError.response?.data || axiosError.message
+    )
     return (
       axiosError.response?.data || {
         status: "ERR",
@@ -215,6 +247,7 @@ export const deleteComment = async (
 ): Promise<ApiResponse<void>> => {
   try {
     if (!accessToken) {
+      console.warn("No access token available for deleteComment")
       return {
         status: "ERR",
         message: "No access token available. Please log in.",
@@ -224,6 +257,7 @@ export const deleteComment = async (
       `/comments/${commentId}`,
       { signal }
     )
+    console.log("deleteComment response:", res.data)
     if (res.data.status === "ERR") {
       return {
         status: "ERR",
@@ -236,6 +270,10 @@ export const deleteComment = async (
     }
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse<void>>
+    console.error(
+      "deleteComment error:",
+      axiosError.response?.data || axiosError.message
+    )
     return (
       axiosError.response?.data || {
         status: "ERR",

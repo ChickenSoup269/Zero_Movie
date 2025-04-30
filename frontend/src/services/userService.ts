@@ -9,6 +9,7 @@ if (!API_URL) {
 const getAuthToken = () => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token")
+    console.log("getAuthToken:", { token })
     return token
   }
   return null
@@ -24,6 +25,11 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = getAuthToken()
+    console.log("UserService request config:", {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+    })
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     } else {
@@ -105,7 +111,6 @@ const UserService = {
         formDataToSend.append("backgroundImage", backgroundUrl)
       }
 
-      // Log FormData
       const formDataEntries = Object.fromEntries(formDataToSend)
       console.log("Sending profile data:", formDataEntries)
       if (Object.keys(formDataEntries).length === 0) {
@@ -139,7 +144,7 @@ const UserService = {
   getProfile: async () => {
     try {
       const response = await api.get("/profile")
-
+      console.log("getProfile response:", response.data)
       return response
     } catch (error: any) {
       console.error("Get profile error:", {

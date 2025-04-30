@@ -7,16 +7,11 @@ const nextConfig = {
       "raw.githubusercontent.com",
       "www.edigitalagency.com.au",
       "cdn-icons-png.flaticon.com",
+      "localhost",
     ],
 
     // Cấu hình nâng cao cho các host cụ thể
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "3001",
-        pathname: "/uploads/**",
-      },
       // Thêm pattern cho TMDB
       {
         protocol: "https",

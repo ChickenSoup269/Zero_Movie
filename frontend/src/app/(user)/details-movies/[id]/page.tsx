@@ -4,24 +4,27 @@ import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import SeatSelection from "@/components/ui-details-movies/seat-selection-cinema"
+import CommentSection from "@/components/ui-details-movies/comment-section"
 import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 import { getAllCinemas } from "@/services/cinemaService"
+import UserService from "@/services/userService"
 
+// Interfaces (unchanged)
 interface MovieDetailProps {
   params: Promise<{ id: string }>
 }
 
 interface Theater {
-  id: string // Change to string to match MovieDetail
+  id: string
   name: string
   address: string
-  image?: string // Optional
-  phone?: string // Optional
-  description?: string // Optional
-  mapUrl?: string // Optional
-  createdAt?: string // Optional, from MovieDetail
-  updatedAt?: string // Optional, from MovieDetail
+  image?: string
+  phone?: string
+  description?: string
+  mapUrl?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface MovieUI {
@@ -40,6 +43,13 @@ interface MovieUI {
   starring: string
 }
 
+interface UserProfile {
+  _id: string
+  username: string
+  fullName: string
+  avatar?: string
+}
+
 export default function MovieDetail({ params }: MovieDetailProps) {
   const [movie, setMovie] = useState<MovieUI | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,8 +57,10 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null)
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [isTheaterPopupOpen, setIsTheaterPopupOpen] = useState(false)
+  const [isCommentPopupOpen, setIsCommentPopupOpen] = useState(false) // New state for comment popup
   const [genreMap, setGenreMap] = useState<Record<number, string>>({})
   const [theaters, setTheaters] = useState<Theater[]>([])
+  const [userId, setUserId] = useState<string | undefined>(undefined)
   const { toast } = useToast()
 
   // Fetch genre map
@@ -62,6 +74,21 @@ export default function MovieDetail({ params }: MovieDetailProps) {
       }
     }
     fetchGenreMap()
+  }, [])
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await UserService.getProfile()
+        const user: UserProfile = response.data
+        setUserId(user._id)
+      } catch (err: unknown) {
+        console.warn("User not authenticated or error fetching profile:", err)
+        setUserId(undefined)
+      }
+    }
+    fetchUserProfile()
   }, [])
 
   // Fetch movie data
@@ -103,7 +130,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           starring: movieData.starring || "Không xác định",
         }
 
-        console.log("Mapped movieUI:", movieUI)
         setMovie(movieUI)
         setLoading(false)
       } catch (err: unknown) {
@@ -118,8 +144,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     fetchParamsAndMovie()
   }, [params, genreMap])
 
-  // Fetch cinemas from backend
-
+  // Fetch cinemas
   useEffect(() => {
     const fetchCinemas = async () => {
       try {
@@ -138,7 +163,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
       }
     }
     fetchCinemas()
-  }, [])
+  }, [toast])
 
   if (loading) {
     return <div className="text-white text-center py-10">Đang tải...</div>
@@ -171,9 +196,18 @@ export default function MovieDetail({ params }: MovieDetailProps) {
     setIsTrailerOpen(false)
   }
 
-  const isAnyPopupOpen = isTrailerOpen || isTheaterPopupOpen
+  const openCommentPopup = () => {
+    setIsCommentPopupOpen(true)
+  }
 
-  // Animation variants
+  const closeCommentPopup = () => {
+    setIsCommentPopupOpen(false)
+  }
+
+  const isAnyPopupOpen =
+    isTrailerOpen || isTheaterPopupOpen || isCommentPopupOpen
+
+  // Animation variants (unchanged)
   const imageVariants = {
     hidden: { opacity: 0, scale: 1.05 },
     visible: {
@@ -203,44 +237,18 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   }
 
   const popupContentVariants = {
-    hidden: {
-      opacity: 0,
-      scale: 0.95,
-      y: 20,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
+    hidden: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.3 } },
+    visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3 } },
   }
 
   const theaterHoverVariants = {
-    rest: {
-      scale: 1,
-      backgroundColor: "rgba(55, 65, 81, 0)",
-      transition: { duration: 0.2, ease: "easeInOut" },
-    },
-    hover: {
-      scale: 1.02,
-      backgroundColor: "rgba(55, 65, 81, 1)",
-      transition: { duration: 0.2, ease: "easeInOut" },
-    },
+    rest: { scale: 1, backgroundColor: "rgba(55, 65, 81, 0)" },
+    hover: { scale: 1.02, backgroundColor: "rgba(55, 65, 81, 1)" },
   }
 
   const buttonHoverVariants = {
-    rest: {
-      scale: 1,
-      boxShadow: "0px 0px 0px rgba(0, 0, 0, 0)",
-      transition: { duration: 0.2, ease: "easeInOut" },
-    },
-    hover: {
-      scale: 1.05,
-      boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.3)",
-      transition: { duration: 0.2, ease: "easeInOut" },
-    },
+    rest: { scale: 1, boxShadow: "0px 0px 0px rgba(0, 0, 0, 0)" },
+    hover: { scale: 1.05, boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.3)" },
   }
 
   const glowVariants = {
@@ -257,14 +265,8 @@ export default function MovieDetail({ params }: MovieDetailProps) {
   }
 
   const backgroundVariants = {
-    normal: {
-      filter: "blur(0px)",
-      transition: { duration: 0.5, ease: "easeInOut" },
-    },
-    blurred: {
-      filter: "blur(8px)",
-      transition: { duration: 0.5, ease: "easeInOut" },
-    },
+    normal: { filter: "blur(0px)" },
+    blurred: { filter: "blur(8px)" },
   }
 
   return (
@@ -277,7 +279,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
         animate="visible"
       >
         <div className="relative w-full aspect-video">
-          {" "}
           <Image
             src={movie.image || "/placeholder.jpg"}
             alt={movie.title || "Movie"}
@@ -299,6 +300,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           }}
         />
       </motion.div>
+
       {/* Main Content */}
       <motion.div
         className="relative flex-1 flex items-end justify-center z-10 pt-52 pb-20"
@@ -319,7 +321,6 @@ export default function MovieDetail({ params }: MovieDetailProps) {
             >
               <div className="absolute inset-0 blur-xl opacity-100">
                 <div className="relative aspect-[2/3] w-full">
-                  {" "}
                   <Image
                     src={movie.poster || "/placeholder-poster.jpg"}
                     alt={movie.title || "Movie poster"}
@@ -341,10 +342,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                 loading="lazy"
                 placeholder="blur"
                 blurDataURL="/fallback-poster.jpg"
-                style={{
-                  maxWidth: "100%",
-                  height: "auto",
-                }}
+                style={{ maxWidth: "100%", height: "auto" }}
               />
             </motion.div>
 
@@ -471,6 +469,30 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                     />
                   </svg>
                 </motion.button>
+                <motion.button
+                  className="px-6 py-2 text-white rounded-md flex items-center gap-2"
+                  style={{ backgroundColor: "#10b981" }}
+                  whileHover="hover"
+                  initial="rest"
+                  variants={buttonHoverVariants}
+                  onClick={openCommentPopup}
+                >
+                  Bình luận
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                    />
+                  </svg>
+                </motion.button>
               </motion.div>
             </motion.div>
 
@@ -521,6 +543,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           <SeatSelection movieInfo={movie} theaters={theaters} />
         </div>
       </motion.div>
+
       {/* Theater Popup */}
       <AnimatePresence>
         {isTheaterPopupOpen && selectedTheater && (
@@ -581,7 +604,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.7877999948746!2d106.69745087572814!3d10.827544858247322!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317528f4a62fce9b%3A0xc99902aa1e26ef02!2sVan%20Lang%20University%20-%20Main%20Campus!5e0!3m2!1sen!2s!4v1745354284919!5m2!1sen!2s"
                   width="600"
                   height="450"
-                  className=" rounded-md"
+                  className="rounded-md"
                   loading="lazy"
                 ></iframe>
               </div>
@@ -589,6 +612,7 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Trailer Popup */}
       <AnimatePresence>
         {isTrailerOpen && (
@@ -664,6 +688,14 @@ export default function MovieDetail({ params }: MovieDetailProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Comment Popup */}
+      <CommentSection
+        movieId={movie.id}
+        userId={userId}
+        isOpen={isCommentPopupOpen}
+        onClose={closeCommentPopup}
+      />
     </div>
   )
 }
