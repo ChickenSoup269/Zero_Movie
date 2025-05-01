@@ -12,7 +12,7 @@ export interface Movie {
   genreNames: string[]
   ageRating: string
   _id: string
-  tmdbId: number
+  tmdbId: number | null
   title: string
   originalTitle: string
   overview: string
@@ -38,7 +38,7 @@ export interface Movie {
 
 export interface MovieInput {
   ageRating: string
-  tmdbId?: number
+  tmdbId?: number | null
   title: string
   originalTitle?: string
   overview?: string
@@ -93,7 +93,7 @@ export class MovieService {
         throw new Error("Phim không tồn tại trong database")
       }
       console.log("API response:", response.data)
-      return response.data.movie // Backend trả về { message, movie }
+      return response.data.movie
     } catch (error: any) {
       console.error("Error fetching movie by tmdbId:", {
         tmdbId,
@@ -110,23 +110,35 @@ export class MovieService {
         params: { q: title },
       })
 
-      // Thêm bước validation dữ liệu trước khi trả về
-      const movies = response.data.movies || response.data
-      return movies.map((movie: Movie) => {
-        // Đảm bảo tmdbId là số hợp lệ
-        if (
-          movie.tmdbId === undefined ||
-          movie.tmdbId === null ||
-          Number.isNaN(Number(movie.tmdbId))
-        ) {
-          movie.tmdbId = movie.id || 0
-        } else {
-          const numericTmdbId = Number(movie.tmdbId)
-          movie.tmdbId = Number.isNaN(numericTmdbId) ? 0 : numericTmdbId
-        }
-        return movie
-      })
+      const movies = response.data.movies
+        .filter((movie: any) => {
+          // Kiểm tra movie có tmdbId hợp lệ
+          if (movie.tmdbId === null || movie.tmdbId === undefined) {
+            console.warn(`Skipping movie with invalid tmdbId: ${movie.title}`)
+            return false
+          }
+          const tmdbId = parseInt(movie.tmdbId, 10)
+          if (isNaN(tmdbId)) {
+            console.warn(
+              `Invalid tmdbId for movie ${movie.title}: ${movie.tmdbId}`
+            )
+            return false
+          }
+          return true
+        })
+        .map((movie: any) => ({
+          ...movie,
+          tmdbId: parseInt(movie.tmdbId, 10), // Đảm bảo tmdbId là số
+        }))
+
+      console.log(`Found ${movies.length} valid movies for query: ${title}`)
+      return movies
     } catch (error: any) {
+      console.error("Error in searchMovies:", {
+        query: title,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
       throw new Error(
         error.response?.data?.message || "Failed to search movies"
       )

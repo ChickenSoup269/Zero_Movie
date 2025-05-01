@@ -13,7 +13,7 @@ export const SuccessToast = ({
 }: SuccessToastProps) => {
   const { toast } = useToast()
 
-  const showToast = () => {
+  const showToast = (p0?: { description: string }) => {
     toast({
       title,
       description,

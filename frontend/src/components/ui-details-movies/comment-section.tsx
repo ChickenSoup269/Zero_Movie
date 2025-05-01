@@ -243,7 +243,7 @@ export default function CommentSection({
           onClick={onClose}
         >
           <motion.div
-            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl text-black relative"
+            className="bg-white text-black dark:bg-black dark:text-white rounded-lg shadow-xl p-6 w-full max-w-2xl  relative"
             variants={popupVariants}
             initial="hidden"
             animate="visible"
@@ -272,7 +272,7 @@ export default function CommentSection({
               </svg>
             </button>
 
-            <h3 className="text-2xl font-bold mb-6 text-gray-800 border-b border-gray-200 pb-2">
+            <h3 className="text-2xl font-bold mb-6  border-b border-gray-200 pb-2">
               Bình luận
             </h3>
 
@@ -280,7 +280,7 @@ export default function CommentSection({
             {userId ? (
               <div className="mb-6">
                 <textarea
-                  className="w-full p-4 rounded-lg bg-gray-50 text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                  className="w-full p-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
                   rows={4}
                   placeholder="Viết bình luận của bạn..."
                   value={newComment}
@@ -381,7 +381,7 @@ export default function CommentSection({
                       {editingCommentId === comment._id ? (
                         <div>
                           <textarea
-                            className="w-full p-3 rounded-lg bg-white text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="w-full p-3 rounded-lg bg-white  text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                             value={editingContent}
                             onChange={(e) => setEditingContent(e.target.value)}
                           />
