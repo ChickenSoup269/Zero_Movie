@@ -5,27 +5,24 @@ import { GenreService } from "@/services/genreService"
 
 // Phiên bản cải tiến của hàm validateMovieData
 const validateMovieData = (movie) => {
-  // Tạo một bản sao để tránh thay đổi object gốc nếu là tham chiếu
   const validatedMovie = { ...movie }
-
-  // Kiểm tra tmdbId là undefined, null, hoặc không phải số
   if (
     validatedMovie.tmdbId === undefined ||
     validatedMovie.tmdbId === null ||
-    Number.isNaN(Number(validatedMovie.tmdbId))
+    Number.isNaN(Number(validatedMovie.tmdbId)) ||
+    validatedMovie.tmdbId <= 0
   ) {
-    // Đặt giá trị mặc định là ID khác hoặc 0
-    validatedMovie.tmdbId = validatedMovie.id ? Number(validatedMovie.id) : 0
-  } else {
-    // Chuyển đổi tmdbId thành số
-    const numericTmdbId = Number(validatedMovie.tmdbId)
-
-    // Kiểm tra lại để đảm bảo đã chuyển đổi thành công
-    validatedMovie.tmdbId = Number.isNaN(numericTmdbId) ? 0 : numericTmdbId
+    console.warn(
+      `Invalid tmdbId for movie ${validatedMovie.title || "unknown"}: ${
+        validatedMovie.tmdbId
+      }`
+    )
+    return null
   }
-
+  validatedMovie.tmdbId = Number(validatedMovie.tmdbId)
   return validatedMovie
 }
+
 export class MovieQueryProcessor {
   /**
    * Process movie-related queries and return appropriate responses
@@ -388,7 +385,6 @@ export class MovieQueryProcessor {
    */
   private static async searchMovies(lowerQuery: string): Promise<string> {
     let searchTerm = ""
-
     if (lowerQuery.includes("tìm phim")) {
       searchTerm = lowerQuery.split("tìm phim")[1].trim()
     } else if (lowerQuery.includes("tìm kiếm phim")) {
@@ -408,40 +404,36 @@ export class MovieQueryProcessor {
     try {
       console.log(`Đang tìm kiếm phim với từ khóa: "${searchTerm}"`)
       const movies = await MovieService.searchMovies(searchTerm)
+      const validatedMovies = movies
+        .map(validateMovieData)
+        .filter((movie) => movie !== null)
 
-      // Kiểm tra và xác thực các phim trả về
-      if (!movies || !Array.isArray(movies)) {
-        console.error("Định dạng dữ liệu không đúng khi tìm kiếm phim:", movies)
-        return `Có lỗi xảy ra khi tìm kiếm phim "${searchTerm}". Vui lòng thử lại sau.`
-      }
-
-      if (movies.length > 0) {
+      if (validatedMovies.length > 0) {
         return `Tìm thấy ${
-          movies.length
-        } phim liên quan đến "${searchTerm}":\n${movies
+          validatedMovies.length
+        } phim liên quan đến "${searchTerm}":\n${validatedMovies
           .slice(0, 7)
           .map(
             (m, i) =>
               `${i + 1}. ${m.title} (${m.releaseDate?.slice(0, 4) || "N/A"})`
           )
-          .join("\n")}${movies.length > 7 ? "\n...và các phim khác." : ""}`
+          .join("\n")}${
+          validatedMovies.length > 7 ? "\n...và các phim khác." : ""
+        }`
       } else {
         return `Không tìm thấy phim nào có tên "${searchTerm}".`
       }
     } catch (error: any) {
       console.error("Lỗi khi tìm kiếm phim:", error)
-
-      // Xử lý lỗi cụ thể liên quan đến tmdbId
       if (
         error.message &&
         error.message.includes("Cast to Number failed") &&
         error.message.includes("tmdbId")
       ) {
-        return `Rất tiếc, đã xảy ra lỗi khi xử lý dữ liệu phim. Đội ngũ kỹ thuật sẽ khắc phục sớm.`
+        return `Rất tiếc, dữ liệu phim chứa lỗi (tmdbId không hợp lệ). Đã thông báo đội kỹ thuật. Vui lòng thử lại sau.`
       }
-
-      return `Rất tiếc, tôi không thể tìm kiếm phim: ${
-        error.message || "Đã xảy ra lỗi không xác định"
+      return `Rất tiếc, không thể tìm kiếm phim: ${
+        error.response?.data?.message || error.message || "Lỗi không xác định"
       }`
     }
   }

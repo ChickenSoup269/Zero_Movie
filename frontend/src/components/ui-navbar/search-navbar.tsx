@@ -34,10 +34,10 @@ export default function SearchBar() {
 
   // Debounce search text
   useEffect(() => {
-    if (isSearchOpen && searchText) {
+    if (isSearchOpen && searchText.trim()) {
       setIsLoading(true)
       const timer = setTimeout(() => {
-        setDebouncedSearchText(searchText)
+        setDebouncedSearchText(searchText.trim())
         setIsLoading(false)
       }, 1000)
       return () => clearTimeout(timer)
@@ -50,6 +50,11 @@ export default function SearchBar() {
   // Fetch movies based on debounced search text
   useEffect(() => {
     const fetchMovies = async () => {
+      if (!debouncedSearchText && !isSearchOpen) {
+        setFilteredMovies([])
+        return
+      }
+
       setIsLoading(true)
       try {
         const token = localStorage.getItem("access_token")
@@ -77,7 +82,20 @@ export default function SearchBar() {
           })
         }
       } catch (error: any) {
-        console.error("Search movies error:", error.response || error)
+        console.error("Search movies error:", {
+          message: error.message,
+          response: error.response,
+        })
+        const errorMessage = error.response?.data?.message?.includes(
+          "Cast to Number failed"
+        )
+          ? "Unable to search due to invalid movie data. Please try again later."
+          : error.message || "An error occurred while searching for movies."
+        toast({
+          title: "Search Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
 
         if (error.response?.status === 401) {
           router.push("/login")

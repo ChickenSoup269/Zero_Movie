@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toaster"
-import { Search } from "lucide-react"
+import { Search, X, CheckCircle, Film, Loader2 } from "lucide-react"
 
 // Import services
 import {
@@ -48,21 +48,14 @@ import {
   createShowtime,
   deleteShowtime,
 } from "@/services/showtimeService"
-import { MovieService, Movie } from "@/services/movieService"
+import { MovieService } from "@/services/movieService"
 
 // Import tab components
 import CinemasTab from "@/components/ui-admin/ui-cinema/cinemas-tab"
 import RoomsTab from "@/components/ui-admin/ui-cinema/rooms-tab"
 import SeatsTab from "@/components/ui-admin/ui-cinema/seats-tab"
 import ShowtimesTab from "@/components/ui-admin/ui-cinema/showtimes-tab"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import Image from "next/image"
 
 interface Cinema {
   id: string
@@ -107,6 +100,7 @@ interface Movie {
   id: number
   tmdbId: number
   title: string
+  poster_path: string
   _id: string
 }
 
@@ -189,41 +183,87 @@ export default function AdminCinema() {
     }
   }, [toast])
 
+  // Các hàm tiện ích cần thêm vào component
+  const isFormValid = () => {
+    return (
+      showtimeForm.movieId !== 0 &&
+      selectedRoom?._id &&
+      showtimeForm.startTime &&
+      showtimeForm.endTime &&
+      showtimeForm.price > 0
+    )
+  }
+
+  // Function để kiểm tra form đã điền đầy đủ chưa (để hiện phần xác nhận)
+  const isFormComplete = () => {
+    return (
+      showtimeForm.movieId !== 0 &&
+      selectedRoom?._id &&
+      showtimeForm.startTime &&
+      showtimeForm.endTime &&
+      showtimeForm.price >= 0
+    )
+  }
+
+  // Function để tính thời gian kết thúc dựa trên thời gian bắt đầu và runtime
+  const calculateEndTime = (startTime, runtimeMinutes) => {
+    if (!startTime) return ""
+    const date = new Date(startTime)
+    date.setMinutes(date.getMinutes() + runtimeMinutes)
+
+    // Format to datetime-local value
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16)
+  }
+
+  // Format datetime cho đẹp
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "N/A"
+    const date = new Date(dateTimeString)
+    return date.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  // Format tiền tệ
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN").format(amount)
+  }
+
+  // Tính thời lượng phim từ thời gian bắt đầu và kết thúc (phút)
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return 0
+
+    const start = new Date(startTime)
+    const end = new Date(endTime)
+    const durationMs = end - start
+    const durationMinutes = Math.round(durationMs / 60000) // Chuyển ms sang phút
+
+    return durationMinutes
+  }
+
   useEffect(() => {
     fetchCinemas()
     fetchMovies()
   }, [fetchCinemas, fetchMovies])
 
+  // Hàm xử lý tìm kiếm phim
   const handleSearchMovies = async () => {
-    setIsSearching(true)
-    try {
-      // Nếu query rỗng, lấy tất cả phim
-      if (!movieSearchQuery.trim()) {
-        setSearchResults(movies)
-      } else {
-        // Kiểm tra xem query có phải là ID (số) không
-        const isNumeric = /^\d+$/.test(movieSearchQuery.trim())
+    if (!movieSearchQuery.trim()) return
 
-        // Nếu là số, tìm theo ID
-        if (isNumeric) {
-          const movieId = parseInt(movieSearchQuery.trim())
-          const movie = movies.find(
-            (m) => m.id === movieId || m.tmdbId === movieId
-          )
-          setSearchResults(movie ? [movie] : [])
-        } else {
-          // Ngược lại tìm theo tên
-          console.log("Searching for:", movieSearchQuery)
-          const results = await MovieService.searchMovies(movieSearchQuery)
-          console.log("Search results:", results)
-          setSearchResults(results)
-        }
-      }
+    try {
+      setIsSearching(true)
+      const results = await MovieService.searchMovies(movieSearchQuery)
+      setSearchResults(results)
     } catch (error) {
       console.error("Error searching movies:", error)
       toast({
-        title: "Lỗi",
-        description: "Không thể tìm kiếm phim",
+        title: "Lỗi tìm kiếm",
+        description: "Không thể tìm kiếm phim. Vui lòng thử lại sau.",
         variant: "destructive",
       })
     } finally {
@@ -231,15 +271,110 @@ export default function AdminCinema() {
     }
   }
 
-  // Function to handle movie selection
-  const handleSelectMovie = (movie: Movie) => {
-    setSelectedMovie(movie)
-    // Sửa từ setFormData thành setShowtimeForm
-    setShowtimeForm((prev) => ({
-      ...prev,
-      movieId: movie.id,
-    }))
-    setMovieSearchDialog(false)
+  // Hàm xử lý khi chọn phim từ kết quả tìm kiếm
+  const handleSelectMovie = async (movie) => {
+    try {
+      // Kiểm tra xem phim đã tồn tại trong hệ thống chưa
+      let existingMovie = movies.find((m) => m.tmdbId === movie.id)
+
+      if (!existingMovie) {
+        // Nếu phim chưa tồn tại, lưu vào cơ sở dữ liệu
+        const movieToSave = {
+          tmdbId: movie.id,
+          title: movie.title,
+          overview: movie.overview,
+          poster_path: movie.poster_path || null,
+          backdrop_path: movie.backdrop_path || null,
+          releaseDate: movie.release_date,
+          genres: movie.genre_ids || [],
+          runtime: movie.runtime || 120, // Giá trị mặc định nếu không có
+        }
+
+        existingMovie = await MovieService.saveMovie(movieToSave)
+
+        // Cập nhật danh sách phim sau khi thêm mới
+        setMovies((prevMovies) => [...prevMovies, existingMovie])
+      }
+
+      // Cập nhật form với phim đã chọn
+      setShowtimeForm({
+        ...showtimeForm,
+        movieId: existingMovie.tmdbId,
+      })
+
+      // Lưu thông tin phim được chọn
+      setSelectedMovie(existingMovie)
+
+      // Đóng dialog tìm kiếm
+      setMovieSearchDialog(false)
+
+      toast({
+        title: "Đã chọn phim",
+        description: `Đã chọn phim "${existingMovie.title}"`,
+      })
+    } catch (error) {
+      console.error("Error selecting movie:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể chọn phim. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    }
+  }
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const moviesData = await MovieService.getAllMovies()
+        setMovies(moviesData)
+      } catch (error) {
+        console.error("Error fetching movies:", error)
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải danh sách phim",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchMovies()
+  }, [])
+
+  // useEffect để tải thông tin phim khi thay đổi movieId trong form
+  useEffect(() => {
+    if (showtimeForm.movieId !== 0) {
+      loadSelectedMovieDetails(showtimeForm.movieId)
+    } else {
+      setSelectedMovie(null)
+    }
+  }, [showtimeForm.movieId])
+
+  // useEffect theo dõi thay đổi thời gian bắt đầu và kết thúc để tính thời lượng phim
+  useEffect(() => {
+    // Chỉ để cập nhật UI, không cần xử lý gì thêm
+  }, [showtimeForm.startTime, showtimeForm.endTime])
+
+  // Hàm tải dữ liệu phim dựa trên ID
+  const loadSelectedMovieDetails = async (movieId) => {
+    if (!movieId || movieId === 0) return
+
+    try {
+      const movie = movies.find((m) => m.tmdbId === movieId)
+
+      if (movie) {
+        setSelectedMovie(movie)
+      } else {
+        // Nếu không tìm thấy trong danh sách, gọi API để lấy thông tin
+        const movieDetails = await MovieService.getMovieById(movieId)
+        setSelectedMovie(movieDetails)
+      }
+    } catch (error) {
+      console.error("Error loading movie details:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin phim. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    }
   }
 
   const fetchRooms = async (cinemaId: string) => {
@@ -932,117 +1067,268 @@ export default function AdminCinema() {
         </DialogContent>
       </Dialog>
 
-      {/* Showtime Dialog */}
+      {/* Dialog Thêm Lịch Chiếu Cải Tiến */}
       <Dialog open={showtimeDialog} onOpenChange={setShowtimeDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-xl font-bold">
               {selectedShowtime
                 ? "Chỉnh Sửa Lịch Chiếu"
                 : "Thêm Lịch Chiếu Mới"}
             </DialogTitle>
             <DialogDescription>
-              Nhập thông tin chi tiết của lịch chiếu
+              Vui lòng nhập đầy đủ thông tin chi tiết cho lịch chiếu mới
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="movie" className="text-right">
-                Phim
-              </Label>
-              <Select
-                onValueChange={(value) => {
-                  const selectedMovie = movies.find(
-                    (movie) => movie.tmdbId.toString() === value
-                  )
-                  console.log("Selected Movie:", {
-                    tmdbId: selectedMovie?.tmdbId,
-                    id: selectedMovie?.id,
-                    _id: selectedMovie?._id,
-                    title: selectedMovie?.title,
-                  })
-                  setShowtimeForm({
-                    ...showtimeForm,
-                    movieId: selectedMovie ? selectedMovie.tmdbId : 0,
-                  })
-                }}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Chọn phim" />
-                </SelectTrigger>
-                <SelectContent>
-                  {movies.map((movie) => (
-                    <SelectItem
-                      key={movie.tmdbId}
-                      value={movie.tmdbId.toString()}
+
+          <div className="grid gap-6 py-4">
+            {/* Phần thông tin phim */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-lg border-b pb-2">
+                Thông tin phim
+              </h3>
+
+              {showtimeForm.movieId !== 0 && (
+                <div className="bg-muted p-3 rounded-md mb-3 flex items-start gap-3">
+                  {selectedMovie?.poster_path && (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/w92${selectedMovie.poster_path}`}
+                      alt={selectedMovie?.title}
+                      className="h-20 w-auto rounded-md"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-poster.png"
+                      }}
+                    />
+                  )}
+                  <div>
+                    <h4 className="font-medium">{selectedMovie?.title}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      TMDB ID: {selectedMovie?.tmdbId}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedMovie?.releaseDate?.split("-")[0] || "N/A"} •{" "}
+                      {calculateDuration(
+                        showtimeForm.startTime,
+                        showtimeForm.endTime
+                      ) || "N/A"}{" "}
+                      phút
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        setShowtimeForm({ ...showtimeForm, movieId: 0 })
+                      }}
                     >
-                      {movie.title} (TMDB ID: {movie.tmdbId})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <X className="h-4 w-4 mr-1" />
+                      Thay đổi phim
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {showtimeForm.movieId === 0 && (
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select
+                      onValueChange={(value) => {
+                        const selectedMovie = movies.find(
+                          (movie) => movie.tmdbId.toString() === value
+                        )
+                        console.log("Selected Movie:", {
+                          tmdbId: selectedMovie?.tmdbId,
+                          id: selectedMovie?.id,
+                          _id: selectedMovie?._id,
+                          title: selectedMovie?.title,
+                        })
+                        setShowtimeForm({
+                          ...showtimeForm,
+                          movieId: selectedMovie ? selectedMovie.tmdbId : 0,
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn phim có sẵn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {movies.map((movie) => (
+                          <SelectItem
+                            key={movie.tmdbId}
+                            value={movie.tmdbId.toString()}
+                          >
+                            {movie.title} (
+                            {movie.releaseDate?.split("-")[0] || "N/A"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={() => setMovieSearchDialog(true)}>
+                    <Search className="h-4 w-4 mr-1" />
+                    Tìm phim mới
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startTime" className="text-right">
-                Thời Gian Bắt Đầu
-              </Label>
-              <Input
-                id="startTime"
-                type="datetime-local"
-                value={showtimeForm.startTime}
-                onChange={(e) =>
-                  setShowtimeForm({
-                    ...showtimeForm,
-                    startTime: e.target.value,
-                  })
-                }
-                className="col-span-3"
-              />
+
+            {/* Phần thông tin phòng chiếu */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-lg border-b pb-2">Phòng chiếu</h3>
+
+              <div className="bg-muted p-3 rounded-md mb-3">
+                <div>
+                  <h4 className="font-medium">
+                    {selectedRoom?.roomNumber || "Chưa chọn phòng"}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRoom
+                      ? `Sức chứa: ${selectedRoom.capacity} ghế`
+                      : "Vui lòng chọn phòng chiếu"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="endTime" className="text-right">
-                Thời Gian Kết Thúc
-              </Label>
-              <Input
-                id="endTime"
-                type="datetime-local"
-                value={showtimeForm.endTime}
-                onChange={(e) =>
-                  setShowtimeForm({ ...showtimeForm, endTime: e.target.value })
-                }
-                className="col-span-3"
-              />
+
+            {/* Phần thông tin lịch chiếu */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-lg border-b pb-2">
+                Thông tin suất chiếu
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">
+                    Thời gian bắt đầu <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="startTime"
+                    type="datetime-local"
+                    value={showtimeForm.startTime}
+                    onChange={(e) => {
+                      const newStartTime = e.target.value
+                      setShowtimeForm({
+                        ...showtimeForm,
+                        startTime: newStartTime,
+                      })
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">
+                    Thời gian kết thúc <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="endTime"
+                    type="datetime-local"
+                    value={showtimeForm.endTime}
+                    onChange={(e) => {
+                      setShowtimeForm({
+                        ...showtimeForm,
+                        endTime: e.target.value,
+                      })
+                      // Dữ liệu thay đổi ở đây, nhưng không cần xử lý đặc biệt vì đã có hàm calculateDuration
+                    }}
+                  />
+                  {showtimeForm.startTime &&
+                    showtimeForm.endTime &&
+                    new Date(showtimeForm.endTime) <=
+                      new Date(showtimeForm.startTime) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        Thời gian kết thúc phải sau thời gian bắt đầu
+                      </p>
+                    )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price">
+                    Giá vé (VND) <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      step="10000"
+                      value={showtimeForm.price}
+                      onChange={(e) =>
+                        setShowtimeForm({
+                          ...showtimeForm,
+                          price: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    <div className="absolute right-0 top-0 h-full flex items-center pr-3 pointer-events-none text-muted-foreground">
+                      VND
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hiển thị thời lượng phim tính từ thời gian bắt đầu và kết thúc */}
+                <div className="space-y-2">
+                  <Label>Thời lượng phim</Label>
+                  <div className="h-10 flex items-center px-3 border rounded-md bg-muted/50">
+                    {showtimeForm.startTime && showtimeForm.endTime
+                      ? `${calculateDuration(
+                          showtimeForm.startTime,
+                          showtimeForm.endTime
+                        )} phút`
+                      : "Nhập thời gian bắt đầu và kết thúc"}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Giá Vé
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                value={showtimeForm.price}
-                onChange={(e) =>
-                  setShowtimeForm({
-                    ...showtimeForm,
-                    price: parseInt(e.target.value),
-                  })
-                }
-                className="col-span-3"
-              />
-            </div>
+
+            {/* Phần xác nhận thông tin */}
+            {isFormComplete() && (
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-md border border-green-200 dark:border-green-800">
+                <h3 className="font-medium text-green-800 dark:text-green-300 flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Thông tin lịch chiếu
+                </h3>
+                <div className="mt-2 text-sm space-y-1 text-green-700 dark:text-green-400">
+                  <p>
+                    Phim:{" "}
+                    <span className="font-medium">{selectedMovie?.title}</span>
+                  </p>
+                  <p>
+                    Phòng:{" "}
+                    <span className="font-medium">
+                      {selectedRoom?.roomNumber}
+                    </span>
+                  </p>
+                  <p>
+                    Giờ chiếu:{" "}
+                    <span className="font-medium">
+                      {formatDateTime(showtimeForm.startTime)} -{" "}
+                      {formatDateTime(showtimeForm.endTime)}
+                    </span>
+                  </p>
+                  <p>
+                    Giá vé:{" "}
+                    <span className="font-medium">
+                      {formatCurrency(showtimeForm.price)} VND
+                    </span>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="gap-2 mt-2">
             <Button variant="outline" onClick={() => setShowtimeDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={handleAddShowtime}>Thêm</Button>
+            <Button onClick={handleAddShowtime} disabled={!isFormValid()}>
+              {selectedShowtime ? "Lưu thay đổi" : "Thêm lịch chiếu"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Movie Search Dialog */}
+      {/* Movie Search Dialog - giữ nguyên nhưng thêm chức năng hiển thị ảnh poster */}
       <Dialog open={movieSearchDialog} onOpenChange={setMovieSearchDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Tìm Kiếm Phim</DialogTitle>
             <DialogDescription>
@@ -1055,49 +1341,90 @@ export default function AdminCinema() {
                 placeholder="Nhập tên phim..."
                 value={movieSearchQuery}
                 onChange={(e) => setMovieSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearchMovies()
+                  }
+                }}
               />
               <Button onClick={handleSearchMovies} disabled={isSearching}>
-                {isSearching ? "Đang tìm..." : "Tìm kiếm"}
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang tìm...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Tìm kiếm
+                  </>
+                )}
               </Button>
             </div>
-            <div className="max-h-64 overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên Phim</TableHead>
-                    <TableHead>Năm</TableHead>
-                    <TableHead>Tác Vụ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <div className="max-h-96 overflow-y-auto">
+              {searchResults.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {searchResults.map((movie) => (
-                    <TableRow key={movie.id}>
-                      <TableCell>{movie.title}</TableCell>
-                      <TableCell>
-                        {(movie.releaseDate || movie.release_date)?.split(
-                          "-"
-                        )[0] || "N/A"}
-                      </TableCell>
-                      <TableCell>
+                    <div
+                      key={movie.id}
+                      className="border rounded-md overflow-hidden hover:border-primary transition-colors cursor-pointer"
+                      onClick={() => handleSelectMovie(movie)}
+                    >
+                      <div className="h-48 bg-muted flex items-center justify-center overflow-hidden">
+                        {movie.poster_path ? (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
+                            alt={movie.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder-poster.png"
+                            }}
+                          />
+                        ) : (
+                          <Film className="h-12 w-12 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h4 className="font-medium line-clamp-1">
+                          {movie.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {(movie.releaseDate || movie.release_date)?.split(
+                            "-"
+                          )[0] || "N/A"}
+                        </p>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-full mt-2"
                           onClick={() => handleSelectMovie(movie)}
                         >
-                          Chọn
+                          Chọn phim này
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                  {searchResults.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8">
-                        Không tìm thấy phim
-                      </TableCell>
-                    </TableRow>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  {isSearching ? (
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                      <p>Đang tìm kiếm phim...</p>
+                    </div>
+                  ) : movieSearchQuery ? (
+                    <div className="flex flex-col items-center">
+                      {/* <FilmOff className="h-8 w-8 mb-2" /> */}
+                      <p>Không tìm thấy phim phù hợp</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Search className="h-8 w-8 mb-2" />
+                      <p>Nhập tên phim để bắt đầu tìm kiếm</p>
+                    </div>
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

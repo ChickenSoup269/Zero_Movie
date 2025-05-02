@@ -223,8 +223,9 @@ export function AdminSidebar({
                 onClick={handleBackHomeImage}
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }} />
+                  height: "auto",
+                }}
+              />
             </div>
             <span className="font-bold text-lg font-mono">Admin</span>
           </div>
@@ -241,8 +242,9 @@ export function AdminSidebar({
                 onClick={handleBackHomeImage}
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }}></Image>
+                  height: "auto",
+                }}
+              ></Image>
             </div>
           </div>
         )}
@@ -483,7 +485,7 @@ export function AdminSidebar({
           ))}
         </ul>
       </div>
-      {/* Profile Dialog */}
+
       {user && userProfile && (
         <ProfileDialog
           open={isProfileDialogOpen}
@@ -500,7 +502,7 @@ export function AdminSidebar({
         </div>
       )}
     </aside>
-  );
+  )
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

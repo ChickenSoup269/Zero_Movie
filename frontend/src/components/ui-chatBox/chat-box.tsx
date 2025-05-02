@@ -294,8 +294,12 @@ export default function ChatBox() {
                   />
                 </Avatar>
                 <div>
-                  <h3 className="font-medium text-sm">Gemini X Zero</h3>
-                  <p className="text-xs opacity-90">Powered by Google Gemini</p>
+                  <h3 className="font-medium text-sm text-white">
+                    Gemini X Zero
+                  </h3>
+                  <p className="text-xs opacity-90  text-white">
+                    Powered by Google Gemini
+                  </p>
                 </div>
               </div>
 

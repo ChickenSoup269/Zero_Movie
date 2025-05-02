@@ -42,6 +42,14 @@ const SearchPopup = ({
 
   const handleViewDetails = (movie: Movie) => {
     console.log("Navigating to details with tmdbId:", movie.tmdbId)
+    if (!movie.tmdbId || isNaN(movie.tmdbId) || movie.tmdbId <= 0) {
+      toast({
+        title: "Error",
+        description: "Invalid movie ID. Please try another movie.",
+        variant: "destructive",
+      })
+      return
+    }
     if (movie.status === "upcoming") {
       toast({
         title: "Hey!",
@@ -99,8 +107,9 @@ const SearchPopup = ({
                 className="rounded-md mr-3 object-cover"
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }} />
+                  height: "auto",
+                }}
+              />
               <div className="flex-1 text-black dark:text-white">
                 <h3 className="font-semibold text-sm md:text-base">
                   {movie.title}
@@ -120,7 +129,7 @@ const SearchPopup = ({
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  )
 }
 
 export default SearchPopup
