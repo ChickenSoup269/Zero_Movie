@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect } from "react"
 import {
   Card,
   CardContent,
@@ -15,7 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { RefreshCcw, Calendar, Edit, Trash2 } from "lucide-react"
+import { RefreshCcw, Calendar, Edit, Trash2, Clock } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 
 interface Showtime {
   id: string
@@ -26,6 +29,7 @@ interface Showtime {
   price: number
   movie?: any
 }
+
 interface Room {
   _id: string
   roomId: string
@@ -67,9 +71,110 @@ export default function ShowtimesTab({
   getMovieTitle,
   setActiveTab,
 }: ShowtimesTabProps) {
+  const [activeShowtimeTab, setActiveShowtimeTab] = useState("active")
+  const [activeShowtimes, setActiveShowtimes] = useState<Showtime[]>([])
+  const [expiredShowtimes, setExpiredShowtimes] = useState<Showtime[]>([])
+
+  useEffect(() => {
+    const now = new Date()
+
+    // Chia lịch chiếu thành còn hạn và hết hạn
+    const active = showtimes.filter(
+      (showtime) => new Date(showtime.endTime) > now
+    )
+    const expired = showtimes.filter(
+      (showtime) => new Date(showtime.endTime) <= now
+    )
+
+    setActiveShowtimes(active)
+    setExpiredShowtimes(expired)
+  }, [showtimes])
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("vi-VN")
   }
+
+  const getExpiryStatus = (endTime: string) => {
+    const now = new Date()
+    const endDate = new Date(endTime)
+
+    if (endDate <= now) {
+      return <Badge variant="destructive">Đã hết hạn</Badge>
+    } else {
+      const diffMs = endDate.getTime() - now.getTime()
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+      if (diffHours < 24) {
+        return (
+          <Badge variant="outline" className="bg-yellow-100">
+            Sắp hết hạn
+          </Badge>
+        )
+      } else {
+        return (
+          <Badge variant="outline" className="bg-green-100">
+            Còn hạn
+          </Badge>
+        )
+      }
+    }
+  }
+
+  const renderShowtimesTable = (showtimesList: Showtime[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Tên Phim</TableHead>
+          <TableHead>Bắt Đầu</TableHead>
+          <TableHead>Kết Thúc</TableHead>
+          <TableHead>Trạng Thái</TableHead>
+          <TableHead>Giá Vé</TableHead>
+          <TableHead className="text-right">Tác Vụ</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {showtimesList.map((showtime) => (
+          <TableRow
+            key={showtime.id}
+            className={selectedShowtime?.id === showtime.id ? "bg-muted" : ""}
+          >
+            <TableCell className="font-medium">
+              {getMovieTitle(showtime.movieId)}
+            </TableCell>
+            <TableCell>{formatDate(showtime.startTime)}</TableCell>
+            <TableCell>{formatDate(showtime.endTime)}</TableCell>
+            <TableCell>{getExpiryStatus(showtime.endTime)}</TableCell>
+            <TableCell>{showtime.price.toLocaleString("vi-VN")} VNĐ</TableCell>
+            <TableCell className="text-right">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openEditShowtimeDialog(showtime)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteShowtime(showtime.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+        {showtimesList.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center py-8">
+              Không có dữ liệu lịch chiếu
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  )
 
   return (
     <Card>
@@ -81,7 +186,7 @@ export default function ShowtimesTab({
               onClick={() => {
                 setShowtimeForm({
                   movieId: 0,
-                  roomId: "",
+                  roomId: selectedRoom?._id || "",
                   startTime: "",
                   endTime: "",
                   price: 0,
@@ -108,61 +213,30 @@ export default function ShowtimesTab({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tên Phim</TableHead>
-              <TableHead>Bắt Đầu</TableHead>
-              <TableHead>Kết Thúc</TableHead>
-              <TableHead>Giá Vé</TableHead>
-              <TableHead className="text-right">Tác Vụ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {showtimes.map((showtime) => (
-              <TableRow
-                key={showtime.id}
-                className={
-                  selectedShowtime?.id === showtime.id ? "bg-muted" : ""
-                }
-              >
-                <TableCell className="font-medium">
-                  {getMovieTitle(showtime.movieId)}
-                </TableCell>
-                <TableCell>{formatDate(showtime.startTime)}</TableCell>
-                <TableCell>{formatDate(showtime.endTime)}</TableCell>
-                <TableCell>
-                  {showtime.price.toLocaleString("vi-VN")} VNĐ
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditShowtimeDialog(showtime)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteShowtime(showtime.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {showtimes.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  Không có dữ liệu lịch chiếu
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <Tabs
+          value={activeShowtimeTab}
+          onValueChange={setActiveShowtimeTab}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="active" className="flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Lịch Còn Hạn ({activeShowtimes.length})
+            </TabsTrigger>
+            <TabsTrigger value="expired" className="flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Lịch Hết Hạn ({expiredShowtimes.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="mt-0">
+            {renderShowtimesTable(activeShowtimes)}
+          </TabsContent>
+
+          <TabsContent value="expired" className="mt-0">
+            {renderShowtimesTable(expiredShowtimes)}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   )
