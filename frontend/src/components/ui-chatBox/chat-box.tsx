@@ -1,11 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar } from "@/components/ui/avatar"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import {
   Send,
   Loader2,
@@ -13,79 +17,50 @@ import {
   X,
   Maximize2,
   Minimize2,
+  ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import UserService from "@/services/userService"
+import { MovieService, Movie } from "@/services/movieService"
+import { GenreService } from "@/services/genreService"
 import { MovieQueryProcessor } from "@/components/ui-train-chatBox/movie-query-processor"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
-import { getAllCinemas, getShowtimesByCinemaId } from "@/services/cinemaService"
-import { getSeatsByShowtime } from "@/services/showtimeSeatService"
-import { createBooking, deleteBooking } from "@/services/bookingService"
-import { MovieService } from "@/services/movieService"
-import { format } from "date-fns"
-import { createPayment } from "@/services/paymentService"
 
 interface Message {
   role: "user" | "bot"
-  content: string
+  content: {
+    message: string
+    imageUrl?: string
+    link?: { url: string; text: string }
+  }
   timestamp: Date
 }
 
-interface BookingState {
-  step:
-    | "selectMovie"
-    | "selectTheater"
-    | "selectDate"
-    | "selectTime"
-    | "selectSeats"
-    | "confirm"
-    | "payment"
-  movie?: MovieService
-  theater?: { id: string; name: string }
-  date?: Date
-  showtime?: { id: string; time: string; price: number }
-  seats?: string[]
-  bookingId?: string
-}
-
-async function getGeminiResponse(prompt: string, bookingState: BookingState) {
-  // Check for movie-related query
-  const movieResponse = await MovieQueryProcessor.processQuery(prompt)
+async function getGeminiResponse(prompt: string, userId?: string) {
+  console.log(
+    `Processing prompt: "${prompt}" (raw: "${prompt.replace(/\s/g, "·")}")`
+  )
+  const movieResponse = await MovieQueryProcessor.processQuery(prompt, userId)
+  console.log("MovieQueryProcessor response:", movieResponse)
   if (movieResponse) {
+    const responseString =
+      typeof movieResponse === "string"
+        ? { message: movieResponse }
+        : movieResponse
+    console.log("Wrapped response:", responseString)
     return {
       candidates: [
         {
           content: {
-            parts: [{ text: movieResponse }],
+            parts: [{ text: JSON.stringify(responseString) }],
           },
         },
       ],
     }
   }
 
-  // Handle booking-related queries
-  if (bookingState.step === "selectMovie") {
-    const movies = await MovieService.searchMovies(prompt)
-    if (movies.length === 0) {
-      return {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: `Không tìm thấy phim "${prompt}". Vui lòng thử lại hoặc nhập "danh sách phim" để xem các phim đang chiếu.`,
-                },
-              ],
-            },
-          },
-        ],
-      }
-    }
-    return {}
-  }
-
-  // Default to Gemini API for non-booking queries
+  console.log("Falling back to Gemini API")
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
   if (!apiKey) {
     throw new Error("Gemini API key is not configured")
@@ -106,8 +81,11 @@ async function getGeminiResponse(prompt: string, bookingState: BookingState) {
 
   if (!response.ok) {
     const errorData = await response.json()
+    console.error("Lỗi từ Gemini API:", errorData)
     throw new Error(
-      `Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`
+      `Lỗi khi gọi Gemini API: ${response.status} - ${JSON.stringify(
+        errorData
+      )}`
     )
   }
 
@@ -121,46 +99,185 @@ export default function ChatBox() {
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isProfileLoading, setIsProfileLoading] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [bookingState, setBookingState] = useState<BookingState>({
-    step: "selectMovie",
-  })
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const [searchText, setSearchText] = useState("")
+  const [debouncedSearchText, setDebouncedSearchText] = useState("")
+  const [searchResults, setSearchResults] = useState<Movie[]>([])
+  const [genreMap, setGenreMap] = useState<Record<number, string>>({})
+  const { toast } = useToast()
+  const router = useRouter()
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const lastMessageRef = useRef<HTMLDivElement>(null)
 
-  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         setIsProfileLoading(true)
         const response = await UserService.getProfile()
-        setUserRole(response.data.role)
+        const { role, _id } = response.data
+        console.log(`User profile: role=${role}, id=${_id}`)
+        setUserRole(role)
+        setUserId(_id)
       } catch (err: any) {
         console.error("Failed to fetch user profile:", err.message)
         setUserRole(null)
+        setUserId(null)
       } finally {
         setIsProfileLoading(false)
       }
     }
+
     fetchUserProfile()
   }, [])
 
-  // Auto-scroll to latest message
   useEffect(() => {
-    if (isOpen && scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    const fetchGenreMap = async () => {
+      try {
+        const map = await GenreService.getGenreMap()
+        setGenreMap(map)
+      } catch (error) {
+        console.error("Failed to fetch genre map:", error)
+      }
     }
-  }, [messages, isOpen])
+    fetchGenreMap()
+  }, [])
 
-  // Handle ESC key for fullscreen
+  useEffect(() => {
+    if (input.trim()) {
+      const timer = setTimeout(() => {
+        setDebouncedSearchText(input.trim())
+      }, 500)
+      return () => clearTimeout(timer)
+    } else {
+      setDebouncedSearchText("")
+      setSearchResults([])
+    }
+  }, [input])
+
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (!debouncedSearchText) {
+        setSearchResults([])
+        return
+      }
+
+      const lowerQuery = debouncedSearchText.toLowerCase()
+      const isSearchQuery =
+        lowerQuery.includes("tìm phim") ||
+        lowerQuery.includes("tìm kiếm phim") ||
+        lowerQuery.includes("tìm bộ phim") ||
+        lowerQuery.includes("phim có tên") ||
+        lowerQuery.includes("phim tên là")
+
+      if (!isSearchQuery) {
+        setSearchResults([])
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        const token = localStorage.getItem("access_token")
+        if (!token) {
+          toast({
+            title: "Unauthorized",
+            description: "Please log in to search movies.",
+            variant: "destructive",
+          })
+          router.push("/login")
+          return
+        }
+
+        let searchTerm = debouncedSearchText
+        if (lowerQuery.includes("tìm phim")) {
+          searchTerm = lowerQuery.split("tìm phim")[1]?.trim() || ""
+        } else if (lowerQuery.includes("tìm kiếm phim")) {
+          searchTerm = lowerQuery.split("tìm kiếm phim")[1]?.trim() || ""
+        } else if (lowerQuery.includes("tìm bộ phim")) {
+          searchTerm = lowerQuery.split("tìm bộ phim")[1]?.trim() || ""
+        } else if (lowerQuery.includes("phim có tên")) {
+          searchTerm = lowerQuery.split("phim có tên")[1]?.trim() || ""
+        } else if (lowerQuery.includes("phim tên là")) {
+          searchTerm = lowerQuery.split("phim tên là")[1]?.trim() || ""
+        }
+
+        if (!searchTerm) {
+          setSearchResults([])
+          setIsLoading(false)
+          return
+        }
+
+        const response = await MovieService.searchMovies(searchTerm)
+        const validatedMovies = response.filter(
+          (movie) => movie.tmdbId && !isNaN(movie.tmdbId) && movie.tmdbId > 0
+        )
+
+        setSearchResults(validatedMovies)
+
+        if (validatedMovies.length === 0) {
+          toast({
+            title: "No Results",
+            description: `No movies found for "${searchTerm}".`,
+            variant: "default",
+          })
+        }
+      } catch (error: any) {
+        console.error("Search movies error:", error)
+        const errorMessage = error.response?.data?.message?.includes(
+          "Cast to Number failed"
+        )
+          ? "Unable to search due to invalid movie data."
+          : error.message || "An error occurred while searching."
+        toast({
+          title: "Search Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        if (error.response?.status === 401) {
+          router.push("/login")
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSearchResults()
+  }, [debouncedSearchText, toast, router])
+
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+
+    const handleScroll = () => {
+      const isAtBottom =
+        scrollArea.scrollHeight -
+          scrollArea.scrollTop -
+          scrollArea.clientHeight <
+        50
+      setShowScrollButton(!isAtBottom)
+    }
+
+    scrollArea.addEventListener("scroll", handleScroll)
+    return () => scrollArea.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    if (scrollAreaRef.current && !showScrollButton) {
+      lastMessageRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [messages, isOpen, isLoading])
+
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isFullscreen) {
         setIsFullscreen(false)
       }
     }
+
     window.addEventListener("keydown", handleEscKey)
     return () => window.removeEventListener("keydown", handleEscKey)
   }, [isFullscreen])
@@ -168,263 +285,52 @@ export default function ChatBox() {
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
+    console.log(`Raw input: "${input}" (trimmed: "${input.trim()}")`)
     const trimmedInput = input.trim()
     if (!trimmedInput) return
 
     const userMessage: Message = {
       role: "user",
-      content: trimmedInput,
+      content: { message: trimmedInput },
       timestamp: new Date(),
     }
+
     setMessages((prev) => [...prev, userMessage])
     setInput("")
+    setSearchText("")
+    setDebouncedSearchText("")
+    setSearchResults([])
     setIsLoading(true)
     setError(null)
 
     try {
-      if (trimmedInput.toLowerCase() === "danh sách phim") {
-        const movies = await MovieService.searchMovies("")
-        const botMessage: Message = {
-          role: "bot",
-          content: `Danh sách phim đang chiếu:\n${movies
-            .map((m) => `- ${m.title}`)
-            .join("\n")}\nVui lòng chọn một phim.`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (trimmedInput.toLowerCase() === "danh sách rạp") {
-        const cinemas = await getAllCinemas()
-        const botMessage: Message = {
-          role: "bot",
-          content: `Danh sách rạp chiếu phim:\n${cinemas.cinemas
-            ?.map((c) => `- ${c.name} (${c.address})`)
-            .join("\n")}\nVui lòng chọn một rạp.`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (bookingState.step === "selectMovie") {
-        const movies = await MovieService.searchMovies(trimmedInput)
-        if (movies.length === 0) {
-          throw new Error(
-            `Không tìm thấy phim "${trimmedInput}". Vui lòng thử lại.`
-          )
-        }
-        const selectedMovie = movies.find((m) =>
-          m.title.toLowerCase().includes(trimmedInput.toLowerCase())
-        )
-        if (!selectedMovie) {
-          const botMessage: Message = {
-            role: "bot",
-            content: `Tìm thấy các phim:\n${movies
-              .map((m) => `- ${m.title}`)
-              .join("\n")}\nVui lòng chọn một phim cụ thể.`,
-            timestamp: new Date(),
-          }
-          setMessages((prev) => [...prev, botMessage])
-        } else {
-          setBookingState((prev) => ({
-            ...prev,
-            step: "selectTheater",
-            movie: selectedMovie,
-          }))
-          const botMessage: Message = {
-            role: "bot",
-            content: `Đã chọn phim "${selectedMovie.title}". Vui lòng chọn rạp chiếu phim (nhập tên rạp hoặc "danh sách rạp").`,
-            timestamp: new Date(),
-          }
-          setMessages((prev) => [...prev, botMessage])
-        }
-      } else if (bookingState.step === "selectTheater") {
-        const cinemas = await getAllCinemas()
-        const selectedTheater = cinemas.cinemas?.find((c) =>
-          c.name.toLowerCase().includes(trimmedInput.toLowerCase())
-        )
-        if (!selectedTheater) {
-          throw new Error(
-            `Không tìm thấy rạp "${trimmedInput}". Nhập "danh sách rạp" để xem các rạp khả dụng.`
-          )
-        }
-        setBookingState((prev) => ({
-          ...prev,
-          step: "selectDate",
-          theater: { id: selectedTheater.id, name: selectedTheater.name },
-        }))
-        const botMessage: Message = {
-          role: "bot",
-          content: `Đã chọn rạp "${selectedTheater.name}". Vui lòng chọn ngày chiếu (ví dụ: "30/04/2025").`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (bookingState.step === "selectDate") {
-        const date = parseDate(trimmedInput)
-        if (!date) {
-          throw new Error(
-            "Ngày không hợp lệ. Vui lòng nhập theo định dạng DD/MM/YYYY."
-          )
-        }
-        const showtimesResponse = await getShowtimesByCinemaId(
-          bookingState.theater!.id,
-          format(date, "yyyy-MM-dd"),
-          bookingState.movie!._id
-        )
-        const showtimes = showtimesResponse.showtimes || []
-        if (showtimes.length === 0) {
-          throw new Error(
-            "Không có lịch chiếu cho ngày này. Vui lòng chọn ngày khác."
-          )
-        }
-        setBookingState((prev) => ({
-          ...prev,
-          step: "selectTime",
-          date,
-        }))
-        const timeOptions = showtimes.map((st) => ({
-          id: st.id,
-          time: format(new Date(st.startTime), "HH:mm"),
-          price: st.price || 75000,
-        }))
-        const botMessage: Message = {
-          role: "bot",
-          content: `Các suất chiếu khả dụng:\n${timeOptions
-            .map((opt) => `- ${opt.time} (${opt.price.toLocaleString()}đ)`)
-            .join("\n")}\nVui lòng chọn giờ chiếu (ví dụ: "14:30").`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (bookingState.step === "selectTime") {
-        const showtimesResponse = await getShowtimesByCinemaId(
-          bookingState.theater!.id,
-          format(bookingState.date!, "yyyy-MM-dd"),
-          bookingState.movie!._id
-        )
-        const showtimes = showtimesResponse.showtimes || []
-        const selectedTime = showtimes.find(
-          (st) => format(new Date(st.startTime), "HH:mm") === trimmedInput
-        )
-        if (!selectedTime) {
-          throw new Error("Giờ chiếu không hợp lệ. Vui lòng chọn lại.")
-        }
-        setBookingState((prev) => ({
-          ...prev,
-          step: "selectSeats",
-          showtime: {
-            id: selectedTime.id,
-            time: trimmedInput,
-            price: selectedTime.price || 75000,
-          },
-        }))
-        const seatsResponse = await getSeatsByShowtime(selectedTime.id)
-        const availableSeats = seatsResponse.seats
-          ?.filter((seat: any) => seat.status === "available")
-          .map((seat: any) => seat.seatNumber)
-        const botMessage: Message = {
-          role: "bot",
-          content: `Ghế khả dụng: ${
-            availableSeats.join(", ") || "Không còn ghế"
-          }\nVui lòng chọn ghế (ví dụ: "A1, A2").`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (bookingState.step === "selectSeats") {
-        const seats = trimmedInput.split(",").map((s) => s.trim())
-        const seatResponse = await getSeatsByShowtime(bookingState.showtime!.id)
-        const validSeats = seats.filter((seat) =>
-          seatResponse.seats?.some(
-            (s: any) => s.seatNumber === seat && s.status === "available"
-          )
-        )
-        if (validSeats.length === 0) {
-          throw new Error("Không có ghế nào hợp lệ. Vui lòng chọn lại.")
-        }
-        setBookingState((prev) => ({
-          ...prev,
-          step: "confirm",
-          seats: validSeats,
-        }))
-        const botMessage: Message = {
-          role: "bot",
-          content: `Bạn đã chọn:\n- Phim: ${
-            bookingState.movie!.title
-          }\n- Rạp: ${bookingState.theater!.name}\n- Ngày: ${format(
-            bookingState.date!,
-            "dd/MM/yyyy"
-          )}\n- Giờ: ${bookingState.showtime!.time}\n- Ghế: ${validSeats.join(
-            ", "
-          )}\n- Tổng tiền: ${(
-            validSeats.length * bookingState.showtime!.price
-          ).toLocaleString()}đ\nNhập "xác nhận" để tiếp tục hoặc "hủy" để dừng.`,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      } else if (bookingState.step === "confirm") {
-        if (trimmedInput.toLowerCase() === "hủy") {
-          setBookingState({ step: "selectMovie" })
-          const botMessage: Message = {
-            role: "bot",
-            content: "Đã hủy đặt vé. Bạn muốn đặt vé cho phim nào?",
-            timestamp: new Date(),
-          }
-          setMessages((prev) => [...prev, botMessage])
-        } else if (trimmedInput.toLowerCase() === "xác nhận") {
-          const seatResponse = await getSeatsByShowtime(
-            bookingState.showtime!.id
-          )
-          const seatIds = bookingState.seats!.map((seat) => {
-            const seatData = seatResponse.seats.find(
-              (s: any) => s.seatNumber === seat
-            )
-            return seatData.seatId
-          })
-          const bookingResponse = await createBooking(
-            {
-              showtimeId: bookingState.showtime!.id,
-              seatIds,
-            },
-            new AbortController().signal
-          )
-          if (!bookingResponse.data?.booking?._id) {
-            throw new Error("Không thể tạo booking.")
-          }
-          setBookingState((prev) => ({
-            ...prev,
-            step: "payment",
-            bookingId: bookingResponse.data.booking._id,
-          }))
-          const paymentResponse = await createPayment({
-            bookingId: bookingResponse.data.booking._id,
-            amount: bookingState.seats!.length * bookingState.showtime!.price,
-            paymentMethod: "paypal",
-          })
-          if (!paymentResponse.approveUrl) {
-            await deleteBooking(bookingResponse.data.booking._id)
-            throw new Error("Không thể tạo link thanh toán PayPal.")
-          }
-          const botMessage: Message = {
-            role: "bot",
-            content: `Đã tạo booking. Vui lòng hoàn tất thanh toán qua PayPal: ${paymentResponse.approveUrl}\nSau khi thanh toán, vé sẽ được gửi qua email.`,
-            timestamp: new Date(),
-          }
-          setMessages((prev) => [...prev, botMessage])
-          setBookingState({ step: "selectMovie" }) // Reset state
-        } else {
-          throw new Error('Vui lòng nhập "xác nhận" hoặc "hủy".')
-        }
-      } else {
-        const result = await getGeminiResponse(trimmedInput, bookingState)
-        const botMessage: Message = {
-          role: "bot",
-          content:
-            result.candidates?.[0]?.content?.parts?.[0]?.text ||
-            "Không có dữ liệu trả về",
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
+      const result = await getGeminiResponse(trimmedInput, userId)
+      const responseText =
+        result.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
+      console.log("Raw responseText:", responseText)
+      let botContent
+      try {
+        botContent = JSON.parse(responseText)
+        console.log("Parsed botContent:", botContent)
+      } catch (e) {
+        console.log("JSON parse error:", e)
+        botContent = { message: responseText || "Error: Empty response" }
       }
+      const botMessage: Message = {
+        role: "bot",
+        content: botContent,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => {
+        const newMessages = [...prev, botMessage]
+        console.log("Updated messages:", newMessages)
+        return newMessages
+      })
     } catch (err: any) {
       setError(err.message)
       const errorMessage: Message = {
         role: "bot",
-        content: `Lỗi: ${err.message}`,
+        content: { message: `Error: ${err.message}` },
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -434,12 +340,9 @@ export default function ChatBox() {
     }
   }
 
-  const parseDate = (input: string): Date | null => {
-    const match = input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
-    if (!match) return null
-    const [, day, month, year] = match
-    const date = new Date(`${year}-${month}-${day}`)
-    return isNaN(date.getTime()) ? null : date
+  const scrollToBottom = () => {
+    lastMessageRef.current?.scrollIntoView({ behavior: "smooth" })
+    setShowScrollButton(false)
   }
 
   const formatTime = (date: Date) => {
@@ -451,41 +354,48 @@ export default function ChatBox() {
     if (isFullscreen && !isOpen) {
       setIsFullscreen(false)
     }
+    setSearchResults([])
+    setInput("")
+    setDebouncedSearchText("")
   }
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen)
   }
 
+  const handleViewDetails = (movie: Movie) => {
+    if (!movie.tmdbId || isNaN(movie.tmdbId) || movie.tmdbId <= 0) {
+      toast({
+        title: "Error",
+        description: "Invalid movie ID. Please try another movie.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (movie.status === "upcoming") {
+      toast({
+        title: "Coming Soon",
+        description: "This movie has not been released yet.",
+        variant: "default",
+        action: <ToastAction altText="OK">OK</ToastAction>,
+      })
+    } else {
+      router.push(`/details-movies/${movie.tmdbId}`)
+    }
+  }
+
   const allowedRoles = ["admin", "user"]
 
   if (isProfileLoading || !userRole || !allowedRoles.includes(userRole)) {
+    console.log(
+      `Chatbox not rendered: isProfileLoading=${isProfileLoading}, userRole=${userRole}`
+    )
     return null
   }
 
-  const chatWindowVariants = {
-    open: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-        duration: 0.3,
-      },
-    },
-    closed: {
-      opacity: 0,
-      scale: 0.8,
-      y: 20,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-        duration: 0.2,
-      },
-    },
+  const popupVariants = {
+    hidden: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   }
 
   return (
@@ -511,12 +421,37 @@ export default function ChatBox() {
       <AnimatePresence>
         {(isOpen || isFullscreen) && (
           <motion.div
-            variants={!isFullscreen ? chatWindowVariants : undefined}
+            variants={
+              !isFullscreen
+                ? {
+                    open: {
+                      opacity: 1,
+                      scale: 1,
+                      y: 0,
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      },
+                    },
+                    closed: {
+                      opacity: 0,
+                      scale: 0.8,
+                      y: 20,
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      },
+                    },
+                  }
+                : undefined
+            }
             initial={!isFullscreen ? "closed" : false}
             animate={!isFullscreen ? "open" : false}
             exit={!isFullscreen ? "closed" : false}
             className={cn(
-              "flex flex-col bg-background border shadow-lg overflow-hidden",
+              "flex flex-col bg-background border shadow-lg overflow-hidden relative",
               isFullscreen
                 ? "h-full w-full rounded-none"
                 : "h-96 w-80 sm:w-96 rounded-lg mt-2"
@@ -535,8 +470,12 @@ export default function ChatBox() {
                   />
                 </Avatar>
                 <div>
-                  <h3 className="font-medium text-sm">Gemini X Zero</h3>
-                  <p className="text-xs opacity-90">Powered by Google Gemini</p>
+                  <h3 className="font-medium text-sm text-white">
+                    Gemini X Zero
+                  </h3>
+                  <p className="text-xs opacity-90 text-white">
+                    Powered by Google Gemini
+                  </p>
                 </div>
               </div>
               <Button
@@ -561,18 +500,19 @@ export default function ChatBox() {
             >
               {messages.length === 0 && (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
-                  Xin chào! Tôi là trợ lý AI của Zero Movies. Hãy nhập "đặt vé"
-                  để bắt đầu đặt vé phim!
+                  Xin chào! Tôi là trợ lý AI của Zero Movies. Hãy nhập "help" để
+                  xem tôi có thể giúp gì cho bạn!
                 </div>
               )}
 
               {messages.map((msg, index) => (
                 <div
-                  key={index}
+                  key={`${msg.timestamp.getTime()}-${index}`}
                   className={cn(
                     "flex mb-4",
                     msg.role === "user" ? "justify-end" : "justify-start"
                   )}
+                  ref={index === messages.length - 1 ? lastMessageRef : null}
                 >
                   <div
                     className={cn(
@@ -590,8 +530,26 @@ export default function ChatBox() {
                       )}
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">
-                        {msg.content}
+                        {msg.content.message}
                       </p>
+                      {msg.content.imageUrl && (
+                        <img
+                          src={msg.content.imageUrl}
+                          alt="Movie poster"
+                          className="mt-2 rounded-md max-w-full h-auto"
+                          style={{ maxWidth: "150px" }}
+                        />
+                      )}
+                      {msg.content.link && (
+                        <a
+                          href={msg.content.link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline mt-2 block text-sm"
+                        >
+                          {msg.content.link.text}
+                        </a>
+                      )}
                       <span className="text-xs opacity-70 block text-right mt-1">
                         {formatTime(msg.timestamp)}
                       </span>
@@ -619,13 +577,22 @@ export default function ChatBox() {
               )}
             </ScrollArea>
 
-            <div className="p-3 border-t bg-background">
+            {showScrollButton && (
+              <Button
+                onClick={scrollToBottom}
+                className="absolute bottom-16 right-4 rounded-full h-10 w-10 bg-blue-400 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg"
+              >
+                <ChevronDown className="h-6 w-6" />
+              </Button>
+            )}
+
+            <div className="p-3 border-t bg-background relative">
               <form onSubmit={handleSend} className="flex gap-2">
                 <Input
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Nhập tin nhắn của bạn..."
+                  placeholder="Nhập tin nhắn hoặc tìm phim..."
                   className="flex-1"
                   disabled={isLoading}
                   onKeyDown={(e) => {
@@ -648,6 +615,66 @@ export default function ChatBox() {
                   )}
                 </Button>
               </form>
+
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.div
+                    variants={{
+                      hidden: {
+                        opacity: 0,
+                        y: -10,
+                        transition: { duration: 0.2 },
+                      },
+                      visible: {
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.2 },
+                      },
+                    }}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="absolute bottom-16 left-0 right-0 mx-3 bg-white/80 dark:bg-gray-800/90 shadow-lg rounded-lg z-10 max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700"
+                  >
+                    {searchResults.map((movie) => (
+                      <div
+                        key={movie._id}
+                        onClick={() => handleViewDetails(movie)}
+                        className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 hover:cursor-pointer transition-colors"
+                      >
+                        <Image
+                          src={
+                            movie.posterPath
+                              ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+                              : "/placeholder-image.jpg"
+                          }
+                          alt={movie.title}
+                          width={50}
+                          height={75}
+                          className="rounded-md mr-3 object-cover"
+                          style={{ maxWidth: "100%", height: "auto" }}
+                        />
+                        <div className="flex-1 text-black dark:text-white">
+                          <h3 className="font-semibold text-sm">
+                            {movie.title}
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-300">
+                            {movie.genreIds?.length > 0 &&
+                              `${movie.genreIds
+                                .map((id) => genreMap[id] || "Unknown")
+                                .join(", ")}`}
+                            {movie.releaseDate
+                              ? ` • ${new Date(
+                                  movie.releaseDate
+                                ).getFullYear()}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

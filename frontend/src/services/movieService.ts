@@ -106,9 +106,9 @@ export class MovieService {
 
   static async searchMovies(title: string): Promise<Movie[]> {
     try {
-      const response = await axios.get(`${API_URL}/movies/search`, {
-        params: { q: title },
-      })
+      const response = await axios.get(
+        `${API_URL}/movies/search?title=${title}`
+      )
 
       const movies = response.data.movies
         .filter((movie: any) => {

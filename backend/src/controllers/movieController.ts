@@ -37,17 +37,20 @@ export class MovieController {
 
   static async searchMovies(req: Request, res: Response): Promise<void> {
     try {
-      const { q } = req.query
-      if (!q || typeof q !== "string") {
-        res.status(400).json({ message: "Thiếu query tìm kiếm" })
+      const keyword = req.query.title as string
+      if (!keyword) {
+        res.status(400).json({ message: "Thiếu từ khóa tìm kiếm (title)" })
         return
       }
-      const movies = await MovieService.searchMoviesByTitle(q)
-      res.status(200).json({ message: "Tìm kiếm phim thành công", movies })
+      const movies = await MovieService.searchMoviesByTitle(keyword)
+      res.status(200).json({
+        message: "Tìm kiếm phim thành công",
+        movies,
+      })
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: (error as Error).message || "Lỗi khi tìm kiếm phim" })
+      res.status(400).json({
+        message: (error as Error).message || "Lỗi khi tìm kiếm phim",
+      })
     }
   }
 

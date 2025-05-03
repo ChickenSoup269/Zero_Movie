@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// MovieQueryProcessor.ts
 import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 
@@ -27,13 +26,43 @@ export class MovieQueryProcessor {
   /**
    * Process movie-related queries and return appropriate responses
    * @param query User's query string
+   * @param userId User's ID for personalized recommendations
    * @returns Response to the query or null if not a movie-related query
    */
-  static async processQuery(query: string): Promise<string | null> {
-    // Convert query to lowercase for easier matching
+  static async processQuery(query: string, userId?: string): Promise<any> {
     const lowerQuery = query.toLowerCase().trim()
 
-    // Movie count query
+    if (
+      lowerQuery.includes("tôi muốn xem chi tiết") ||
+      lowerQuery.includes("xem chi tiết phim")
+    ) {
+      return this.getMovieDetailsWithLink(lowerQuery)
+    }
+
+    if (
+      lowerQuery.includes("tôi muốn đặt vé") ||
+      lowerQuery.includes("đặt vé phim")
+    ) {
+      return this.processTicketBooking(lowerQuery)
+    }
+
+    if (
+      lowerQuery.includes("phim phù hợp với tui") ||
+      lowerQuery.includes("gợi ý phim cho tôi") ||
+      lowerQuery.includes("phim đề xuất") ||
+      lowerQuery.includes("phim nên xem")
+    ) {
+      return this.getPersonalizedRecommendations(userId)
+    }
+
+    if (
+      lowerQuery.includes("phim thể loại") ||
+      lowerQuery.includes("tìm phim thể loại") ||
+      lowerQuery.includes("phim thuộc thể loại")
+    ) {
+      return this.getMoviesByGenre(lowerQuery)
+    }
+
     if (
       lowerQuery.includes("bao nhiêu phim") ||
       lowerQuery.includes("số lượng phim") ||
@@ -45,7 +74,6 @@ export class MovieQueryProcessor {
       return this.getMovieCount()
     }
 
-    // Featured movies query
     if (
       lowerQuery.includes("phim nổi bật") ||
       lowerQuery.includes("phim đáng xem") ||
@@ -56,7 +84,6 @@ export class MovieQueryProcessor {
       return this.getFeaturedMovies()
     }
 
-    // Latest movies query
     if (
       lowerQuery.includes("phim mới") ||
       lowerQuery.includes("phim mới nhất") ||
@@ -66,7 +93,6 @@ export class MovieQueryProcessor {
       return this.getLatestMovies()
     }
 
-    // Highest rated movies query
     if (
       lowerQuery.includes("phim đánh giá cao") ||
       lowerQuery.includes("phim hay nhất") ||
@@ -76,7 +102,6 @@ export class MovieQueryProcessor {
       return this.getHighestRatedMovies()
     }
 
-    // Genre-related queries
     if (
       lowerQuery.includes("thể loại") ||
       lowerQuery.includes("loại phim") ||
@@ -86,7 +111,6 @@ export class MovieQueryProcessor {
       return this.processGenreQuery(lowerQuery)
     }
 
-    // Movie details query
     if (
       lowerQuery.includes("thông tin về phim") ||
       lowerQuery.includes("thông tin phim") ||
@@ -98,7 +122,6 @@ export class MovieQueryProcessor {
       return this.getMovieDetails(lowerQuery)
     }
 
-    // Search for movies
     if (
       lowerQuery.includes("tìm phim") ||
       lowerQuery.includes("tìm kiếm phim") ||
@@ -109,7 +132,6 @@ export class MovieQueryProcessor {
       return this.searchMovies(lowerQuery)
     }
 
-    // Upcoming movies query
     if (
       lowerQuery.includes("phim sắp chiếu") ||
       lowerQuery.includes("phim sắp ra mắt") ||
@@ -119,7 +141,6 @@ export class MovieQueryProcessor {
       return this.getUpcomingMovies()
     }
 
-    // Now playing movies query
     if (
       lowerQuery.includes("phim đang chiếu") ||
       lowerQuery.includes("phim hiện đang chiếu") ||
@@ -128,7 +149,6 @@ export class MovieQueryProcessor {
       return this.getNowPlayingMovies()
     }
 
-    // Help message for movie-related functionality
     if (
       lowerQuery.includes("bạn biết gì") ||
       lowerQuery.includes("bạn có thể làm gì") ||
@@ -141,8 +161,240 @@ export class MovieQueryProcessor {
       return this.getHelpMessage()
     }
 
-    // If nothing matches, return null to use Gemini API
     return null
+  }
+
+  /**
+   * Get movie details with a link and poster for "xem chi tiết" queries
+   */
+  private static async getMovieDetailsWithLink(
+    lowerQuery: string
+  ): Promise<any> {
+    try {
+      let movieTitle = ""
+      if (lowerQuery.includes("tôi muốn xem chi tiết")) {
+        movieTitle = lowerQuery.split("tôi muốn xem chi tiết")[1].trim()
+      } else if (lowerQuery.includes("xem chi tiết phim")) {
+        movieTitle = lowerQuery.split("xem chi tiết phim")[1].trim()
+      }
+
+      if (!movieTitle) {
+        return { message: "Vui lòng cung cấp tên phim cụ thể để xem chi tiết." }
+      }
+
+      const movies = await MovieService.searchMovies(movieTitle)
+      if (movies.length === 0) {
+        return {
+          message: `Không tìm thấy phim "${movieTitle}". Vui lòng kiểm tra lại tên phim.`,
+        }
+      }
+
+      const movie = movies[0]
+      if (!movie.tmdbId) {
+        return { message: `Phim "${movie.title}" không có tmdbId hợp lệ.` }
+      }
+
+      const posterUrl = movie.posterPath
+        ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+        : "/placeholder-image.jpg"
+      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
+      const message =
+        `Thông tin phim "${movie.title}":\n\n` +
+        `📅 Năm phát hành: ${
+          movie.releaseDate
+            ? movie.releaseDate.slice(0, 4)
+            : "Không có thông tin"
+        }`
+
+      return {
+        message,
+        imageUrl: posterUrl,
+        link: { url: detailsLink, text: "Xem chi tiết" },
+      }
+    } catch (error: any) {
+      return {
+        message: `Rất tiếc, không thể lấy thông tin chi tiết phim: ${error.message}`,
+      }
+    }
+  }
+
+  /**
+   * Process ticket booking queries
+   */
+  private static async processTicketBooking(lowerQuery: string): Promise<any> {
+    try {
+      let movieTitle = ""
+      if (lowerQuery.includes("tôi muốn đặt vé")) {
+        movieTitle = lowerQuery.split("tôi muốn đặt vé")[1].trim()
+      } else if (lowerQuery.includes("đặt vé phim")) {
+        movieTitle = lowerQuery.split("đặt vé phim")[1].trim()
+      }
+
+      if (!movieTitle) {
+        return { message: "Vui lòng cung cấp tên phim cụ thể để đặt vé." }
+      }
+
+      const movies = await MovieService.searchMovies(movieTitle)
+      if (movies.length === 0) {
+        return {
+          message: `Không tìm thấy phim "${movieTitle}". Vui lòng kiểm tra lại tên phim.`,
+        }
+      }
+
+      const movie = movies[0]
+      if (!movie.tmdbId) {
+        return { message: `Phim "${movie.title}" không có tmdbId hợp lệ.` }
+      }
+
+      if (movie.status !== "nowPlaying") {
+        return {
+          message: `Phim "${movie.title}" hiện không phải phim đang chiếu. Vui lòng chọn phim khác hoặc xem lịch chiếu.`,
+        }
+      }
+
+      const posterUrl = movie.posterPath
+        ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+        : "/placeholder-image.jpg"
+      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
+      const message =
+        `Để đặt vé xem phim "${movie.title}":\n\n` +
+        `📋 Quy trình đặt vé:\n` +
+        `1. Chọn rạp\n` +
+        `2. Chọn phòng\n` +
+        `3. Chọn thời gian chiếu\n` +
+        `4. Chọn ghế\n` +
+        `5. Thanh toán\n` +
+        `⚠️ Lưu ý: Hiện nay chỉ nhận thanh toán PayPal`
+
+      return {
+        message,
+        imageUrl: posterUrl,
+        link: { url: detailsLink, text: "Xem chi tiết" },
+      }
+    } catch (error: any) {
+      return {
+        message: `Rất tiếc, không thể xử lý yêu cầu đặt vé: ${error.message}`,
+      }
+    }
+  }
+
+  /**
+   * Get personalized movie recommendations
+   */
+  private static async getPersonalizedRecommendations(
+    userId?: string
+  ): Promise<any> {
+    try {
+      if (!userId) {
+        return {
+          message: "Vui lòng đăng nhập để nhận gợi ý phim phù hợp với bạn.",
+        }
+      }
+
+      const movies = await MovieService.getRecommendations(userId)
+      if (movies.length === 0) {
+        return {
+          message:
+            "Hiện tại không có gợi ý phim nào phù hợp với bạn. Hãy thử tìm kiếm phim theo thể loại!",
+        }
+      }
+
+      const movie = movies[0] // Show the top recommendation
+      if (!movie.tmdbId) {
+        return {
+          message: `Phim gợi ý "${movie.title}" không có tmdbId hợp lệ.`,
+        }
+      }
+
+      const posterUrl = movie.posterPath
+        ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+        : "/placeholder-image.jpg"
+      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
+      const message =
+        `Phim gợi ý cho bạn: "${movie.title}"\n\n` +
+        `📅 Năm phát hành: ${
+          movie.releaseDate
+            ? movie.releaseDate.slice(0, 4)
+            : "Không có thông tin"
+        }\n` +
+        `⭐ Đánh giá: ${movie.voteAverage.toFixed(1)}/10`
+
+      return {
+        message,
+        imageUrl: posterUrl,
+        link: { url: detailsLink, text: "Xem chi tiết" },
+      }
+    } catch (error: any) {
+      return { message: `Rất tiếc, không thể lấy gợi ý phim: ${error.message}` }
+    }
+  }
+
+  /**
+   * Get movies by genre
+   */
+  private static async getMoviesByGenre(lowerQuery: string): Promise<any> {
+    try {
+      let genreName = ""
+      if (lowerQuery.includes("phim thể loại")) {
+        genreName = lowerQuery.split("phim thể loại")[1].trim()
+      } else if (lowerQuery.includes("tìm phim thể loại")) {
+        genreName = lowerQuery.split("tìm phim thể loại")[1].trim()
+      } else if (lowerQuery.includes("phim thuộc thể loại")) {
+        genreName = lowerQuery.split("phim thuộc thể loại")[1].trim()
+      }
+
+      if (!genreName) {
+        return {
+          message:
+            "Vui lòng cung cấp thể loại phim cụ thể (ví dụ: hài, hành động).",
+        }
+      }
+
+      const genres = await GenreService.getGenres()
+      const matchedGenre = genres.find((g) =>
+        g.name.toLowerCase().includes(genreName)
+      )
+      if (!matchedGenre) {
+        return {
+          message: `Không tìm thấy thể loại "${genreName}". Hãy thử với thể loại khác như hài, hành động, hoặc tình cảm.`,
+        }
+      }
+
+      const movies = await GenreService.getMoviesByGenre(matchedGenre.name)
+      if (movies.length === 0) {
+        return {
+          message: `Hiện tại không có phim nào thuộc thể loại "${matchedGenre.name}" trong hệ thống.`,
+        }
+      }
+
+      const movie = movies[0] // Show the first movie
+      if (!movie.tmdbId) {
+        return { message: `Phim "${movie.title}" không có tmdbId hợp lệ.` }
+      }
+
+      const posterUrl = movie.posterPath
+        ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
+        : "/placeholder-image.jpg"
+      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
+      const message =
+        `Phim thuộc thể loại "${matchedGenre.name}": "${movie.title}"\n\n` +
+        `📅 Năm phát hành: ${
+          movie.releaseDate
+            ? movie.releaseDate.slice(0, 4)
+            : "Không có thông tin"
+        }\n` +
+        `⭐ Đánh giá: ${movie.voteAverage.toFixed(1)}/10`
+
+      return {
+        message,
+        imageUrl: posterUrl,
+        link: { url: detailsLink, text: "Xem chi tiết" },
+      }
+    } catch (error: any) {
+      return {
+        message: `Rất tiếc, không thể tìm phim theo thể loại: ${error.message}`,
+      }
+    }
   }
 
   /**
@@ -151,8 +403,7 @@ export class MovieQueryProcessor {
   private static async getMovieCount(): Promise<string> {
     try {
       const movies = await MovieService.getAllMovies()
-      // Kiểm tra và sửa dữ liệu
-      const validatedMovies = movies.map(validateMovieData)
+      const validatedMovies = movies.map(validateMovieData).filter(Boolean)
       return `Hiện tại hệ thống có ${validatedMovies.length} phim.`
     } catch (error: any) {
       return `Rất tiếc, tôi không thể lấy thông tin về số lượng phim: ${error.message}`
@@ -165,8 +416,7 @@ export class MovieQueryProcessor {
   private static async getFeaturedMovies(): Promise<string> {
     try {
       const movies = await MovieService.getAllMovies()
-      // Validate dữ liệu trước khi sử dụng
-      const validatedMovies = movies.map(validateMovieData)
+      const validatedMovies = movies.map(validateMovieData).filter(Boolean)
       const featuredMovies = [...validatedMovies]
         .sort((a, b) => b.popularity - a.popularity)
         .slice(0, 5)
@@ -190,9 +440,8 @@ export class MovieQueryProcessor {
   private static async getLatestMovies(): Promise<string> {
     try {
       const movies = await MovieService.getAllMovies()
-      // Sort by release date
       const latestMovies = [...movies]
-        .filter((movie) => movie.releaseDate) // Ensure release date exists
+        .filter((movie) => movie.releaseDate)
         .sort(
           (a, b) =>
             new Date(b.releaseDate).getTime() -
@@ -219,9 +468,8 @@ export class MovieQueryProcessor {
   private static async getHighestRatedMovies(): Promise<string> {
     try {
       const movies = await MovieService.getAllMovies()
-      // Sort by vote average but only consider movies with sufficient votes
       const highRatedMovies = [...movies]
-        .filter((movie) => movie.voteCount > 10) // Only movies with more than 10 votes
+        .filter((movie) => movie.voteCount > 10)
         .sort((a, b) => b.voteAverage - a.voteAverage)
         .slice(0, 5)
 
@@ -243,7 +491,6 @@ export class MovieQueryProcessor {
    * Process queries related to movie genres
    */
   private static async processGenreQuery(lowerQuery: string): Promise<string> {
-    // If asking for list of genres
     if (
       lowerQuery.includes("danh sách") ||
       lowerQuery.includes("liệt kê") ||
@@ -262,7 +509,6 @@ export class MovieQueryProcessor {
       }
     }
 
-    // If asking for movies by genre
     const genreWords = lowerQuery.split(/\s+/)
     try {
       const genres = await GenreService.getGenres()
@@ -312,7 +558,6 @@ export class MovieQueryProcessor {
    */
   private static async getMovieDetails(lowerQuery: string): Promise<string> {
     try {
-      // Extract movie title
       let movieTitle = ""
       if (lowerQuery.includes("thông tin về phim")) {
         movieTitle = lowerQuery.split("thông tin về phim")[1].trim()
@@ -329,9 +574,7 @@ export class MovieQueryProcessor {
       if (movieTitle) {
         const movies = await MovieService.searchMovies(movieTitle)
         if (movies.length > 0) {
-          const movie = movies[0] // Get the first match
-
-          // Get genre names
+          const movie = movies[0]
           const genreMap = await GenreService.getGenreMap()
           const genreNames = movie.genreIds
             .map((id) => genreMap[id] || "")
@@ -379,9 +622,6 @@ export class MovieQueryProcessor {
 
   /**
    * Search for movies by name
-   */
-  /**
-   * Search for movies by name - phiên bản cải tiến với xử lý lỗi tốt hơn
    */
   private static async searchMovies(lowerQuery: string): Promise<string> {
     let searchTerm = ""
@@ -490,23 +730,23 @@ export class MovieQueryProcessor {
     }
   }
 
-  /**
-   * Get help message with available commands
-   */
   private static getHelpMessage(): string {
-    return `Tôi có thể giúp bạn với các thông tin về phim:
+    return `Tôi có thể giúp bạn với các thông tin về phim và nhiều chủ đề khác:
 
 1. Số lượng phim: "Có bao nhiêu phim?"
 2. Danh sách thể loại: "Liệt kê các thể loại phim"
 3. Tìm phim theo tên: "Tìm phim Avengers"
 4. Thông tin chi tiết: "Thông tin phim The Godfather"
-5. Phim theo thể loại: "Phim hành động"
-6. Phim mới nhất: "Phim mới nhất"
-7. Phim được đánh giá cao: "Phim đánh giá cao"
-8. Phim phổ biến: "Phim nổi bật"
-9. Phim sắp chiếu: "Phim sắp chiếu"
-10. Phim đang chiếu: "Phim đang chiếu"
+5. Xem chi tiết phim: "Tôi muốn xem chi tiết The Godfather"
+6. Đặt vé phim: "Tôi muốn đặt vé The Godfather"
+7. Phim theo thể loại: "Phim thể loại hài"
+8. Gợi ý phim: "Phim phù hợp với tui"
+9. Phim mới nhất: "Phim mới nhất"
+10. Phim được đánh giá cao: "Phim đánh giá cao"
+11. Phim phổ biến: "Phim nổi bật"
+12. Phim sắp chiếu: "Phim sắp chiếu"
+13. Phim đang chiếu: "Phim đang chiếu"
 
-Bạn có thể hỏi bất kỳ câu hỏi nào liên quan đến phim!`
+Ngoài ra, bạn có thể hỏi bất kỳ câu hỏi nào, từ âm nhạc, lịch sử, đến công nghệ!`
   }
 }

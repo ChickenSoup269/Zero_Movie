@@ -65,6 +65,29 @@ interface Cinema {
   updatedAt?: string
 }
 
+export interface Movie {
+  _id: string
+  tmdbId: number
+  title: string
+  originalTitle: string
+  originalLanguage: string
+  overview: string
+  releaseDate?: Date
+  posterPath?: string
+  poster_path?: string // Thêm cả hai phiên bản của thuộc tính
+  backdropPath?: string
+  backdrop_path?: string // Thêm cả hai phiên bản nếu cần
+  popularity?: number
+  voteAverage?: number
+  voteCount?: number
+  adult?: boolean
+  video?: boolean
+  genreIds: number[]
+  status?: "upcoming" | "nowPlaying"
+  createdAt: Date
+  updatedAt: Date
+}
+
 interface Room {
   _id: string
   cinemaId: string
@@ -155,10 +178,33 @@ export default function AdminCinema() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const { toast } = useToast()
 
+  // const fetchMovies = useCallback(async () => {
+  //   try {
+  //     const moviesList = await MovieService.getAllMovies()
+  //     setMovies(moviesList)
+  //   } catch (error) {
+  //     toast({
+  //       title: "Lỗi",
+  //       description: "Không thể tải danh sách phim",
+  //       variant: "destructive",
+  //     })
+  //   }
+  // }, [toast])
   const fetchMovies = useCallback(async () => {
     try {
-      const moviesList = await MovieService.getAllMovies()
-      setMovies(moviesList)
+      const allMovies = await MovieService.getAllMovies()
+
+      // Lọc chỉ những phim có status "nowPlaying"
+      const nowPlayingMovies = allMovies
+        .filter((movie) => movie.status === "nowPlaying")
+        .map((movie) => ({
+          ...movie,
+          // Chuyển đổi từ posterPath sang poster_path
+          poster_path: movie.posterPath,
+          // Thêm các thuộc tính cần thiết khác nếu cần
+        })) as Movie[]
+
+      setMovies(nowPlayingMovies)
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -321,23 +367,6 @@ export default function AdminCinema() {
       })
     }
   }
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const moviesData = await MovieService.getAllMovies()
-        setMovies(moviesData)
-      } catch (error) {
-        console.error("Error fetching movies:", error)
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách phim",
-          variant: "destructive",
-        })
-      }
-    }
-
-    fetchMovies()
-  }, [])
 
   // useEffect để tải thông tin phim khi thay đổi movieId trong form
   useEffect(() => {
@@ -1090,15 +1119,25 @@ export default function AdminCinema() {
 
               {showtimeForm.movieId !== 0 && (
                 <div className="bg-muted p-3 rounded-md mb-3 flex items-start gap-3">
-                  {selectedMovie?.poster_path && (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w92${selectedMovie.poster_path}`}
-                      alt={selectedMovie?.title}
-                      className="h-20 w-auto rounded-md"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder-poster.png"
-                      }}
-                    />
+                  {selectedMovie?.poster_path ? (
+                    <div className="relative h-20 w-[53px] rounded-md overflow-hidden">
+                      <Image
+                        src={`https://image.tmdb.org/t/p/w92${selectedMovie.poster_path}`}
+                        alt={selectedMovie.title || "Movie poster"}
+                        fill
+                        className="object-cover"
+                        sizes="53px"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null
+                          e.currentTarget.src = "/placeholder-poster.png"
+                        }}
+                        unoptimized={process.env.NODE_ENV === "development"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-20 w-[53px] rounded-md bg-gray-200 flex items-center justify-center">
+                      <Film className="w-5 h-5 text-gray-400" />
+                    </div>
                   )}
                   <div>
                     <h4 className="font-medium">{selectedMovie?.title}</h4>
