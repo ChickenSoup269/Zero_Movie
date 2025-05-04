@@ -252,6 +252,100 @@ export const createBooking = async (
   }
 }
 
+export const getAllBookings = async (
+  signal?: AbortSignal
+): Promise<ApiResponse<Booking[]>> => {
+  try {
+    const token = getAuthToken()
+    console.log(
+      "Token in getAllBookings:",
+      token ? `Present: ${token.slice(0, 10)}...` : "Missing"
+    )
+    if (!token) {
+      throw new Error("No access token available. Please log in.")
+    }
+    console.log("Fetching all bookings")
+    const res = await axiosJWT.get("/bookings", { signal })
+    console.log("getAllBookings raw response:", res.data)
+
+    // Handle server response structure
+    if (res.data.status === "ERR" || !res.data.bookings) {
+      console.error("Server returned ERR or invalid response:", res.data)
+      throw new Error(res.data.message || "Failed to fetch all bookings")
+    }
+
+    // Transform bookings
+    const transformedBookings: Booking[] = res.data.bookings.map(
+      (booking: any) => ({
+        _id: booking._id,
+        userId: booking.userId || null,
+        movieId: booking.movieId,
+        movieTitle: booking.movieTitle || "Phim không xác định",
+        showtimeId: booking.showtimeId,
+        showtime: {
+          startTime: booking.showtime?.startTime || "",
+          endTime: booking.showtime?.endTime || "",
+          price: booking.showtime?.price || 0,
+        },
+        cinemaName: booking.cinemaName || "N/A",
+        cinemaAddress: booking.cinemaAddress || "N/A",
+        roomNumber: booking.roomNumber || "N/A",
+        seatIds: booking.seatIds || [],
+        seats:
+          booking.seats?.map((seat: any) => ({
+            seatId: seat.seatId,
+            seatNumber: seat.seatNumber,
+            row: seat.row,
+            column: seat.column,
+          })) || [],
+        totalPrice: booking.totalPrice || 0,
+        status: booking.status || "unknown",
+      })
+    )
+
+    const transformedResponse: ApiResponse<Booking[]> = {
+      status: "OK",
+      message: res.data.message,
+      data: transformedBookings,
+    }
+
+    console.log("getAllBookings transformed response:", transformedResponse)
+    return transformedResponse
+  } catch (error: any) {
+    const isAxiosError = axios.isAxiosError(error)
+    let errorMessage = "Lỗi khi lấy danh sách tất cả booking."
+    let errorDetails = {
+      message: error.message || "Unknown error",
+      response: error.response?.data || "No response data",
+      status: error.response?.status || "No status",
+      requestUrl: error.config?.url || "Unknown URL",
+      tokenBeforeError: getAuthToken()
+        ? `Present: ${getAuthToken()?.slice(0, 10)}...`
+        : "Missing",
+      refreshTokenAvailable: localStorage.getItem("refresh_token")
+        ? "Present"
+        : "Missing",
+    }
+
+    if (isAxiosError) {
+      const axiosError = error as AxiosError<any>
+      const errorData = axiosError.response?.data as
+        | { status?: string; message?: string }
+        | undefined
+      errorDetails = {
+        ...errorDetails,
+        message: errorData?.message || axiosError.message || "Unknown error",
+        response: errorData || axiosError.response || "No response data",
+        status: axiosError.response?.status || "No status",
+      }
+      errorMessage = errorData?.message || axiosError.message || errorMessage
+    }
+
+    console.error("getAllBookings error:", errorDetails)
+    throw new Error(errorMessage)
+  }
+}
+
 // Get user bookings (GET /bookings/my-bookings)
 export const getUserBookings = async (
   signal?: AbortSignal

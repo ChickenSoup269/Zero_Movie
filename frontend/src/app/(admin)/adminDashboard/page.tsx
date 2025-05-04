@@ -53,56 +53,93 @@ import {
   Film,
   DollarSign,
 } from "lucide-react"
+import { getAllBookings } from "@/services/bookingService"
 
-// Add a RevenueService to handle revenue-related API calls
 const RevenueService = {
-  async getMovieRevenue() {
-    try {
-      // This would be replaced with an actual API call
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/analytics/revenue/movies`
-      )
-      return await response.json()
-    } catch (error) {
-      console.error("Failed to fetch movie revenue:", error)
-      // Return mock data for demonstration
-      return [
-        { title: "Avengers: Endgame", revenue: 84000, tickets: 400 },
-        { title: "Spider-Man: No Way Home", revenue: 65000, tickets: 325 },
-        { title: "The Batman", revenue: 52000, tickets: 260 },
-        { title: "Dune", revenue: 48000, tickets: 240 },
-        { title: "No Time to Die", revenue: 40000, tickets: 200 },
-      ]
-    }
-  },
+  // ... các hàm hiện có (getMovieRevenue, getRevenueByGenre, getUserAcquisition, getTotalRevenue) ...
 
-  async getMonthlyRevenue() {
+  async getMonthlyRevenueFromBookings() {
     try {
-      // This would be replaced with an actual API call
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/analytics/revenue/monthly`
-      )
-      return await response.json()
+      const response = await getAllBookings()
+      console.log("getAllBookings response for monthly revenue:", response)
+
+      if (response.status === "OK" && response.data) {
+        // Nhóm bookings theo tháng
+        const monthlyRevenue = response.data.reduce((acc, booking) => {
+          // Giả sử booking có trường createdAt hoặc dùng showtime.startTime
+          const createdAt = booking.createdAt
+            ? new Date(booking.createdAt)
+            : booking.showtime?.startTime
+            ? new Date(booking.showtime.startTime)
+            : new Date()
+          const monthYear = createdAt.toLocaleString("en-US", {
+            month: "short",
+            year: "numeric",
+          }) // Ví dụ: "Jan 2025"
+
+          acc[monthYear] = acc[monthYear] || { name: monthYear, revenue: 0 }
+          acc[monthYear].revenue += booking.totalPrice || 0
+          return acc
+        }, {} as Record<string, { name: string; revenue: number }>)
+
+        // Chuyển thành mảng và sắp xếp theo thời gian
+        const result = Object.values(monthlyRevenue).sort((a, b) => {
+          const dateA = new Date(a.name)
+          const dateB = new Date(b.name)
+          return dateA.getTime() - dateB.getTime()
+        })
+
+        console.log("Monthly Revenue calculated:", result)
+        return result
+      }
+      throw new Error("Failed to fetch bookings data")
     } catch (error) {
       console.error("Failed to fetch monthly revenue:", error)
-      // Return mock data for demonstration
       return [
-        { name: "Jan", revenue: 45000 },
-        { name: "Feb", revenue: 52000 },
-        { name: "Mar", revenue: 49000 },
-        { name: "Apr", revenue: 60000 },
-        { name: "May", revenue: 72000 },
-        { name: "Jun", revenue: 68000 },
-        { name: "Jul", revenue: 75000 },
-        { name: "Aug", revenue: 80000 },
-        { name: "Sep", revenue: 87000 },
-        { name: "Oct", revenue: 90000 },
-        { name: "Nov", revenue: 85000 },
-        { name: "Dec", revenue: 95000 },
-      ]
+        { name: "Jan 2025", revenue: 0 },
+        { name: "Feb 2025", revenue: 0 },
+        { name: "Mar 2025", revenue: 0 },
+        { name: "Apr 2025", revenue: 0 },
+        { name: "May 2025", revenue: 0 },
+      ] // Mock data nếu lỗi
     }
   },
 
+  async getTopMoviesByBookings() {
+    try {
+      const response = await getAllBookings()
+      console.log("getAllBookings response for top movies:", response)
+
+      if (response.status === "OK" && response.data) {
+        // Nhóm bookings theo movieTitle
+        const movieStats = response.data.reduce((acc, booking) => {
+          const movieTitle = booking.movieTitle || "Unknown"
+          acc[movieTitle] = acc[movieTitle] || {
+            title: movieTitle,
+            bookings: 0,
+            tickets: 0,
+            revenue: 0,
+          }
+          acc[movieTitle].bookings += 1
+          acc[movieTitle].tickets += booking.seatIds?.length || 0
+          acc[movieTitle].revenue += booking.totalPrice || 0
+          return acc
+        }, {} as Record<string, { title: string; bookings: number; tickets: number; revenue: number }>)
+
+        // Chuyển thành mảng và sắp xếp theo số bookings hoặc tickets
+        const result = Object.values(movieStats)
+          .sort((a, b) => b.bookings - a.bookings || b.tickets - a.tickets)
+          .slice(0, 5) // Lấy top 5
+
+        console.log("Top Movies calculated:", result)
+        return result
+      }
+      throw new Error("Failed to fetch bookings data")
+    } catch (error) {
+      console.error("Failed to fetch top movies:", error)
+      return [{ title: "No Data", bookings: 0, tickets: 0, revenue: 0 }]
+    }
+  },
   async getRevenueByGenre() {
     try {
       // This would be replaced with an actual API call
@@ -123,7 +160,25 @@ const RevenueService = {
       ]
     }
   },
-
+  async getMovieRevenue() {
+    try {
+      // This would be replaced with an actual API call
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/analytics/revenue/movies`
+      )
+      return await response.json()
+    } catch (error) {
+      console.error("Failed to fetch movie revenue:", error)
+      // Return mock data for demonstration
+      return [
+        { title: "Avengers: Endgame", revenue: 84000, tickets: 400 },
+        { title: "Spider-Man: No Way Home", revenue: 65000, tickets: 325 },
+        { title: "The Batman", revenue: 52000, tickets: 260 },
+        { title: "Dune", revenue: 48000, tickets: 240 },
+        { title: "No Time to Die", revenue: 40000, tickets: 200 },
+      ]
+    }
+  },
   async getUserAcquisition() {
     try {
       // This would be replaced with an actual API call
@@ -150,6 +205,25 @@ const RevenueService = {
       ]
     }
   },
+
+  async getTotalRevenue() {
+    try {
+      const response = await getAllBookings()
+      console.log("getAllBookings response for total revenue:", response)
+      if (response.status === "OK" && response.data) {
+        const totalRevenue = response.data.reduce(
+          (sum, booking) => sum + (booking.totalPrice || 0),
+          0
+        )
+        console.log("Calculated totalRevenue:", totalRevenue)
+        return totalRevenue
+      }
+      throw new Error("Failed to fetch bookings data")
+    } catch (error) {
+      console.error("Failed to fetch total revenue:", error)
+      return 0
+    }
+  },
 }
 
 export default function AdminDashboard() {
@@ -164,8 +238,16 @@ export default function AdminDashboard() {
   const [monthlyRevenue, setMonthlyRevenue] = useState<
     { name: string; revenue: number }[]
   >([])
-  const [genreRevenue, setGenreRevenue] = useState([])
-  const [userAcquisition, setUserAcquisition] = useState([])
+  const [topMovies, setTopMovies] = useState<
+    { title: string; bookings: number; tickets: number; revenue: number }[]
+  >([]) // Thêm state cho top movies
+  const [genreRevenue, setGenreRevenue] = useState<
+    { name: string; value: number }[]
+  >([])
+  const [userAcquisition, setUserAcquisition] = useState<
+    { name: string; users: number }[]
+  >([])
+  const [totalRevenue, setTotalRevenue] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [selectedFilter, setSelectedFilter] = useState("all")
@@ -183,13 +265,21 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        // Fetch data from services
         const moviesData = await MovieService.getAllMovies()
         const usersResponse = await UserService.getAllUsers()
         const movieRevenueData = await RevenueService.getMovieRevenue()
-        const monthlyRevenueData = await RevenueService.getMonthlyRevenue()
+        const monthlyRevenueData =
+          await RevenueService.getMonthlyRevenueFromBookings()
         const genreRevenueData = await RevenueService.getRevenueByGenre()
         const userAcquisitionData = await RevenueService.getUserAcquisition()
+        const totalRevenueData = await RevenueService.getTotalRevenue()
+        const topMoviesData = await RevenueService.getTopMoviesByBookings()
+
+        console.log("Fetched Data:", {
+          monthlyRevenueData,
+          totalRevenueData,
+          topMoviesData,
+        })
 
         setMovies(moviesData)
         setUsers(usersResponse?.data || [])
@@ -197,6 +287,8 @@ export default function AdminDashboard() {
         setMonthlyRevenue(monthlyRevenueData)
         setGenreRevenue(genreRevenueData)
         setUserAcquisition(userAcquisitionData)
+        setTotalRevenue(totalRevenueData)
+        setTopMovies(topMoviesData)
       } catch (error) {
         console.error("Error fetching dashboard data:", error)
       } finally {
@@ -207,24 +299,15 @@ export default function AdminDashboard() {
     fetchData()
   }, [])
 
-  // Calculate total revenue from monthly data
-  const totalRevenue = monthlyRevenue.reduce(
-    (sum, month) => sum + month.revenue,
-    0
-  )
-
-  // Calculate total users
-  const totalUsers = users.length
-
-  // Calculate total movies
-  const totalMovies = movies.length
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(value)
   }
+
+  const totalUsers = users.length
+  const totalMovies = movies.length
 
   return (
     <div className="container mx-auto p-6">
@@ -252,11 +335,8 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalRevenue)}
+              {isLoading ? "Loading..." : formatCurrency(totalRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              +12% from last month
-            </p>
           </CardContent>
         </Card>
         <Card>
@@ -363,12 +443,12 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Top Revenue Movies */}
+            {/* Top Movies by Bookings */}
             <Card>
               <CardHeader>
-                <CardTitle>Top Revenue Movies</CardTitle>
+                <CardTitle>Top Movies by Bookings</CardTitle>
                 <CardDescription>
-                  Movies generating the most revenue
+                  Movies with the most bookings and tickets sold
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -376,22 +456,40 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Movie Title</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead className="text-right">Bookings</TableHead>
                       <TableHead className="text-right">Tickets</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movieRevenue.slice(0, 5).map((movie) => (
-                      <TableRow key={movie.title}>
-                        <TableCell>{movie.title}</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(movie.revenue)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {movie.tickets}
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                          Loading...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : topMovies.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                          No data available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      topMovies.map((movie) => (
+                        <TableRow key={movie.title}>
+                          <TableCell>{movie.title}</TableCell>
+                          <TableCell className="text-right">
+                            {movie.bookings}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {movie.tickets}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(movie.revenue)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -636,16 +734,16 @@ export default function AdminDashboard() {
 
             <Card className="col-span-2">
               <CardHeader>
-                <CardTitle>Movie Revenue Chart</CardTitle>
+                <CardTitle>Monthly Revenue</CardTitle>
                 <CardDescription>
-                  Revenue by top-performing movies
+                  Revenue trends by month from bookings
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={movieRevenue}>
+                  <BarChart data={monthlyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="title" />
+                    <XAxis dataKey="name" />
                     <YAxis tickFormatter={(value) => `${value / 1000}k`} />
                     <Tooltip formatter={(value) => formatCurrency(value)} />
                     <Bar dataKey="revenue" fill="#8884d8" />
@@ -655,38 +753,84 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Top Movies by Bookings */}
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Details</CardTitle>
+                <CardTitle>Top Movies by Bookings</CardTitle>
                 <CardDescription>
-                  Detailed breakdown of revenue sources
+                  Movies with the most bookings and tickets sold
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Ticket Sales</TableHead>
-                      <TableHead>Subscriptions</TableHead>
-                      <TableHead>Rentals</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Movie Title</TableHead>
+                      <TableHead className="text-right">Bookings</TableHead>
+                      <TableHead className="text-right">Tickets</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                          Loading...
+                        </TableCell>
+                      </TableRow>
+                    ) : topMovies.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                          No data available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      topMovies.map((movie) => (
+                        <TableRow key={movie.title}>
+                          <TableCell>{movie.title}</TableCell>
+                          <TableCell className="text-right">
+                            {movie.bookings}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {movie.tickets}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(movie.revenue)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" size="sm" className="ml-auto">
+                  Download Report
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Revenue Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Details</CardTitle>
+                <CardDescription>
+                  Detailed breakdown of revenue by month
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Month</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {monthlyRevenue.slice(0, 6).map((month) => (
                       <TableRow key={month.name}>
                         <TableCell>{month.name}</TableCell>
-                        <TableCell>
-                          {formatCurrency(month.revenue * 0.7)}
-                        </TableCell>
-                        <TableCell>
-                          {formatCurrency(month.revenue * 0.2)}
-                        </TableCell>
-                        <TableCell>
-                          {formatCurrency(month.revenue * 0.1)}
-                        </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(month.revenue)}
                         </TableCell>
