@@ -1,3 +1,5 @@
+![Logo](https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/logo.png?raw=true)
+
 # Zero Movie - Next.js Project [![My Skills](https://skillicons.dev/icons?i=nextjs)](https://skillicons.dev)
 
 ## Giới thiệu
@@ -16,10 +18,20 @@
 
 - **Tích hợp API rạp phim:** Cập nhật suất chiếu theo thời gian thực.
 
+- **Tích hợp API Gemini để hỗ trợ user:** User có thể hỏi tất cả những gì liên quan đến phim
+
 ## Công nghệ sử dụng
 
 **Tech & version:**  
- [![Generic badge](https://img.shields.io/badge/nextjs-15.1.6-white.svg)](https://shields.io/) [![Generic badge](https://img.shields.io/badge/tailwind-3.4.1-blue.svg)](https://shields.io/) ![1.0.1!](https://img.shields.io/badge/MongoDB-none-1abc9c.svg)
+[![Generic badge](https://img.shields.io/badge/nextjs-15.3.0-white.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/tailwind-3.4.1-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/react-19.0.0-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/framer--motion-12.4.10-purple.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/three.js-0.176.0-green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/typescript-5-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/MongoDB-none-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/shadcn%2Fui-latest-black.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/emailjs-4.4.1-orange.svg)](https://shields.io/)
 
 - **Next.js:** Xây dựng giao diện web nhanh chóng và tối ưu.
 
@@ -27,13 +39,15 @@
 
 - **Three.js:** Hiển thị mô phỏng 3D View ghế ngồi.
 
+- **API AI Gemini:** Giải đáp thắc mắc cho người dùng
+
 - **AI Recommendation System:** Gợi ý phim phù hợp với người dùng.
 
 - **MongoDB:** Lưu trữ dữ liệu người dùng, vé đặt, lịch chiếu.
 
 ## Hướng dẫn cài đặt và chạy dự án
 
-### 1. Cài đặt dependencies
+### 1. Cài đặt dependencies của frontend & backend
 
 Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
 
@@ -45,11 +59,19 @@ npm install
 
 Khởi chạy server phát triển bằng lệnh:
 
+frontend
+
 ```bash
 npm run dev
 ```
 
-Sau đó, truy cập `http://localhost:3000` để xem ứng dụng.
+backend
+
+```bash
+npm run start now
+```
+
+Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng dụng.
 
 ### 3. Build dự án
 
@@ -59,11 +81,98 @@ Sau đó, truy cập `http://localhost:3000` để xem ứng dụng.
 npm run build
 ```
 
-### 4. Cần tải thêm folder python này có hướng dẫn ở README.md [nằm cùng cấp với zeroMovies]
+## [BỔ SUNG] Nếu clone về máy
+
+Clone the project
+
+```bash
+  git clone https://github.com/ChickenSoup269/Zero_Movie.git
+```
+
+Go to the project directory
+
+```bash
+  cd my-project
+```
+
+## 4. Cần tải thêm folder python này có hướng dẫn ở README.md [nằm cùng cấp với zeroMovies]
 
 https://github.com/ChickenSoup269/recommendationMovies
 
-### 5. Check dữ liệu tại đây
+### Nếu có lỗi do python thì copy đoạn này vào folder backend src/conntrollers/movieController.ts
+
+```bash
+ // Gọi script Python
+      const { stdout } = await execPromise(
+        `python3 ..\\..\\smart-cinema-recommendation\\models\\recommend.py ${userId}`
+      )
+```
+
+## 5. Bổ sung file .env
+
+Để chạy được đồ án bạn các bạn cần liên hệ với nhóm để lấy được key api
+
+### file .env [frontend]
+
+```bash
+NEXT_PUBLIC_API_URL = "your_api_url_here"
+NEXT_PUBLIC_IMAGES_API_URL = "your_images_api_url_here"
+NEXT_PUBLIC_EMAILJS_PUBLIC_KEY = "your_emailjs_public_key_here"
+NEXT_PUBLIC_EMAILJS_SERVICE_ID = "your_emailjs_service_id_here"
+NEXT_PUBLIC_EMAILJS_TEMPLATE_PASSWORD_ID = "your_emailjs_template_password_id_here"
+NEXT_PUBLIC_EMAILJS_TEMPLATE_ORDER_MOVIE_ID = "your_emailjs_template_order_movie_id_here"
+NEXT_PUBLIC_GEMINI_API_KEY = "your_gemini_api_key_here"
+```
+
+### file .env [backend]
+
+```bash
+MONGO_URI = 'your_mongo_uri_here`
+TMDB_API_KEY = 'your_tmdb_api_key_here'
+JWT_SECRET = 'your_jwt secret_here
+JWT_REFRESH_SECRET = 'your_jwt_refresh_secret_here'
+PAYPAL_CLIENT_ID = 'your_paypal_client_id_here'
+PAYPAL_SECRET = 'your_paypal_secret_here'
+PAYPAL_API_URL = 'your_paypal_api_url_here'
+EMAIL_USER = 'your_email_user_here'
+EMAIL_PASS = 'your_email_pass_here'
+```
+
+## 6. Tổng quan về thư mục đồ án
+
+```bash
+Directory structure:
+└── chickensoup269-zero_movie/
+    ├── README.md
+    ├── backend/
+    │   ├── package-lock.json
+    │   ├── package.json
+    │   ├── tsconfig.json
+    │   ├── .gitignore
+    │   ├── src/
+    │   └── uploads/
+    └── frontend/
+        ├── README.md
+        ├── components.json
+        ├── eslint.config.mjs
+        ├── next.config.ts
+        ├── package-lock.json
+        ├── package.json
+        ├── postcss.config.mjs
+        ├── tailwind.config.ts
+        ├── tsconfig.json
+        ├── .gitignore
+        ├── public/
+        │   ├── CinemaTheater.glb.json
+        │   └── images/
+        └── src/
+```
+
+## Screenshots
+
+![Alt text](/relative/path/to/img.jpg?raw=true "Optional Title")
+
+### 7. Check dữ liệu tại đây
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
