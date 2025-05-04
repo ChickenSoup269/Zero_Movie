@@ -1,4 +1,4 @@
-![Logo](https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/logo.png?raw=truestyle="width:200px;")
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/logo.png?raw=true" alt="drawing" width="500"/> </p>
 
 # Zero Movie - Next.js Project [![My Skills](https://skillicons.dev/icons?i=nextjs)](https://skillicons.dev)
 
@@ -168,14 +168,30 @@ Directory structure:
         └── src/
 ```
 
-## Screenshots
+## 7. Screenshots
 
-![Alt text](/relative/path/to/img.jpg?raw=true "Optional Title")
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/trangchinh.png" alt="drawing" width="800"/> </p>
 
-### 7. Check dữ liệu tại đây
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/chitietphim.png" alt="drawing" width="800"/> </p>
+
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/trailer.png" alt="drawing" width="800"/> </p>
+
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/binhluan.png" alt="drawing" width="800"/> </p>
+
+<p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/chitietrap.png" alt="drawing" width="800"/> </p>
+
+## 8. Tổng số code
+
+[![Generic badge](https://img.shields.io/badge/frontend-19.7.0-blue.svg)](https://shields.io/)
+
+<img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/frontend.png" alt="drawing" width="500">
+  
+[![Generic badge](https://img.shields.io/badge/backend-19.7.0-orange.svg)](https://shields.io/)
+
+<img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/backend.png" alt="drawing" width="500">
+                     
+## 9. Check dữ liệu tại đây
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
-## Kết luận
-
-=> đây là phần sẽ nói về dự án này sẽ cập nhật sau
+## 10. Tài khoản paypal ở mô trường sanbox nếu cần hãy liên hệ
