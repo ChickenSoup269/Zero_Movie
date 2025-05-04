@@ -1,4 +1,4 @@
-![Logo](https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/logo.png?raw=true)
+![Logo](https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/logo.png?raw=truestyle="width:200px;")
 
 # Zero Movie - Next.js Project [![My Skills](https://skillicons.dev/icons?i=nextjs)](https://skillicons.dev)
 
@@ -127,9 +127,9 @@ NEXT_PUBLIC_GEMINI_API_KEY = "your_gemini_api_key_here"
 ### file .env [backend]
 
 ```bash
-MONGO_URI = 'your_mongo_uri_here`
+MONGO_URI = 'your_mongo_uri_here'
 TMDB_API_KEY = 'your_tmdb_api_key_here'
-JWT_SECRET = 'your_jwt secret_here
+JWT_SECRET = 'your_jwt 'secret_here'
 JWT_REFRESH_SECRET = 'your_jwt_refresh_secret_here'
 PAYPAL_CLIENT_ID = 'your_paypal_client_id_here'
 PAYPAL_SECRET = 'your_paypal_secret_here'
