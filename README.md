@@ -2,6 +2,50 @@
 
 # Zero Movie - Next.js Project [![My Skills](https://skillicons.dev/icons?i=nextjs)](https://skillicons.dev)
 
+# Mục lục dự án Zero Movie
+
+## 1. Giới thiệu
+   - [Thông tin tổng quan về Zero Movie](#giới-thiệu)
+   - [Mục tiêu dự án](#giới-thiệu)
+
+## 2. Tính năng chính
+   - [Đặt vé xem phim online](#các-tính-năng-chính)
+   - [Tích hợp AI gợi ý phim](#các-tính-năng-chính)
+   - [3D View từ ghế ngồi](#các-tính-năng-chính)
+   - [Quản lý tài khoản](#các-tính-năng-chính)
+   - [Tích hợp API rạp phim](#các-tính-năng-chính)
+   - [Tích hợp API Gemini hỗ trợ người dùng](#các-tính-năng-chính)
+
+## 3. Công nghệ sử dụng
+   - [Danh sách công nghệ và phiên bản](#công-nghệ-sử-dụng)
+   - [Framework và thư viện chính](#công-nghệ-sử-dụng)
+
+## 4. Hướng dẫn cài đặt và chạy dự án
+   - [Cài đặt dependencies](#1-cài-đặt-dependencies-của-frontend--backend)
+   - [Chạy dự án](#2-chạy-dự-án)
+   - [Build dự án](#3-build-dự-án)
+   - [Clone dự án](#bổ-sung-nếu-clone-về-máy)
+   - [Cài đặt module AI gợi ý phim](#4-cần-tải-thêm-folder-python-này-có-hướng-dẫn-ở-readmemd-nằm-cùng-cấp-với-zeromovies)
+
+## 5. Cấu hình môi trường
+   - [Cấu hình .env frontend](#file-env-frontend)
+   - [Cấu hình .env backend](#file-env-backend)
+
+## 6. Cấu trúc thư mục
+   - [Sơ đồ tổng quan thư mục dự án](#6-tổng-quan-về-thư-mục-đồ-án)
+
+## 7. Ảnh chụp màn hình
+   - [Trang chính](#7-screenshots)
+   - [Chi tiết phim](#7-screenshots)
+   - [Xem trailer](#7-screenshots)
+   - [Bình luận](#7-screenshots)
+   - [Chi tiết rạp](#7-screenshots)
+
+## 8. Thông tin khác
+   - [Tổng số code](#8-tổng-số-code)
+   - [Kiểm tra dữ liệu](#9-check-dữ-liệu-tại-đây)
+   - [Tài khoản PayPal sandbox](#10-tài-khoản-paypal-ở-môi-trường-sanbox-nếu-cần-hãy-liên-hệ)
+
 ## Giới thiệu
 
 **Zero Movie** là một nền tảng đặt vé xem phim trực tuyến, giúp cho người dùng dễ dàng tìm kiếm, đặt vé và trải nghiệm rạp chiếu phim theo cách hiện đại nhất. Với sự kết hợp giữa AI và công nghệ 3D View, người dùng không chỉ đặt vé mà còn có thể xem trước góc nhìn thực tế từ ghế mình chọn hướng về màn hình.
@@ -194,4 +238,4 @@ Directory structure:
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
-## 10. Tài khoản paypal ở mô trường sanbox nếu cần hãy liên hệ
+## 10. Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ
