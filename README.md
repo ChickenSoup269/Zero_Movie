@@ -239,3 +239,6 @@ Directory structure:
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
 ## 10. Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ
+
+## 11. Video demo & và full ảnh đồ án
+link: 
