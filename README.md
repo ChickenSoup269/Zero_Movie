@@ -2,6 +2,11 @@
 
 # Zero Movie - Next.js Project [![My Skills](https://skillicons.dev/icons?i=nextjs)](https://skillicons.dev)
 
+<p align="center">
+   
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/) 
+</p>
+
 # Mục lục dự án Zero Movie
 
 ## 1. Giới thiệu
