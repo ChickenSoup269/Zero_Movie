@@ -98,6 +98,72 @@ export const createBooking = async (
   }
 }
 
+export const getAllBookings = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const role = req.user!.role
+    if (role !== "admin") {
+      res
+        .status(403)
+        .json({ message: "Chỉ admin được phép xem tất cả bookings" })
+      return
+    }
+
+    const bookings = await BookingService.getAllBookings()
+
+    res.status(200).json({
+      message: "Lấy danh sách tất cả bookings thành công",
+      bookings: bookings.map((booking) => ({
+        _id: booking._id.toString(),
+        userId: booking.userId?.toString() || null,
+        movieId: booking.movieId,
+        movieTitle: (booking as any).movieTitle || "Unknown",
+        showtimeId: getIdString(booking.showtimeId),
+        showtime: {
+          startTime: (booking.showtimeId as any)?.startTime || null,
+          endTime: (booking.showtimeId as any)?.endTime || null,
+          price: (booking.showtimeId as any)?.price || 0,
+        },
+        seatIds: (booking.seatIds || [])
+          .map((seat) => getIdString(seat))
+          .filter(Boolean),
+        seats: (booking.seatIds || [])
+          .filter((seat) => seat && (seat as any).seatId)
+          .map((seat) => ({
+            seatId: seat._id.toString(),
+            seatNumber: (seat as any).seatId?.seatNumber || "Unknown",
+            row: (seat as any).seatId?.row || "Unknown",
+            column: (seat as any).seatId?.column || 0,
+          })),
+        totalPrice: booking.totalPrice || 0,
+        status: booking.status || "unknown",
+      })),
+    })
+  } catch (error) {
+    console.error("Error in getAllBookings:", error)
+    res.status(400).json({
+      message: (error as Error).message || "Lỗi khi lấy danh sách bookings",
+    })
+  }
+}
+// Hàm hỗ trợ lấy ID dạng chuỗi
+function getIdString(input: any): string {
+  if (!input) return ""
+  if (typeof input === "string") {
+    if (input.startsWith("{")) {
+      try {
+        return JSON.parse(input)._id?.toString() || input
+      } catch {
+        return input
+      }
+    }
+    return input
+  }
+  return input._id?.toString() || input.toString() || ""
+}
+
 export const getUserBookings = async (
   req: Request,
   res: Response
@@ -149,19 +215,6 @@ export const getUserBookings = async (
       .status(400)
       .json({ message: (error as Error).message || "Lỗi khi lấy danh sách vé" })
   }
-}
-
-// Hàm hỗ trợ lấy ID dạng chuỗi
-function getIdString(input: any): string {
-  if (!input) return ""
-  if (typeof input === "string") {
-    try {
-      return JSON.parse(input)._id?.toString() || input
-    } catch {
-      return input
-    }
-  }
-  return input._id?.toString() || ""
 }
 
 export const cancelBooking = async (

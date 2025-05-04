@@ -29,6 +29,28 @@ interface ExtendedBooking extends IBooking {
 }
 
 export class BookingService {
+  static async getAllBookings(): Promise<IBooking[]> {
+    const bookings = await Booking.find({})
+      .populate({
+        path: "showtimeId",
+        select: "startTime endTime price",
+      })
+      .populate({
+        path: "seatIds",
+        populate: {
+          path: "seatId",
+          model: "Seat",
+          select: "seatNumber row column",
+        },
+      })
+
+    for (const booking of bookings) {
+      const movie = await Movie.findOne({ tmdbId: booking.movieId })
+      ;(booking as any).movieTitle = movie ? movie.title : "Unknown"
+    }
+
+    return bookings
+  }
   static async createBooking(
     userId: string | null,
     showtimeId: string,
