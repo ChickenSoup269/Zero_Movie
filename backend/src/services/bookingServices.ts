@@ -7,14 +7,14 @@ import Room from "../models/roomModel"
 import Cinema from "../models/cinemaModel"
 import Seat from "../models/seatModel"
 
-// Define interface for seat details
+// Define interface for seat details to avoid 'any' types
 interface SeatDetail {
   seatNumber: string
   row: string
   column: number
 }
 
-// Define interface for extended booking
+// Define interface for extended booking to include additional properties
 interface ExtendedBooking extends IBooking {
   movieTitle?: string
   cinemaName?: string
@@ -29,17 +29,11 @@ interface ExtendedBooking extends IBooking {
 }
 
 export class BookingService {
-  static async getAllBookings(): Promise<ExtendedBooking[]> {
+  static async getAllBookings(): Promise<IBooking[]> {
     const bookings = await Booking.find({})
       .populate({
         path: "showtimeId",
-        populate: {
-          path: "roomId",
-          populate: {
-            path: "cinemaId",
-            model: "Cinema",
-          },
-        },
+        select: "startTime endTime price",
       })
       .populate({
         path: "seatIds",
@@ -49,57 +43,14 @@ export class BookingService {
           select: "seatNumber row column",
         },
       })
-      .lean()
 
-    const processedBookings: ExtendedBooking[] = await Promise.all(
-      bookings.map(async (booking) => {
-        try {
-          const movie = await Movie.findOne({ tmdbId: booking.movieId })
-          const showtime = booking.showtimeId as any
-          const room = showtime?.roomId
-          const cinema = room?.cinemaId
+    for (const booking of bookings) {
+      const movie = await Movie.findOne({ tmdbId: booking.movieId })
+      ;(booking as any).movieTitle = movie ? movie.title : "Unknown"
+    }
 
-          const seatDetails: SeatDetail[] = (booking.seatIds || [])
-            .filter((ss: any) => ss.seatId)
-            .map((ss: any) => ({
-              seatNumber: ss.seatId.seatNumber,
-              row: ss.seatId.row,
-              column: ss.seatId.column,
-            }))
-
-          return {
-            ...booking,
-            movieTitle: movie ? movie.title : "Unknown",
-            showtime: showtime
-              ? {
-                  startTime: showtime.startTime,
-                  endTime: showtime.endTime,
-                  price: showtime.price,
-                }
-              : { startTime: null, endTime: null, price: 0 },
-            cinemaName: cinema?.name || "N/A",
-            cinemaAddress: cinema?.address || "N/A",
-            roomNumber: room?.roomNumber || "N/A",
-            seats: seatDetails,
-          }
-        } catch (error) {
-          console.error(`Error processing booking ${booking._id}:`, error)
-          return {
-            ...booking,
-            movieTitle: "Unknown",
-            showtime: { startTime: null, endTime: null, price: 0 },
-            cinemaName: "N/A",
-            cinemaAddress: "N/A",
-            roomNumber: "N/A",
-            seats: [],
-          }
-        }
-      })
-    )
-
-    return processedBookings
+    return bookings
   }
-
   static async createBooking(
     userId: string | null,
     showtimeId: string,
@@ -115,200 +66,187 @@ export class BookingService {
       showtime: { startTime: Date; endTime: Date }
     }
   }> {
-    const session = await mongoose.startSession()
-    session.startTransaction()
-
-    try {
-      // Parse and validate showtimeId
-      const parsedShowtimeId = showtimeId.startsWith("{")
-        ? JSON.parse(showtimeId)._id
-        : showtimeId
-      if (!mongoose.Types.ObjectId.isValid(parsedShowtimeId)) {
-        throw new Error("Showtime ID không hợp lệ")
-      }
-
-      // Parse and validate seatIds
-      const parsedSeatIds = seatIds.map((id) =>
-        id.startsWith("{") ? JSON.parse(id)._id : id
-      )
-      if (parsedSeatIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
-        throw new Error("Seat ID không hợp lệ")
-      }
-
-      // Find showtime and validate
-      const showtime = await Showtime.findById(parsedShowtimeId)
-        .populate({
-          path: "roomId",
-          populate: { path: "cinemaId" },
-        })
-        .session(session)
-      if (!showtime) throw new Error("Suất chiếu không tồn tại")
-      if (!showtime.startTime || !showtime.endTime) {
-        throw new Error("Suất chiếu không có thời gian hợp lệ")
-      }
-      if (showtime.price <= 0) {
-        throw new Error("Giá vé không hợp lệ")
-      }
-      if (showtime.startTime < new Date()) {
-        throw new Error("Không thể đặt vé cho suất chiếu đã qua")
-      }
-
-      // Find movie
-      const movie = await Movie.findOne({ tmdbId: showtime.movieId }).session(
-        session
-      )
-      if (!movie) throw new Error("Phim không tồn tại")
-      if (movie.status !== "nowPlaying") {
-        throw new Error('Chỉ phim có trạng thái "nowPlaying" mới được đặt vé')
-      }
-
-      // Validate seats
-      const showtimeSeats = await ShowtimeSeat.find({
-        showtimeId: parsedShowtimeId,
-        _id: { $in: parsedSeatIds },
-      }).session(session)
-      if (showtimeSeats.length !== parsedSeatIds.length) {
-        throw new Error("Một số ghế không tồn tại")
-      }
-      if (showtimeSeats.some((seat) => seat.status !== "available")) {
-        throw new Error("Một số ghế đã được đặt")
-      }
-
-      // Update seat status to reserved
-      await ShowtimeSeat.updateMany(
-        {
-          showtimeId: parsedShowtimeId,
-          _id: { $in: parsedSeatIds },
-          status: "available",
-        },
-        { $set: { status: "reserved" } },
-        { session }
-      )
-
-      // Find room and cinema
-      const room = await Room.findById(showtime.roomId).session(session)
-      if (!room) throw new Error("Phòng chiếu không tồn tại")
-      const cinema = await Cinema.findById(room.cinemaId).session(session)
-      if (!cinema) throw new Error("Rạp không tồn tại")
-
-      // Find seat details
-      const seats = await Seat.find({
-        _id: { $in: showtimeSeats.map((s) => s.seatId) },
-      }).session(session)
-      if (seats.length !== parsedSeatIds.length) {
-        throw new Error("Không tìm thấy thông tin ghế")
-      }
-
-      // Calculate total price
-      const totalPrice = showtime.price * parsedSeatIds.length
-
-      // Create booking
-      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000)
-      const booking = new Booking({
-        userId: userId || null,
-        movieId: showtime.movieId,
-        showtimeId: parsedShowtimeId,
-        seatIds: parsedSeatIds,
-        totalPrice,
-        status: "pending",
-        expiresAt,
-      })
-      await booking.save({ session })
-
-      const details = {
-        movie: { title: movie.title },
-        cinema: { name: cinema.name, address: cinema.address },
-        room: { roomNumber: room.roomNumber },
-        seats: seats.map((seat) => ({
-          seatNumber: seat.seatNumber,
-          row: seat.row,
-          column: seat.column,
-        })),
-        showtime: {
-          startTime: showtime.startTime,
-          endTime: showtime.endTime,
-        },
-      }
-
-      await session.commitTransaction()
-      return { booking, totalPrice, details }
-    } catch (error) {
-      await session.abortTransaction()
-      throw error
-    } finally {
-      session.endSession()
+    // Parse showtimeId
+    const parsedShowtimeId = showtimeId.startsWith("{")
+      ? JSON.parse(showtimeId)._id
+      : showtimeId
+    if (!mongoose.Types.ObjectId.isValid(parsedShowtimeId)) {
+      throw new Error("Showtime ID không hợp lệ")
     }
+
+    // Parse seatIds
+    const parsedSeatIds = seatIds.map((id) =>
+      id.startsWith("{") ? JSON.parse(id)._id : id
+    )
+    if (parsedSeatIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+      throw new Error("Seat ID không hợp lệ")
+    }
+
+    // Tìm suất chiếu
+    const showtime = await Showtime.findById(parsedShowtimeId).populate(
+      "roomId"
+    )
+    if (!showtime) throw new Error("Suất chiếu không tồn tại")
+
+    // Lấy movieId từ showtime
+    const movieId = showtime.movieId
+    const movie = await Movie.findOne({ tmdbId: movieId })
+    if (!movie) throw new Error("Phim không tồn tại")
+
+    // Kiểm tra trạng thái phim
+    if (movie.status !== "nowPlaying") {
+      throw new Error('Chỉ phim có trạng thái "nowPlaying" mới được đặt vé')
+    }
+
+    // Kiểm tra ghế
+    const showtimeSeats = await ShowtimeSeat.find({
+      showtimeId: parsedShowtimeId,
+      _id: { $in: parsedSeatIds },
+    })
+    if (showtimeSeats.length !== parsedSeatIds.length)
+      throw new Error("Ghế không tồn tại")
+    if (showtimeSeats.some((seat) => seat.status !== "available"))
+      throw new Error("Ghế đã được đặt")
+
+    // Lấy phòng và rạp
+    const room = await Room.findById(showtime.roomId).populate("cinemaId")
+    if (!room) throw new Error("Phòng chiếu không tồn tại")
+    const cinema = await Cinema.findById(room.cinemaId)
+    if (!cinema) throw new Error("Rạp không tồn tại")
+
+    // Lấy thông tin ghế
+    const seats = await Seat.find({
+      _id: { $in: showtimeSeats.map((s) => s.seatId) },
+    })
+    if (seats.length !== parsedSeatIds.length)
+      throw new Error("Không tìm thấy ghế")
+
+    // Tính tổng giá
+    const totalPrice = showtime.price * parsedSeatIds.length
+    // Tạo booking với expiresAt (2 tiếng sau)
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000)
+    // Tạo booking
+    const booking = new Booking({
+      userId: userId || null,
+      movieId,
+      showtimeId: parsedShowtimeId,
+      seatIds: parsedSeatIds,
+      totalPrice,
+      status: "pending",
+      expiresAt,
+    })
+    await booking.save()
+
+    const details = {
+      movie: { title: movie.title },
+      cinema: { name: cinema.name, address: cinema.address },
+      room: { roomNumber: room.roomNumber },
+      seats: seats.map((seat) => ({
+        seatNumber: seat.seatNumber,
+        row: seat.row,
+        column: seat.column,
+      })),
+      showtime: {
+        startTime: showtime.startTime,
+        endTime: showtime.endTime,
+      },
+    }
+
+    return { booking, totalPrice, details }
   }
 
-  static async getUserBookings(userId: string): Promise<ExtendedBooking[]> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("User ID không hợp lệ")
-    }
+  static async getUserBookings(userId: string): Promise<IBooking[]> {
+    if (!userId) throw new Error("User ID không hợp lệ")
 
-    const bookingsData = await Booking.find({ userId })
-      .populate({
-        path: "showtimeId",
-        populate: {
-          path: "roomId",
-          populate: {
-            path: "cinemaId",
-            model: "Cinema",
-          },
-        },
-      })
-      .populate({
-        path: "seatIds",
-        populate: {
-          path: "seatId",
-          model: "Seat",
-          select: "seatNumber row column",
-        },
-      })
-      .lean()
+    // Fetch basic booking data
+    const bookingsData = await Booking.find({ userId }).lean()
 
-    const processedBookings: ExtendedBooking[] = await Promise.all(
-      bookingsData.map(async (booking) => {
+    // Process each booking with proper type handling
+    const processedBookings: IBooking[] = await Promise.all(
+      bookingsData.map(async (bookingData) => {
         try {
-          const showtime = booking.showtimeId as any
-          const room = showtime?.roomId
-          const cinema = room?.cinemaId
+          // We'll build an extended booking object with proper types
+          const booking = bookingData as ExtendedBooking
 
+          // Get showtime with proper type checking
+          const showtime = await Showtime.findById(booking.showtimeId)
+            .populate({
+              path: "roomId",
+              populate: { path: "cinemaId" },
+            })
+            .lean()
+
+          // Get movie information
           const movie = await Movie.findOne({ tmdbId: booking.movieId })
+          booking.movieTitle = movie ? movie.title : "Unknown Movie"
 
-          const seatDetails: SeatDetail[] = (booking.seatIds || [])
-            .filter((ss: any) => ss.seatId)
-            .map((ss: any) => ({
-              seatNumber: ss.seatId.seatNumber,
-              row: ss.seatId.row,
-              column: ss.seatId.column,
-            }))
+          // Initialize empty seats array with proper typing
+          const seatDetails: SeatDetail[] = []
 
-          return {
-            ...booking,
-            movieTitle: movie ? movie.title : "Unknown",
-            showtime: showtime
-              ? {
-                  startTime: showtime.startTime,
-                  endTime: showtime.endTime,
-                  price: showtime.price,
+          // Get seat information with error handling
+          if (booking.seatIds && booking.seatIds.length > 0) {
+            const showtimeSeats = await ShowtimeSeat.find({
+              _id: { $in: booking.seatIds.map((id) => id.toString()) },
+            }).populate("seatId")
+
+            // Process each seat with proper type checking
+            for (const ss of showtimeSeats) {
+              // Type assertion for populated seat
+              const seatDoc = ss.seatId as unknown as Document & {
+                seatNumber: string
+                row: string
+                column: number
+              }
+
+              if (seatDoc) {
+                seatDetails.push({
+                  seatNumber: seatDoc.seatNumber,
+                  row: seatDoc.row,
+                  column: seatDoc.column,
+                })
+              }
+            }
+          }
+
+          // Create showtime info with null fallbacks
+          const showtimeInfo = showtime
+            ? {
+                startTime: showtime.startTime,
+                endTime: showtime.endTime,
+                price: showtime.price,
+              }
+            : {
+                startTime: null,
+                endTime: null,
+                price: 0,
+              }
+
+          // Type assertions for populated fields
+          const roomDoc = showtime?.roomId as unknown as
+            | {
+                roomNumber: string
+                cinemaId: {
+                  name: string
+                  address: string
                 }
-              : { startTime: null, endTime: null, price: 0 },
-            cinemaName: cinema?.name || "N/A",
-            cinemaAddress: cinema?.address || "N/A",
-            roomNumber: room?.roomNumber || "N/A",
-            seats: seatDetails,
-          }
-        } catch (error) {
-          console.error(`Error processing booking ${booking._id}:`, error)
-          return {
+              }
+            | undefined
+
+          // Create a new Booking document with additional fields
+          return await Booking.create({
             ...booking,
-            movieTitle: "Unknown",
-            showtime: { startTime: null, endTime: null, price: 0 },
-            cinemaName: "N/A",
-            cinemaAddress: "N/A",
-            roomNumber: "N/A",
-            seats: [],
-          }
+            movieTitle: booking.movieTitle,
+            showtime: showtimeInfo,
+            cinemaName: roomDoc?.cinemaId?.name || "N/A",
+            cinemaAddress: roomDoc?.cinemaId?.address || "N/A",
+            roomNumber: roomDoc?.roomNumber || "N/A",
+            seats: seatDetails,
+          })
+        } catch (error) {
+          console.error(`Error processing booking ${bookingData._id}:`, error)
+
+          // Return original booking if there's an error
+          return bookingData as IBooking
         }
       })
     )
@@ -317,29 +255,26 @@ export class BookingService {
   }
 
   static async confirmBooking(bookingId: string): Promise<IBooking> {
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    if (!mongoose.Types.ObjectId.isValid(bookingId))
       throw new Error("Booking ID không hợp lệ")
-    }
 
     const session = await mongoose.startSession()
     session.startTransaction()
 
     try {
       const booking = await Booking.findById(bookingId).session(session)
-      if (!booking || booking.status !== "pending") {
+      if (!booking || booking.status !== "pending")
         throw new Error("Booking không hợp lệ hoặc đã được xử lý")
-      }
 
-      const showtime = await Showtime.findById(booking.showtimeId).session(
-        session
-      )
+      // Verify showtime exists
+      const showtime = await Showtime.findById(booking.showtimeId)
       if (!showtime) throw new Error("Suất chiếu không tồn tại")
 
       const updatedSeats = await ShowtimeSeat.updateMany(
         {
           showtimeId: booking.showtimeId,
           _id: { $in: booking.seatIds },
-          status: "reserved",
+          status: "available",
         },
         { $set: { status: "booked" } },
         { session }
@@ -364,40 +299,13 @@ export class BookingService {
   }
 
   static async cancelBooking(bookingId: string): Promise<void> {
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    if (!mongoose.Types.ObjectId.isValid(bookingId))
       throw new Error("Booking ID không hợp lệ")
-    }
-
-    const session = await mongoose.startSession()
-    session.startTransaction()
-
-    try {
-      const booking = await Booking.findById(bookingId).session(session)
-      if (!booking || booking.status !== "pending") {
-        throw new Error("Booking không hợp lệ hoặc đã được xử lý")
-      }
-
-      await ShowtimeSeat.updateMany(
-        {
-          showtimeId: booking.showtimeId,
-          _id: { $in: booking.seatIds },
-          status: "reserved",
-        },
-        { $set: { status: "available" } },
-        { session }
-      )
-
-      booking.status = "cancelled"
-      booking.expiresAt = undefined
-      await booking.save({ session })
-
-      await session.commitTransaction()
-    } catch (error) {
-      await session.abortTransaction()
-      throw error
-    } finally {
-      session.endSession()
-    }
+    const booking = await Booking.findById(bookingId)
+    if (!booking || booking.status !== "pending") return
+    booking.status = "cancelled"
+    booking.expiresAt = undefined
+    await booking.save()
   }
 
   static async deleteBooking(
@@ -405,40 +313,16 @@ export class BookingService {
     userId: string,
     role: string
   ): Promise<void> {
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    if (!mongoose.Types.ObjectId.isValid(bookingId))
       throw new Error("Booking ID không hợp lệ")
-    }
 
-    const session = await mongoose.startSession()
-    session.startTransaction()
+    // Tìm và xóa booking, chỉ cho phép chủ booking hoặc admin xóa
+    const query =
+      role === "admin" ? { _id: bookingId } : { _id: bookingId, userId }
+    const result = await Booking.deleteOne(query)
 
-    try {
-      const query =
-        role === "admin" ? { _id: bookingId } : { _id: bookingId, userId }
-      const booking = await Booking.findOne(query).session(session)
-      if (!booking) {
-        throw new Error("Không tìm thấy booking hoặc bạn không có quyền xóa")
-      }
-
-      if (booking.status === "pending") {
-        await ShowtimeSeat.updateMany(
-          {
-            showtimeId: booking.showtimeId,
-            _id: { $in: booking.seatIds },
-            status: "reserved",
-          },
-          { $set: { status: "available" } },
-          { session }
-        )
-      }
-
-      await Booking.deleteOne({ _id: bookingId }, { session })
-      await session.commitTransaction()
-    } catch (error) {
-      await session.abortTransaction()
-      throw error
-    } finally {
-      session.endSession()
+    if (result.deletedCount === 0) {
+      throw new Error("Không tìm thấy booking hoặc bạn không có quyền xóa")
     }
   }
 }
