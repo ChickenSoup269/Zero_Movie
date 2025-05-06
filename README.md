@@ -228,6 +228,10 @@ Directory structure:
 <p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/binhluan.png" alt="drawing" width="800"/> </p>
 
 <p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/chitietrap.png" alt="drawing" width="800"/> </p>
+![image](https://github.com/user-attachments/assets/8ac97402-a7c5-40df-b665-ce83d407c7b6)
+![image](https://github.com/user-attachments/assets/0ab7f96d-bd02-419d-8205-b0145257cca4)
+![image](https://github.com/user-attachments/assets/adb60f05-fcf3-45f1-b106-474f6c35801b)
+
 
 ## 8. Tổng số code
 
