@@ -10,46 +10,54 @@
 # Mục lục dự án Zero Movie
 
 ## 1. Giới thiệu
-   - [Thông tin tổng quan về Zero Movie](#giới-thiệu)
-   - [Mục tiêu dự án](#giới-thiệu)
+
+- [Thông tin tổng quan về Zero Movie](#giới-thiệu)
+- [Mục tiêu dự án](#giới-thiệu)
 
 ## 2. Tính năng chính
-   - [Đặt vé xem phim online](#các-tính-năng-chính)
-   - [Tích hợp AI gợi ý phim](#các-tính-năng-chính)
-   - [3D View từ ghế ngồi](#các-tính-năng-chính)
-   - [Quản lý tài khoản](#các-tính-năng-chính)
-   - [Tích hợp API rạp phim](#các-tính-năng-chính)
-   - [Tích hợp API Gemini hỗ trợ người dùng](#các-tính-năng-chính)
+
+- [Đặt vé xem phim online](#các-tính-năng-chính)
+- [Tích hợp AI gợi ý phim](#các-tính-năng-chính)
+- [3D View từ ghế ngồi](#các-tính-năng-chính)
+- [Quản lý tài khoản](#các-tính-năng-chính)
+- [Tích hợp API rạp phim](#các-tính-năng-chính)
+- [Tích hợp API Gemini hỗ trợ người dùng](#các-tính-năng-chính)
 
 ## 3. Công nghệ sử dụng
-   - [Danh sách công nghệ và phiên bản](#công-nghệ-sử-dụng)
-   - [Framework và thư viện chính](#công-nghệ-sử-dụng)
+
+- [Danh sách công nghệ và phiên bản](#công-nghệ-sử-dụng)
+- [Framework và thư viện chính](#công-nghệ-sử-dụng)
 
 ## 4. Hướng dẫn cài đặt và chạy dự án
-   - [Cài đặt dependencies](#1-cài-đặt-dependencies-của-frontend--backend)
-   - [Chạy dự án](#2-chạy-dự-án)
-   - [Build dự án](#3-build-dự-án)
-   - [Clone dự án](#bổ-sung-nếu-clone-về-máy)
-   - [Cài đặt module AI gợi ý phim](#4-cần-tải-thêm-folder-python-này-có-hướng-dẫn-ở-readmemd-nằm-cùng-cấp-với-zeromovies)
+
+- [Cài đặt dependencies](#1-cài-đặt-dependencies-của-frontend--backend)
+- [Chạy dự án](#2-chạy-dự-án)
+- [Build dự án](#3-build-dự-án)
+- [Clone dự án](#bổ-sung-nếu-clone-về-máy)
+- [Cài đặt module AI gợi ý phim](#4-cần-tải-thêm-folder-python-này-có-hướng-dẫn-ở-readmemd-nằm-cùng-cấp-với-zeromovies)
 
 ## 5. Cấu hình môi trường
-   - [Cấu hình .env frontend](#file-env-frontend)
-   - [Cấu hình .env backend](#file-env-backend)
+
+- [Cấu hình .env frontend](#file-env-frontend)
+- [Cấu hình .env backend](#file-env-backend)
 
 ## 6. Cấu trúc thư mục
-   - [Sơ đồ tổng quan thư mục dự án](#6-tổng-quan-về-thư-mục-đồ-án)
+
+- [Sơ đồ tổng quan thư mục dự án](#6-tổng-quan-về-thư-mục-đồ-án)
 
 ## 7. Ảnh chụp màn hình
-   - [Trang chính](#7-screenshots)
-   - [Chi tiết phim](#7-screenshots)
-   - [Xem trailer](#7-screenshots)
-   - [Bình luận](#7-screenshots)
-   - [Chi tiết rạp](#7-screenshots)
+
+- [Trang chính](#7-screenshots)
+- [Chi tiết phim](#7-screenshots)
+- [Xem trailer](#7-screenshots)
+- [Bình luận](#7-screenshots)
+- [Chi tiết rạp](#7-screenshots)
 
 ## 8. Thông tin khác
-   - [Tổng số code](#8-tổng-số-code)
-   - [Kiểm tra dữ liệu](#9-check-dữ-liệu-tại-đây)
-   - [Tài khoản PayPal sandbox](#10-tài-khoản-paypal-ở-môi-trường-sanbox-nếu-cần-hãy-liên-hệ)
+
+- [Tổng số code](#8-tổng-số-code)
+- [Kiểm tra dữ liệu](#9-check-dữ-liệu-tại-đây)
+- [Tài khoản PayPal sandbox](#10-tài-khoản-paypal-ở-môi-trường-sanbox-nếu-cần-hãy-liên-hệ)
 
 ## Giới thiệu
 
@@ -96,55 +104,7 @@
 
 ## Hướng dẫn cài đặt và chạy dự án
 
-### 1. Cài đặt dependencies của frontend & backend
-
-Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
-
-```bash
-npm install
-```
-
-### 2. Chạy dự án
-
-Khởi chạy server phát triển bằng lệnh:
-
-frontend
-
-```bash
-npm run dev
-```
-
-backend
-
-```bash
-npm run start now
-```
-
-Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng dụng.
-
-### 3. Build dự án
-
-Để build dự án cho môi trường production, chạy lệnh:
-
-```bash
-npm run build
-```
-
-## [BỔ SUNG] Nếu clone về máy
-
-Clone the project
-
-```bash
-  git clone https://github.com/ChickenSoup269/Zero_Movie.git
-```
-
-Go to the project directory
-
-```bash
-  cd my-project
-```
-
-## 4. Cần tải thêm folder python này có hướng dẫn ở README.md [nằm cùng cấp với zeroMovies]
+## 1. Cần tải thêm folder python này có hướng dẫn ở README.md [nằm cùng cấp với zeroMovies]
 
 https://github.com/ChickenSoup269/recommendationMovies
 
@@ -157,7 +117,7 @@ https://github.com/ChickenSoup269/recommendationMovies
       )
 ```
 
-## 5. Bổ sung file .env
+## 2. Bổ sung file .env
 
 Để chạy được đồ án bạn các bạn cần liên hệ với nhóm để lấy được key api
 
@@ -187,7 +147,7 @@ EMAIL_USER = 'your_email_user_here'
 EMAIL_PASS = 'your_email_pass_here'
 ```
 
-## 6. Tổng quan về thư mục đồ án
+## 3. Tổng quan về thư mục đồ án
 
 ```bash
 Directory structure:
@@ -217,7 +177,7 @@ Directory structure:
         └── src/
 ```
 
-## 7. Screenshots
+## 4. Screenshots
 
 <p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/trangchinh.png" alt="drawing" width="800"/> </p>
 
@@ -229,7 +189,7 @@ Directory structure:
 
 <p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/chitietrap.png" alt="drawing" width="800"/> </p>
 
-## 8. Tổng số code
+## 5. Tổng số code
 
 [![Generic badge](https://img.shields.io/badge/frontend-19.7.0-blue.svg)](https://shields.io/)
 
@@ -239,11 +199,60 @@ Directory structure:
 
 <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/backend.png" alt="drawing" width="500">
                      
-## 9. Check dữ liệu tại đây
+## 6. Check dữ liệu tại đây
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
-## 10. Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ
+**CHÚ Ý**:<p style="color: red">Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ</p>
 
-## 11. Video demo & và full ảnh đồ án
-link: 
+### 7. Cài đặt dependencies của frontend & backend
+
+Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
+
+```bash
+npm install
+```
+
+### 8. Chạy dự án
+
+Khởi chạy server phát triển bằng lệnh:
+
+frontend
+
+```bash
+npm run dev
+```
+
+backend
+
+```bash
+npm run start now
+```
+
+Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng dụng.
+
+### 9. Build dự án
+
+Để build dự án cho môi trường production, chạy lệnh:
+
+```bash
+npm run build
+```
+
+## [BỔ SUNG] Nếu clone về máy
+
+Clone the project
+
+```bash
+  git clone https://github.com/ChickenSoup269/Zero_Movie.git
+```
+
+Go to the project directory
+
+```bash
+  cd my-project
+```
+
+## 10. Video demo & và full ảnh đồ án
+
+link:
