@@ -88,7 +88,7 @@ interface SeatPickerRef {
 }
 
 interface SeatSelectionProps {
-  movieInfo?: MovieInfo // Optional để xử lý khi movieInfo undefined
+  movieInfo?: MovieInfo
   theaters: Theater[]
 }
 
@@ -144,23 +144,90 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     label: theater.name,
   }))
 
-  // Đặt rạp mặc định
+  // Auto-select theater and room based on movie showtimes
   useEffect(() => {
-    console.log("Theaters prop:", theaters)
-    if (theaters.length > 0 && !selectedTheater) {
-      setSelectedTheater(theaters[0])
-      console.log("Đặt rạp mặc định:", theaters[0])
-    } else if (theaters.length === 0) {
-      setError("Không tìm thấy rạp chiếu phim.")
-      toast({
-        title: "Lỗi",
-        description: "Không tìm thấy rạp chiếu phim.",
-        variant: "destructive",
-      })
-    }
-  }, [theaters, toast])
+    const autoSelectTheaterAndRoom = async () => {
+      if (!movieInfo?.tmdbId || theaters.length === 0) {
+        setError("Thiếu thông tin phim hoặc rạp chiếu.")
+        return
+      }
 
-  // Kiểm tra movieInfo
+      try {
+        setIsLoading(true)
+        let selectedTheaterId: string | null = null
+        let selectedRoomId: string | null = null
+
+        // Iterate through theaters to find one with valid showtimes
+        for (const theater of theaters) {
+          console.log(`Checking showtimes for theater: ${theater.name}`)
+          const showtimeResponse = await getShowtimesByCinemaId(
+            theater.id,
+            format(selectedDate, "yyyy-MM-dd"),
+            movieInfo.tmdbId.toString()
+          )
+
+          if (showtimeResponse.showtimes?.length > 0) {
+            // Filter showtimes for the movie and valid room
+            const validShowtimes = showtimeResponse.showtimes.filter(
+              (showtime: Showtime) =>
+                showtime.movieId === movieInfo.tmdbId &&
+                (typeof showtime.roomId === "string" || showtime.roomId?._id)
+            )
+
+            if (validShowtimes.length > 0) {
+              selectedTheaterId = theater.id
+              const firstShowtime = validShowtimes[0]
+              selectedRoomId =
+                typeof firstShowtime.roomId === "string"
+                  ? firstShowtime.roomId
+                  : firstShowtime.roomId?._id
+              break
+            }
+          }
+        }
+
+        if (selectedTheaterId && selectedRoomId) {
+          const theater = theaters.find((t) => t.id === selectedTheaterId)
+          if (theater) {
+            setSelectedTheater(theater)
+            setSelectedRoom(selectedRoomId)
+            console.log(
+              `Auto-selected theater: ${theater.name}, room: ${selectedRoomId}`
+            )
+          }
+        } else {
+          setError(
+            `Không tìm thấy rạp hoặc phòng chiếu phim "${
+              movieInfo.title
+            }" vào ngày ${format(selectedDate, "dd/MM/yyyy")}.`
+          )
+          toast({
+            title: "Lỗi",
+            description: `Không tìm thấy rạp hoặc phòng chiếu phim "${
+              movieInfo.title
+            }" vào ngày ${format(selectedDate, "dd/MM/yyyy")}.`,
+            variant: "destructive",
+          })
+        }
+      } catch (error: any) {
+        setError("Không thể tự động chọn rạp và phòng.")
+        toast({
+          title: "Lỗi",
+          description: "Không thể tự động chọn rạp và phòng.",
+          variant: "destructive",
+        })
+        console.error("Error auto-selecting theater and room:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (movieInfo?.tmdbId && theaters.length > 0 && !selectedTheater) {
+      autoSelectTheaterAndRoom()
+    }
+  }, [movieInfo, theaters, selectedDate, toast])
+
+  // Check movieInfo
   useEffect(() => {
     if (!movieInfo) {
       setError("Thông tin phim không khả dụng. Vui lòng thử lại.")
@@ -231,7 +298,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             label: room.roomNumber,
           })) || []
         setRoomOptions(options)
-        setSelectedRoom(options[0]?.value || "")
+        // Only set selectedRoom if not already set by auto-selection
+        if (!selectedRoom && options.length > 0) {
+          setSelectedRoom(options[0].value)
+        }
       } catch (error: any) {
         setError("Không thể lấy danh sách phòng.")
         toast({
@@ -245,7 +315,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     if (selectedTheater?.id) {
       fetchRooms()
     }
-  }, [selectedTheater?.id, toast])
+  }, [selectedTheater?.id, toast, selectedRoom])
 
   useEffect(() => {
     const fetchShowtimes = async () => {
@@ -341,7 +411,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         }
 
         let hasInvalidPrice = false
-        const defaultPrice = 75000 // Cập nhật giá vé mặc định dựa trên booking
+        const defaultPrice = 75000
         const options: TimeOption[] = filteredShowtimes.map((showtime) => {
           const date = parseShowtimeDate(showtime.startTime)
           const timeString = format(date, "HH:mm")
@@ -439,7 +509,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           return
         }
         const seats: Seat[] = seatResponse.seats.map((seat: any) => ({
-          id: seat._id || seat.id, // Đảm bảo lấy _id
+          id: seat._id || seat.id,
           seatNumber: seat.seatNumber,
           status: seat.status as "available" | "booked" | "reserved",
         }))
@@ -488,7 +558,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       movieInfo,
       selectedTheater,
       selectedDate,
-      availableSeats, // Log availableSeats
+      availableSeats,
     })
     const token = getAuthToken()
     if (!token) {
@@ -520,7 +590,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       return
     }
 
-    // Validate availableSeats
     if (!availableSeats || availableSeats.length === 0) {
       setError("Không có dữ liệu ghế khả dụng!")
       toast({
@@ -531,7 +600,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       return
     }
 
-    // Generate seatIds
     const seatIds = selectedSeats.map((seatNumber) => {
       const seat = availableSeats.find((s) => s.seatNumber === seatNumber)
       if (!seat || !seat.id) {
@@ -540,16 +608,13 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       return seat.id
     })
 
-    // Log seatIds
     console.log("Generated seatIds:", seatIds)
 
-    // Store returnUrl
     localStorage.setItem(
       "returnUrl",
       window.location.pathname + window.location.search
     )
 
-    // Create booking
     try {
       const bookingResponse = await createBooking(
         {
@@ -563,7 +628,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error("Không thể tạo booking!")
       }
 
-      // Store pendingBooking
       const pendingBooking = {
         showtimeId,
         selectedSeats,
@@ -573,7 +637,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       console.log("Storing pendingBooking:", pendingBooking)
       localStorage.setItem("pendingBooking", JSON.stringify(pendingBooking))
 
-      // Initiate payment
       setIsPaymentOpen(true)
     } catch (error: any) {
       console.error("createBooking error:", {
@@ -629,7 +692,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error("Vui lòng chọn ít nhất một ghế!")
       }
 
-      // Kiểm tra token hết hạn
       let decoded
       try {
         decoded = JSON.parse(atob(token.split(".")[1]))
@@ -650,7 +712,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         console.log("New token after refresh:", token.slice(0, 10) + "...")
       }
 
-      // Kiểm tra session
       try {
         const profileResponse = await UserService.getProfile()
         console.log("Profile check:", profileResponse.data)
@@ -658,14 +719,12 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!")
       }
 
-      // Kiểm tra ghế
       const seatResponse = await getSeatsByShowtime(showtimeId)
       console.log("seatResponse in handlePaymentConfirm:", seatResponse)
       if (!seatResponse.seats || seatResponse.seats.length === 0) {
         throw new Error("Không có ghế khả dụng cho suất chiếu này.")
       }
 
-      // Lấy seatIds và kiểm tra trạng thái
       const seatIds = selectedSeats
         .map((seatNumber) => {
           const seat = seatResponse.seats.find(
@@ -708,13 +767,11 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error("Không thể lấy ID của một số ghế.")
       }
 
-      // Tính amount
       const amount = ticketPrice * selectedSeats.length
       if (amount <= 0) {
         throw new Error("Tổng giá không hợp lệ.")
       }
 
-      // tạo booking
       let bookingResponse
       let retryCount = 0
       const maxRetries = 3
@@ -737,7 +794,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           )
           console.log("Full booking response:", bookingResponse)
 
-          // Kiểm tra phản hồi từ API
           if (!bookingResponse?.data?.booking?._id) {
             const errorMessage =
               bookingResponse?.data?.message ||
@@ -771,7 +827,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             })
             throw new Error(errorMessage)
           }
-          // Kiểm tra lại ghế trước khi thử lại
           const retrySeatResponse = await getSeatsByShowtime(showtimeId)
           const retryInvalidSeats = selectedSeats
             .map((seatNumber) => {
@@ -794,7 +849,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               description: errorMessage,
               variant: "destructive",
             })
-            throw initiateError(errorMessage)
+            throw new Error(errorMessage)
           }
           await new Promise((resolve) => setTimeout(resolve, 2000))
         }
@@ -812,7 +867,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error(errorMessage)
       }
 
-      // Tạo payment
       let paymentResponse
       try {
         console.log("Creating payment with payload:", {
@@ -847,12 +901,10 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         throw new Error("Không thể tạo yêu cầu thanh toán PayPal.")
       }
 
-      // Trả về approveUrl cho PayPal
       if (method === "paypal") {
         return { approveUrl: paymentResponse.approveUrl }
       }
 
-      // Xử lý các phương thức khác (card, qr)
       setIsPaymentOpen(false)
     } catch (error: any) {
       console.error("Lỗi trong handlePaymentConfirm:", {
@@ -902,7 +954,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           throw new Error("Trạng thái đặt vé không hợp lệ!")
         }
 
-        // Kiểm tra lại ghế trước khi capture
         const seatResponse = await getSeatsByShowtime(showtimeId)
         console.log("seatResponse before capture:", seatResponse)
         if (!seatResponse.seats || seatResponse.seats.length === 0) {
@@ -919,15 +970,13 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           throw new Error(`Ghế ${invalidSeats.join(", ")} không còn khả dụng.`)
         }
 
-        // Capture payment với retry logic
         let captureResponse
         let retryCount = 0
         const maxRetries = 3
         while (retryCount < maxRetries) {
           try {
             console.log("Capturing payment with token:", token)
-
-            console.log("captureResponse:", captureResponse)
+            // Note: Actual capture logic should be implemented here
             break
           } catch (captureError: any) {
             console.error(
@@ -949,7 +998,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           }
         }
 
-        if (!captureResponse.payment) {
+        if (!captureResponse?.payment) {
           throw new Error("No payment data in capture response")
         }
 
@@ -960,7 +1009,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             selectedSeats
           )
 
-          // Cập nhật trạng thái ghế
           for (const seatNumber of selectedSeats) {
             const seat = seatResponse.seats.find(
               (s: any) => s.seatNumber === seatNumber
@@ -1003,7 +1051,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             }
           }
 
-          // Update booking status to confirmed
           let retryCount = 0
           const maxRetries = 3
           while (retryCount <= maxRetries) {
@@ -1066,9 +1113,8 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
           }
           setIsPaymentCompleted(true)
           setIsPaymentOpen(false)
-          setShowPaymentSuccess(true) // Set flag to show success message
+          setShowPaymentSuccess(true)
 
-          // Redirect to the stored return URL
           const returnUrl = localStorage.getItem("returnUrl") || "/ticket"
           localStorage.removeItem("pendingBooking")
           localStorage.removeItem("returnUrl")
@@ -1077,7 +1123,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             document.title,
             window.location.pathname
           )
-          router.push(returnUrl) // Redirect to previous page
+          router.push(returnUrl)
         } else {
           throw new Error("Thanh toán chưa được hoàn tất!")
         }
@@ -1128,7 +1174,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
       localStorage.removeItem("paymentSuccess")
       setIsPaymentCompleted(true)
 
-      // Restore booking details
       const pendingBooking = JSON.parse(
         localStorage.getItem("pendingBooking") || "{}"
       )
@@ -1167,7 +1212,6 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
     toast,
   ])
 
-  // Show success toast when showPaymentSuccess is true
   useEffect(() => {
     if (showPaymentSuccess) {
       toast({
@@ -1175,7 +1219,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
         description: "Thanh toán hoàn tất, vé đã được đặt!",
         variant: "default",
       })
-      setShowPaymentSuccess(false) // Reset flag to prevent repeated toasts
+      setShowPaymentSuccess(false)
     }
   }, [showPaymentSuccess, toast])
 
@@ -1347,7 +1391,7 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
             totalAmount={ticketCount * ticketPrice}
             movieTitle={movieInfo?.title}
             theaterName={selectedTheater?.name}
-            theaterAddress={selectedTheater?.address} // Đã có sẵn, đảm bảo truyền đúng
+            theaterAddress={selectedTheater?.address}
             selectedSeats={selectedSeats}
             selectedTime={selectedTime}
             selectedDate={selectedDate}
@@ -1355,9 +1399,9 @@ const SeatSelection = ({ movieInfo, theaters }: SeatSelectionProps) => {
               roomOptions.find((opt) => opt.value === selectedRoom)?.label
             }
             isLoading={isLoading}
-            ticketId={ticketId} // Thêm ticketId nếu cần
-            movieType={selectedType} // Truyền movieType
-            director={movieInfo?.director} // Truyền director nếu có
+            ticketId={ticketId}
+            movieType={selectedType}
+            director={movieInfo?.director}
           />
         </>
       )}
