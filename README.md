@@ -113,7 +113,7 @@ https://github.com/ChickenSoup269/recommendationMovies
 ```bash
  // Gọi script Python
       const { stdout } = await execPromise(
-        `python3 ..\\..\\smart-cinema-recommendation\\models\\recommend.py ${userId}`
+        `python3 ..\\..\\recommendationMovies-main\\models\\recommend.py ${userId}`
       )
 ```
 

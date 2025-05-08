@@ -110,9 +110,9 @@ export class MovieController {
         res.status(400).json({ message: "Thiếu userId" })
         return
       }
-      // Gọi script Python
+      // Gọi script Python [đã fix]
       const { stdout } = await execPromise(
-        `python3 ..\\..\\smart-cinema-recommendation\\models\\recommend.py ${userId}`
+        `python3 ..\\..\\recommendationMovies-main\\models\\recommend.py ${userId}`
       )
       const recommendations = JSON.parse(stdout)
       res

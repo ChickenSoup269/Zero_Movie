@@ -36,6 +36,13 @@ const childVariants = {
   },
 }
 
+const shakeVariants = {
+  shake: {
+    x: [0, -10, 10, -10, 10, 0],
+    transition: { duration: 0.5 },
+  },
+}
+
 interface LoginFormProps {
   loginData: { email: string; password: string }
   handleLoginChange: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -56,9 +63,10 @@ const LoginForm = ({
 }: LoginFormProps) => {
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState(false)
 
   const router = useRouter()
-  const { login } = useUser() // Sử dụng useUser
+  const { login } = useUser()
 
   const successLoginToast = SuccessToast({
     title: "Success!",
@@ -83,7 +91,16 @@ const LoginForm = ({
   }, [])
 
   const handleSubmitWithRemember = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault() // Ngăn reload trang
+
+    // Kiểm tra đầu vào
+    if (!loginData.email || !loginData.password) {
+      setLoginError(true)
+      errorLoginToast.showToast({
+        description: "Please fill in all fields.",
+      })
+      return
+    }
 
     if (rememberMe) {
       localStorage.setItem("rememberedEmail", loginData.email)
@@ -92,6 +109,8 @@ const LoginForm = ({
     }
 
     setIsLoading(true)
+    setLoginError(false)
+
     try {
       await login({
         email: loginData.email,
@@ -101,6 +120,7 @@ const LoginForm = ({
       router.push("/")
     } catch (error: any) {
       console.error("Login failed:", error)
+      setLoginError(true)
       errorLoginToast.showToast({
         description:
           error.message || "Invalid email or password. Please try again.",
@@ -154,68 +174,73 @@ const LoginForm = ({
           initial="hidden"
           animate="visible"
         >
-          <CardContent className="space-y-4">
-            <motion.div variants={childVariants} className="space-y-2">
-              <Label htmlFor="email" className="text-black">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Enter your email"
-                value={loginData.email}
-                onChange={handleLoginChange}
-                required
-                className="border-black text-black bg-white placeholder-gray-400"
-              />
-            </motion.div>
-            <motion.div variants={childVariants}>
-              <Label htmlFor="password" className="text-black">
-                Password
-              </Label>
-              <PasswordInput
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-                value={loginData.password}
-                onChange={handleLoginChange}
-                showPassword={showLoginPassword}
-                setShowPassword={setShowLoginPassword}
-                disableStrengthCheck={true}
-              />
-            </motion.div>
-            <motion.div
-              variants={childVariants}
-              className="flex justify-between items-center w-full"
-            >
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) =>
-                    setRememberMe(checked as boolean)
-                  }
-                />
-                <Label htmlFor="rememberMe" className="text-black text-sm">
-                  Remember Me
+          <motion.div
+            variants={shakeVariants}
+            animate={loginError ? "shake" : "visible"}
+          >
+            <CardContent className="space-y-4">
+              <motion.div variants={childVariants} className="space-y-2">
+                <Label htmlFor="email" className="text-black">
+                  Email
                 </Label>
-              </div>
-
-              <motion.div variants={childVariants}>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setOpenDialog(true)
-                  }}
-                  className="text-sm text-black hover:underline"
-                >
-                  Forgot Password?
-                </a>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={loginData.email}
+                  onChange={handleLoginChange}
+                  required
+                  className="border-black text-black bg-white placeholder-gray-400"
+                />
               </motion.div>
-            </motion.div>
-          </CardContent>
+              <motion.div variants={childVariants}>
+                <Label htmlFor="password" className="text-black">
+                  Password
+                </Label>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  value={loginData.password}
+                  onChange={handleLoginChange}
+                  showPassword={showLoginPassword}
+                  setShowPassword={setShowLoginPassword}
+                  disableStrengthCheck={true}
+                />
+              </motion.div>
+              <motion.div
+                variants={childVariants}
+                className="flex justify-between items-center w-full"
+              >
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) =>
+                      setRememberMe(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="rememberMe" className="text-black text-sm">
+                    Remember Me
+                  </Label>
+                </div>
+
+                <motion.div variants={childVariants}>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setOpenDialog(true)
+                    }}
+                    className="text-sm text-black hover:underline"
+                  >
+                    Forgot Password?
+                  </a>
+                </motion.div>
+              </motion.div>
+            </CardContent>
+          </motion.div>
         </motion.div>
         <motion.div variants={childVariants}>
           <CardFooter>

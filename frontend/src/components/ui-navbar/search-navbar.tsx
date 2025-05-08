@@ -57,17 +57,6 @@ export default function SearchBar() {
 
       setIsLoading(true)
       try {
-        const token = localStorage.getItem("access_token")
-        if (!token && debouncedSearchText) {
-          toast({
-            title: "Unauthorized",
-            description: "Please log in to search movies.",
-            variant: "destructive",
-          })
-          router.push("/login")
-          return
-        }
-
         const response: Movie[] = debouncedSearchText
           ? await MovieService.searchMovies(debouncedSearchText)
           : await MovieService.getAllMovies()
