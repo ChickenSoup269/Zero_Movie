@@ -21,6 +21,7 @@ interface Booking {
   showtime: { startTime: string; endTime: string; price: number }
   totalPrice: number
   status: string
+  createdAt?: string // Optional to handle missing createdAt
 }
 
 interface EnrichedTicket {
@@ -33,6 +34,8 @@ interface EnrichedTicket {
   startTime: string
   price: number
   status: string
+  createdAt: string
+  isNew: boolean
 }
 
 interface ProfileTicketsProps {
@@ -68,15 +71,18 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
         // Transform bookings into EnrichedTicket format
         const enrichedTickets: EnrichedTicket[] = bookings.map(
           (booking: Booking) => {
+            const createdAt = booking.createdAt || new Date().toISOString()
+            const bookingDate = new Date(createdAt)
+            const isNew =
+              !isNaN(bookingDate.getTime()) &&
+              bookingDate > new Date(Date.now() - 24 * 60 * 60 * 1000)
+
             console.log(`Processing booking ${booking._id}:`, {
               movieTitle: booking.movieTitle,
               cinemaName: booking.cinemaName,
-              cinemaAddress: booking.cinemaAddress,
-              roomNumber: booking.roomNumber,
-              seatIds: booking.seats,
-              showtime: booking.showtime,
-              seats: booking.seats,
-              status: booking.status,
+              createdAt,
+              isNew,
+              isValidDate: !isNaN(bookingDate.getTime()),
             })
 
             return {
@@ -96,8 +102,27 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
                 : "N/A",
               price: booking.totalPrice || booking.showtime?.price || 0,
               status: booking.status,
+              createdAt,
+              isNew,
             }
           }
+        )
+
+        // Sort tickets by createdAt (newest first)
+        enrichedTickets.sort((a, b) => {
+          const dateA = new Date(a.createdAt)
+          const dateB = new Date(b.createdAt)
+          return dateB.getTime() - dateA.getTime()
+        })
+
+        console.log(
+          "Sorted tickets:",
+          enrichedTickets.map((t) => ({
+            _id: t._id,
+            movieTitle: t.movieTitle,
+            createdAt: t.createdAt,
+            isNew: t.isNew,
+          }))
         )
 
         setTickets(enrichedTickets)
@@ -162,14 +187,19 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
           {tickets.map((ticket) => (
             <div
               key={ticket._id}
-              className="p-4  shadow-lg rounded-lg  border-2 border-dashed outline-border flex justify-between items-center"
+              className="p-4 shadow-lg rounded-lg border-2 border-dashed outline-border flex justify-between items-center"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <Ticket className="h-5 w-5 text-blue-400 " />
+                  <Ticket className="h-5 w-5 text-blue-400" />
                   <h4 className="text-lg font-bold">
-                    Phim / <span className="">{ticket.movieTitle}</span>
+                    Phim / <span>{ticket.movieTitle}</span>
                   </h4>
+                  {ticket.isNew && (
+                    <Badge variant="default" className="bg-red-500 text-white">
+                      Mới
+                    </Badge>
+                  )}
                 </div>
                 {ticket.cinemaName === "N/A" || ticket.roomNumber === "N/A" ? (
                   <p className="text-sm text-yellow-400 mt-1 flex items-center gap-1">
@@ -178,40 +208,40 @@ const ProfileTickets = ({ isActive }: ProfileTicketsProps) => {
                   </p>
                 ) : (
                   <>
-                    <p className="text-sm  mt-1">
+                    <p className="text-sm mt-1">
                       <span className="font-bold">Rạp: </span>
                       {ticket.cinemaName}
                     </p>
-                    <p className="text-sm ">
+                    <p className="text-sm">
                       <span className="font-bold">Địa chỉ: </span>
                       {ticket.cinemaAddress}
                     </p>
-                    <p className="text-sm ">
+                    <p className="text-sm">
                       <span className="font-bold">Phòng: </span>
                       {ticket.roomNumber}
                     </p>
                   </>
                 )}
-                <p className="text-sm ">
+                <p className="text-sm">
                   <span className="font-bold">Ghế: </span>
                   <Badge variant="outline" className="bg-blue-400 text-white">
                     {ticket.seatNumbers.join(", ")}
                   </Badge>
                 </p>
-                <p className="text-sm ">
+                <p className="text-sm">
                   <span className="font-bold">Thời gian: </span>
                   {ticket.startTime}
                 </p>
-                <p className="text-sm ">
+                <p className="text-sm">
                   <span className="font-bold">Giá: </span>
                   {ticket.price.toLocaleString("vi-VN")}đ
                 </p>
-                <p className="text-sm ">
+                <p className="text-sm">
                   <span className="font-bold">Mã vé: </span>
                   {ticket._id}
                 </p>
-                <p className="text-sm ">
-                  <span className="font-bold">Trạng thái: </span>{" "}
+                <p className="text-sm">
+                  <span className="font-bold">Trạng thái: </span>
                   <Badge variant="outline" className="bg-green-400 text-white">
                     Đã xác nhận
                   </Badge>
