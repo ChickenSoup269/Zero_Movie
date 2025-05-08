@@ -15,7 +15,11 @@ export interface IMovie extends Document {
   adult?: boolean
   video?: boolean
   genreIds: number[]
-  status?: "upcoming" | "nowPlaying"
+  status?: "upcoming" | "nowPlaying" | "discontinued"
+  activePeriod?: {
+    start: Date
+    end: Date
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -38,10 +42,15 @@ const movieSchema = new mongoose.Schema<IMovie>(
     genreIds: { type: [Number], required: true },
     status: {
       type: String,
-      enum: ["upcoming", "nowPlaying"],
+      enum: ["upcoming", "nowPlaying", "discontinued"],
+      default: "upcoming",
+    },
+    activePeriod: {
+      start: { type: Date },
+      end: { type: Date },
     },
   },
   { timestamps: true }
 )
-
+movieSchema.index({ title: "text" }, { default_language: "none" })
 export const Movie = mongoose.model<IMovie>("Movie", movieSchema)

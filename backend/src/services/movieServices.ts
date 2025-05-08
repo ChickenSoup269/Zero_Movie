@@ -34,6 +34,28 @@ export class MovieService {
 
   static async addMovie(movieData: Partial<IMovie>): Promise<IMovie> {
     try {
+      // Gán activePeriod mặc định nếu không có
+      if (!movieData.activePeriod) {
+        const startDate = movieData.releaseDate
+          ? new Date(movieData.releaseDate)
+          : new Date()
+        const endDate = new Date(startDate)
+        endDate.setDate(startDate.getDate() + 30) // Mặc định 30 ngày
+        movieData.activePeriod = { start: startDate, end: endDate }
+      }
+
+      // Gán status dựa trên activePeriod
+      const currentDate = new Date()
+      const startDate = new Date(movieData.activePeriod.start)
+      const endDate = new Date(movieData.activePeriod.end)
+      if (currentDate < startDate) {
+        movieData.status = "upcoming"
+      } else if (currentDate >= startDate && currentDate <= endDate) {
+        movieData.status = "nowPlaying"
+      } else {
+        movieData.status = "discontinued"
+      }
+
       const newMovie = new Movie(movieData)
       return await newMovie.save()
     } catch (error) {
@@ -46,6 +68,20 @@ export class MovieService {
     movieData: Partial<IMovie>
   ): Promise<IMovie> {
     try {
+      // Cập nhật status dựa trên activePeriod nếu có
+      if (movieData.activePeriod) {
+        const currentDate = new Date()
+        const startDate = new Date(movieData.activePeriod.start)
+        const endDate = new Date(movieData.activePeriod.end)
+        if (currentDate < startDate) {
+          movieData.status = "upcoming"
+        } else if (currentDate >= startDate && currentDate <= endDate) {
+          movieData.status = "nowPlaying"
+        } else {
+          movieData.status = "discontinued"
+        }
+      }
+
       const updatedMovie = await Movie.findOneAndUpdate({ tmdbId }, movieData, {
         new: true,
       })
