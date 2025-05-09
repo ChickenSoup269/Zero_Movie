@@ -138,7 +138,7 @@ NEXT_PUBLIC_GEMINI_API_KEY = "your_gemini_api_key_here"
 ```bash
 MONGO_URI = 'your_mongo_uri_here'
 TMDB_API_KEY = 'your_tmdb_api_key_here'
-JWT_SECRET = 'your_jwt 'secret_here'
+JWT_SECRET = 'your_jwt_secret_here'
 JWT_REFRESH_SECRET = 'your_jwt_refresh_secret_here'
 PAYPAL_CLIENT_ID = 'your_paypal_client_id_here'
 PAYPAL_SECRET = 'your_paypal_secret_here'
