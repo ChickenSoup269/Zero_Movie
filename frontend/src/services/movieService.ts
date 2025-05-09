@@ -7,52 +7,61 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in .env file")
 }
 
+// Định nghĩa interface Movie dựa trên IMovie từ backend
 export interface Movie {
-  id: number
-  genreNames: string[]
-  ageRating: string
   _id: string
-  tmdbId: number | null
+  tmdbId: number
   title: string
   originalTitle: string
-  overview: string
-  posterPath: string | null
-  backdropPath: string | null
-  genreIds: number[]
-  releaseDate: string
-  voteAverage: number
-  voteCount: number
-  popularity: number
   originalLanguage: string
-  adult: boolean
-  video: boolean
-  status?: "upcoming" | "nowPlaying"
+  overview: string
+  releaseDate?: string
+  posterPath?: string | null
+  backdropPath?: string | null
+  popularity?: number
+  voteAverage?: number
+  voteCount?: number
+  adult?: boolean
+  video?: boolean
+  genreIds: number[]
+  status?: "upcoming" | "nowPlaying" | "discontinued"
+  activePeriod?: {
+    start: string
+    end: string
+  }
   createdAt: string
   updatedAt: string
-  __v: number
+  ageRating?: string
   runtime?: number
   director?: string
   writers?: string[]
   starring?: string
+  genreNames?: string[]
+  __v?: number
 }
 
+// Định nghĩa interface cho input khi thêm/cập nhật phim
 export interface MovieInput {
-  ageRating: string
   tmdbId?: number | null
   title: string
   originalTitle?: string
+  originalLanguage?: string
   overview?: string
+  releaseDate?: string
   posterPath?: string | null
   backdropPath?: string | null
-  genreIds?: number[]
-  releaseDate?: string
+  popularity?: number
   voteAverage?: number
   voteCount?: number
-  popularity?: number
-  originalLanguage?: string
   adult?: boolean
   video?: boolean
-  status?: "upcoming" | "nowPlaying"
+  genreIds?: number[]
+  status?: "upcoming" | "nowPlaying" | "discontinued"
+  activePeriod?: {
+    start: string
+    end: string
+  }
+  ageRating?: string
   runtime?: number
   director?: string
   writers?: string[]
@@ -60,124 +69,134 @@ export interface MovieInput {
 }
 
 export class MovieService {
+  // Lấy tất cả phim
   static async getAllMovies(): Promise<Movie[]> {
     try {
       const response = await axios.get(`${API_URL}/movies`)
       return response.data.movies || response.data
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to fetch movies")
+      throw new Error(
+        error.response?.data?.message || "Không thể lấy danh sách phim"
+      )
     }
   }
 
-  static async getMovieById(id: string): Promise<Movie> {
+  // Lấy phim theo tmdbId
+  static async getMovieByTmdbId(tmdbId: number): Promise<Movie> {
     try {
-      const response = await axios.get(`${API_URL}/movies/${id}`)
-      if (!response.data) {
-        throw new Error("Phim không tồn tại trong database")
-      }
-      return response.data
-    } catch (error: any) {
-      console.error("Error fetching movie:", {
-        status: error.response?.status,
-        data: error.response?.data,
-      })
-      throw new Error(error.response?.data?.message || "Không tìm thấy phim")
-    }
-  }
-
-  static async getMovieByTmdbId(tmdbId: string): Promise<Movie> {
-    try {
-      console.log(`Fetching movie with tmdbId: ${tmdbId}`)
       const response = await axios.get(`${API_URL}/movies/${tmdbId}`)
-      if (!response.data || !response.data.movie) {
-        throw new Error("Phim không tồn tại trong database")
+      if (!response.data?.movie) {
+        throw new Error("Phim không tồn tại trong cơ sở dữ liệu")
       }
-      console.log("API response:", response.data)
       return response.data.movie
     } catch (error: any) {
-      console.error("Error fetching movie by tmdbId:", {
+      console.error("Lỗi khi lấy phim theo tmdbId:", {
         tmdbId,
         status: error.response?.status,
         data: error.response?.data,
       })
-      throw new Error(error.response?.data?.message || "Không tìm thấy phim")
+      const message =
+        error.response?.status === 404
+          ? "Không tìm thấy phim"
+          : error.response?.data?.message || "Lỗi khi lấy thông tin phim"
+      throw new Error(message)
     }
   }
 
+  // Tìm kiếm phim theo tiêu đề
   static async searchMovies(title: string): Promise<Movie[]> {
     try {
+      if (!title || title.trim() === "") {
+        throw new Error("Từ khóa tìm kiếm không được để trống")
+      }
       const response = await axios.get(
-        `${API_URL}/movies/search?title=${title}`
+        `${API_URL}/movies/search?title=${encodeURIComponent(title)}`
       )
-
-      const movies = response.data.movies
-        .filter((movie: any) => {
-          // Kiểm tra movie có tmdbId hợp lệ
-          if (movie.tmdbId === null || movie.tmdbId === undefined) {
-            console.warn(`Skipping movie with invalid tmdbId: ${movie.title}`)
-            return false
-          }
-          const tmdbId = parseInt(movie.tmdbId, 10)
-          if (isNaN(tmdbId)) {
-            console.warn(
-              `Invalid tmdbId for movie ${movie.title}: ${movie.tmdbId}`
-            )
-            return false
-          }
-          return true
-        })
-        .map((movie: any) => ({
-          ...movie,
-          tmdbId: parseInt(movie.tmdbId, 10), // Đảm bảo tmdbId là số
-        }))
-
-      console.log(`Found ${movies.length} valid movies for query: ${title}`)
-      return movies
+      const movies = response.data.movies || []
+      return movies.filter((movie: Movie) => {
+        if (!movie.tmdbId) {
+          console.warn(`Bỏ qua phim không có tmdbId: ${movie.title}`)
+          return false
+        }
+        return true
+      })
     } catch (error: any) {
-      console.error("Error in searchMovies:", {
+      console.error("Lỗi khi tìm kiếm phim:", {
         query: title,
         status: error.response?.status,
         data: error.response?.data,
       })
       throw new Error(
-        error.response?.data?.message || "Failed to search movies"
+        error.response?.data?.message || "Không thể tìm kiếm phim"
       )
     }
   }
 
+  // Thêm phim mới
   static async addMovie(movie: MovieInput): Promise<Movie> {
     try {
       const response = await axios.post(`${API_URL}/movies`, movie)
-      return response.data
+      return response.data.movie || response.data
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to add movie")
+      throw new Error(
+        error.response?.data?.message || "Không thể thêm phim mới"
+      )
     }
   }
 
-  static async updateMovie(id: string, movie: MovieInput): Promise<Movie> {
+  // Cập nhật phim theo tmdbId
+  static async updateMovie(tmdbId: number, movie: MovieInput): Promise<Movie> {
     try {
-      const response = await axios.put(`${API_URL}/movies/${id}`, movie)
-      return response.data
+      const response = await axios.put(`${API_URL}/movies/${tmdbId}`, movie)
+      if (!response.data?.movie) {
+        throw new Error("Phim không tồn tại trong cơ sở dữ liệu")
+      }
+      return response.data.movie
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to update movie")
+      console.error("Lỗi khi cập nhật phim:", {
+        tmdbId,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+      const message =
+        error.response?.status === 404
+          ? "Không tìm thấy phim"
+          : error.response?.data?.message || "Lỗi khi cập nhật phim"
+      throw new Error(message)
     }
   }
 
-  static async deleteMovie(id: string): Promise<void> {
+  // Xóa phim theo tmdbId
+  static async deleteMovie(tmdbId: number): Promise<void> {
     try {
-      await axios.delete(`${API_URL}/movies/${id}`)
+      await axios.delete(`${API_URL}/movies/${tmdbId}`)
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to delete movie")
+      console.error("Lỗi khi xóa phim:", {
+        tmdbId,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+      const message =
+        error.response?.status === 404
+          ? "Không tìm thấy phim"
+          : error.response?.data?.message || "Lỗi khi xóa phim"
+      throw new Error(message)
     }
   }
 
+  // Lấy gợi ý phim theo userId
   static async getRecommendations(userId: string): Promise<Movie[]> {
     try {
       const response = await axios.get(`${API_URL}/movies/recommend/${userId}`)
-      return response.data.recommendations
+      return response.data.recommendations || []
     } catch (error: any) {
+      console.error("Lỗi khi lấy gợi ý phim:", {
+        userId,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
       throw new Error(
-        error.response?.data?.message || "Failed to fetch recommendations"
+        error.response?.data?.message || "Không thể lấy gợi ý phim"
       )
     }
   }

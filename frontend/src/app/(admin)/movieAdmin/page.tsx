@@ -86,13 +86,13 @@ export default function MovieAdmin() {
     adult: false,
     ageRating: "",
     director: "",
+    activePeriod: { start: "", end: "" },
   })
   const [genreFormData, setGenreFormData] = useState<{ name: string }>({
     name: "",
   })
   const { toast } = useToast()
 
-  // Age rating options based on the data provided
   const ageRatingOptions = [
     { value: "images/ageRating/pegi_3", label: "PEGI 3" },
     { value: "images/ageRating/pegi_7", label: "PEGI 7" },
@@ -152,6 +152,7 @@ export default function MovieAdmin() {
       const results = await MovieService.searchMovies(movieSearchTerm)
       setMovies(results)
     } catch (error) {
+      console.error("Search error:", error)
       toast({
         title: "Error",
         description: "Failed to search movies",
@@ -162,7 +163,24 @@ export default function MovieAdmin() {
     }
   }
 
+  const validateActivePeriod = () => {
+    if (movieFormData.activePeriod?.start && movieFormData.activePeriod?.end) {
+      const start = new Date(movieFormData.activePeriod.start)
+      const end = new Date(movieFormData.activePeriod.end)
+      if (end < start) {
+        toast({
+          title: "Error",
+          description: "End date must be after start date",
+          variant: "destructive",
+        })
+        return false
+      }
+    }
+    return true
+  }
+
   const handleAddMovie = async () => {
+    if (!validateActivePeriod()) return
     try {
       await MovieService.addMovie(movieFormData)
       toast({
@@ -195,14 +213,16 @@ export default function MovieAdmin() {
       genreIds: movie.genreIds,
       ageRating: movie.ageRating || "",
       director: movie.director || "",
+      activePeriod: movie.activePeriod || { start: "", end: "" },
     })
     setIsEditMovieDialogOpen(true)
   }
 
   const handleUpdateMovie = async () => {
-    if (!selectedMovie) return
+    if (!selectedMovie || !validateActivePeriod()) return
     try {
-      await MovieService.updateMovie(selectedMovie._id, movieFormData)
+      console.log("Updating movie with data:", movieFormData)
+      await MovieService.updateMovie(selectedMovie.tmdbId, movieFormData)
       toast({
         title: "Success",
         description: "Movie updated successfully",
@@ -211,6 +231,7 @@ export default function MovieAdmin() {
       setIsEditMovieDialogOpen(false)
       resetMovieForm()
     } catch (error) {
+      console.error("Update movie error:", error)
       toast({
         title: "Error",
         description: "Failed to update movie",
@@ -227,7 +248,7 @@ export default function MovieAdmin() {
   const handleDeleteMovie = async () => {
     if (!selectedMovie) return
     try {
-      await MovieService.deleteMovie(selectedMovie._id)
+      await MovieService.deleteMovie(selectedMovie.tmdbId)
       toast({
         title: "Success",
         description: "Movie deleted successfully",
@@ -255,6 +276,7 @@ export default function MovieAdmin() {
       adult: false,
       ageRating: "",
       director: "",
+      activePeriod: { start: "", end: "" },
     })
     setSelectedMovie(null)
   }
@@ -263,7 +285,32 @@ export default function MovieAdmin() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
-    setMovieFormData((prev) => ({ ...prev, [name]: value }))
+    if (name.includes("activePeriod")) {
+      const [_, field] = name.split(".")
+      setMovieFormData((prev) => ({
+        ...prev,
+        activePeriod: {
+          ...prev.activePeriod,
+          [field]: value,
+        },
+      }))
+    } else {
+      setMovieFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }))
+    }
+  }
+
+  const handleActivePeriodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setMovieFormData((prev) => ({
+      ...prev,
+      activePeriod: {
+        ...prev.activePeriod,
+        [name]: value ? new Date(value).toISOString() : "",
+      },
+    }))
   }
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -273,7 +320,7 @@ export default function MovieAdmin() {
   const handleStatusChange = (value: string) => {
     setMovieFormData((prev) => ({
       ...prev,
-      status: value as "upcoming" | "nowPlaying",
+      status: value as "upcoming" | "nowPlaying" | "discontinued",
     }))
   }
 
@@ -408,7 +455,6 @@ export default function MovieAdmin() {
     setGenreFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // Function to get age rating display name
   const getAgeRatingLabel = (path: string) => {
     const option = ageRatingOptions.find((opt) => opt.value === path)
     return option ? option.label : "Unknown"
@@ -491,7 +537,13 @@ export default function MovieAdmin() {
                             id="releaseDate"
                             name="releaseDate"
                             type="date"
-                            value={movieFormData.releaseDate || ""}
+                            value={
+                              movieFormData.releaseDate
+                                ? new Date(movieFormData.releaseDate)
+                                    .toISOString()
+                                    .split("T")[0]
+                                : ""
+                            }
                             onChange={handleMovieInputChange}
                           />
                         </div>
@@ -509,8 +561,49 @@ export default function MovieAdmin() {
                               <SelectItem value="nowPlaying">
                                 Now Playing
                               </SelectItem>
+                              <SelectItem value="discontinued">
+                                Discontinued
+                              </SelectItem>
                             </SelectContent>
                           </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="activePeriod-start">
+                            Active Period Start
+                          </Label>
+                          <Input
+                            id="activePeriod-start"
+                            name="start"
+                            type="date"
+                            value={
+                              movieFormData.activePeriod?.start
+                                ? new Date(movieFormData.activePeriod.start)
+                                    .toISOString()
+                                    .split("T")[0]
+                                : ""
+                            }
+                            onChange={handleActivePeriodChange}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="activePeriod-end">
+                            Active Period End
+                          </Label>
+                          <Input
+                            id="activePeriod-end"
+                            name="end"
+                            type="date"
+                            value={
+                              movieFormData.activePeriod?.end
+                                ? new Date(movieFormData.activePeriod.end)
+                                    .toISOString()
+                                    .split("T")[0]
+                                : ""
+                            }
+                            onChange={handleActivePeriodChange}
+                          />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -656,11 +749,15 @@ export default function MovieAdmin() {
                                 className={
                                   movie.status === "nowPlaying"
                                     ? "bg-blue-400 text-white"
+                                    : movie.status === "discontinued"
+                                    ? "bg-red-400 text-white"
                                     : "bg-gray-400 text-white"
                                 }
                               >
                                 {movie.status === "nowPlaying"
                                   ? "Now Playing"
+                                  : movie.status === "discontinued"
+                                  ? "Discontinued"
                                   : "Upcoming"}
                               </Badge>
                             </TableCell>
@@ -838,7 +935,9 @@ export default function MovieAdmin() {
                   type="date"
                   value={
                     movieFormData.releaseDate
-                      ? movieFormData.releaseDate.split("T")[0]
+                      ? new Date(movieFormData.releaseDate)
+                          .toISOString()
+                          .split("T")[0]
                       : ""
                   }
                   onChange={handleMovieInputChange}
@@ -856,8 +955,45 @@ export default function MovieAdmin() {
                   <SelectContent>
                     <SelectItem value="upcoming">Upcoming</SelectItem>
                     <SelectItem value="nowPlaying">Now Playing</SelectItem>
+                    <SelectItem value="discontinued">Discontinued</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-activePeriod-start">
+                  Active Period Start
+                </Label>
+                <Input
+                  id="edit-activePeriod-start"
+                  name="start"
+                  type="date"
+                  value={
+                    movieFormData.activePeriod?.start
+                      ? new Date(movieFormData.activePeriod.start)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  onChange={handleActivePeriodChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-activePeriod-end">Active Period End</Label>
+                <Input
+                  id="edit-activePeriod-end"
+                  name="end"
+                  type="date"
+                  value={
+                    movieFormData.activePeriod?.end
+                      ? new Date(movieFormData.activePeriod.end)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  onChange={handleActivePeriodChange}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -945,7 +1081,7 @@ export default function MovieAdmin() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              movie &quot;{selectedMovie?.title}&quot;.
+              movie "{selectedMovie?.title}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -982,6 +1118,18 @@ export default function MovieAdmin() {
               onChange={handleGenreInputChange}
             />
           </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditGenreDialogOpen(false)
+                resetGenreForm()
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateGenre}>Update Genre</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -995,7 +1143,7 @@ export default function MovieAdmin() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              genre &quot;{selectedGenre?.name}&quot;.
+              genre "{selectedGenre?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
