@@ -3,7 +3,7 @@ import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 
 // Phiên bản cải tiến của hàm validateMovieData
-const validateMovieData = (movie) => {
+const validateMovieData = (movie: any) => {
   const validatedMovie = { ...movie }
   if (
     validatedMovie.tmdbId === undefined ||
@@ -32,6 +32,23 @@ export class MovieQueryProcessor {
   static async processQuery(query: string, userId?: string): Promise<any> {
     const lowerQuery = query.toLowerCase().trim()
 
+    // Kiểm tra truy vấn có chứa từ vô nghĩa dài
+    const hasInvalidPrefix = /^\w{5,}\s/i.test(lowerQuery)
+    if (hasInvalidPrefix) {
+      console.log("Truy vấn không hợp lệ, chứa từ vô nghĩa:", lowerQuery)
+      return null // Chuyển sang Gemini API
+    }
+
+    // Đặt vé phim (hỗ trợ biến thể "tôi muốn đặt vé" và "tôi muốn đặt vé phim")
+    const ticketBookingRegex =
+      /(?:tôi muốn đặt vé|đặt vé phim)(?:\s*phim)?\s+(.+)/i
+    const ticketMatch = lowerQuery.match(ticketBookingRegex)
+    if (ticketMatch) {
+      const movieTitle = ticketMatch[1].trim()
+      return this.processTicketBooking(movieTitle)
+    }
+
+    // Xem chi tiết phim
     if (
       lowerQuery.includes("tôi muốn xem chi tiết") ||
       lowerQuery.includes("xem chi tiết phim")
@@ -39,13 +56,7 @@ export class MovieQueryProcessor {
       return this.getMovieDetailsWithLink(lowerQuery)
     }
 
-    if (
-      lowerQuery.includes("tôi muốn đặt vé") ||
-      lowerQuery.includes("đặt vé phim")
-    ) {
-      return this.processTicketBooking(lowerQuery)
-    }
-
+    // Gợi ý phim
     if (
       lowerQuery.includes("phim phù hợp với tui") ||
       lowerQuery.includes("gợi ý phim cho tôi") ||
@@ -55,6 +66,7 @@ export class MovieQueryProcessor {
       return this.getPersonalizedRecommendations(userId)
     }
 
+    // Phim theo thể loại
     if (
       lowerQuery.includes("phim thể loại") ||
       lowerQuery.includes("tìm phim thể loại") ||
@@ -63,6 +75,7 @@ export class MovieQueryProcessor {
       return this.getMoviesByGenre(lowerQuery)
     }
 
+    // Số lượng phim
     if (
       lowerQuery.includes("bao nhiêu phim") ||
       lowerQuery.includes("số lượng phim") ||
@@ -74,6 +87,7 @@ export class MovieQueryProcessor {
       return this.getMovieCount()
     }
 
+    // Phim nổi bật
     if (
       lowerQuery.includes("phim nổi bật") ||
       lowerQuery.includes("phim đáng xem") ||
@@ -84,6 +98,7 @@ export class MovieQueryProcessor {
       return this.getFeaturedMovies()
     }
 
+    // Phim mới nhất
     if (
       lowerQuery.includes("phim mới") ||
       lowerQuery.includes("phim mới nhất") ||
@@ -93,6 +108,7 @@ export class MovieQueryProcessor {
       return this.getLatestMovies()
     }
 
+    // Phim đánh giá cao
     if (
       lowerQuery.includes("phim đánh giá cao") ||
       lowerQuery.includes("phim hay nhất") ||
@@ -102,6 +118,7 @@ export class MovieQueryProcessor {
       return this.getHighestRatedMovies()
     }
 
+    // Thông tin thể loại
     if (
       lowerQuery.includes("thể loại") ||
       lowerQuery.includes("loại phim") ||
@@ -111,6 +128,7 @@ export class MovieQueryProcessor {
       return this.processGenreQuery(lowerQuery)
     }
 
+    // Thông tin chi tiết phim
     if (
       lowerQuery.includes("thông tin về phim") ||
       lowerQuery.includes("thông tin phim") ||
@@ -122,6 +140,7 @@ export class MovieQueryProcessor {
       return this.getMovieDetails(lowerQuery)
     }
 
+    // Tìm kiếm phim
     if (
       lowerQuery.includes("tìm phim") ||
       lowerQuery.includes("tìm kiếm phim") ||
@@ -132,6 +151,7 @@ export class MovieQueryProcessor {
       return this.searchMovies(lowerQuery)
     }
 
+    // Phim sắp chiếu
     if (
       lowerQuery.includes("phim sắp chiếu") ||
       lowerQuery.includes("phim sắp ra mắt") ||
@@ -141,6 +161,7 @@ export class MovieQueryProcessor {
       return this.getUpcomingMovies()
     }
 
+    // Phim đang chiếu
     if (
       lowerQuery.includes("phim đang chiếu") ||
       lowerQuery.includes("phim hiện đang chiếu") ||
@@ -149,6 +170,7 @@ export class MovieQueryProcessor {
       return this.getNowPlayingMovies()
     }
 
+    // Hướng dẫn sử dụng
     if (
       lowerQuery.includes("bạn biết gì") ||
       lowerQuery.includes("bạn có thể làm gì") ||
@@ -221,17 +243,11 @@ export class MovieQueryProcessor {
   /**
    * Process ticket booking queries
    */
-  private static async processTicketBooking(lowerQuery: string): Promise<any> {
+  private static async processTicketBooking(movieTitle: string): Promise<any> {
     try {
-      let movieTitle = ""
-      if (lowerQuery.includes("tôi muốn đặt vé")) {
-        movieTitle = lowerQuery.split("tôi muốn đặt vé")[1].trim()
-      } else if (lowerQuery.includes("đặt vé phim")) {
-        movieTitle = lowerQuery.split("đặt vé phim")[1].trim()
-      }
-
-      if (!movieTitle) {
-        return { message: "Vui lòng cung cấp tên phim cụ thể để đặt vé." }
+      // Kiểm tra tên phim hợp lệ
+      if (!movieTitle || movieTitle.length < 2 || /^\W+$/.test(movieTitle)) {
+        return { message: "Vui lòng cung cấp tên phim hợp lệ để đặt vé." }
       }
 
       const movies = await MovieService.searchMovies(movieTitle)
@@ -242,7 +258,8 @@ export class MovieQueryProcessor {
       }
 
       const movie = movies[0]
-      if (!movie.tmdbId) {
+      const validatedMovie = validateMovieData(movie)
+      if (!validatedMovie) {
         return { message: `Phim "${movie.title}" không có tmdbId hợp lệ.` }
       }
 

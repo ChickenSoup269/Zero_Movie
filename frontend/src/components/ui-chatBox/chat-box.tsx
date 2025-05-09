@@ -4,7 +4,6 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar } from "@/components/ui/avatar"
@@ -20,6 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { debounce } from "lodash"
 import UserService from "@/services/userService"
 import { MovieService, Movie } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
@@ -111,8 +111,19 @@ export default function ChatBox() {
   const router = useRouter()
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const lastMessageRef = useRef<HTMLDivElement>(null)
+
+  const autoResize = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "0px"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
+  }
+
+  useEffect(() => {
+    if (inputRef.current) {
+      autoResize(inputRef.current)
+    }
+  }, [input])
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -282,10 +293,8 @@ export default function ChatBox() {
     return () => window.removeEventListener("keydown", handleEscKey)
   }, [isFullscreen])
 
-  const handleSend = async (e?: React.FormEvent) => {
+  const debouncedHandleSend = debounce((e?: React.FormEvent) => {
     if (e) e.preventDefault()
-
-    console.log(`Raw input: "${input}" (trimmed: "${input.trim()}")`)
     const trimmedInput = input.trim()
     if (!trimmedInput) return
 
@@ -303,42 +312,40 @@ export default function ChatBox() {
     setIsLoading(true)
     setError(null)
 
-    try {
-      const result = await getGeminiResponse(trimmedInput, userId)
-      const responseText =
-        result.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
-      console.log("Raw responseText:", responseText)
-      let botContent
-      try {
-        botContent = JSON.parse(responseText)
-        console.log("Parsed botContent:", botContent)
-      } catch (e) {
-        console.log("JSON parse error:", e)
-        botContent = { message: responseText || "Error: Empty response" }
-      }
-      const botMessage: Message = {
-        role: "bot",
-        content: botContent,
-        timestamp: new Date(),
-      }
-      setMessages((prev) => {
-        const newMessages = [...prev, botMessage]
-        console.log("Updated messages:", newMessages)
-        return newMessages
+    getGeminiResponse(trimmedInput, userId)
+      .then((result) => {
+        const responseText =
+          result.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
+        let botContent
+        try {
+          botContent = JSON.parse(responseText)
+        } catch (e) {
+          botContent = { message: responseText || "Error: Empty response" }
+        }
+        const botMessage: Message = {
+          role: "bot",
+          content: botContent,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, botMessage])
       })
-    } catch (err: any) {
-      setError(err.message)
-      const errorMessage: Message = {
-        role: "bot",
-        content: { message: `Error: ${err.message}` },
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setIsLoading(false)
-      if (inputRef.current) inputRef.current.focus()
-    }
-  }
+      .catch((err: any) => {
+        setError(err.message)
+        const errorMessage: Message = {
+          role: "bot",
+          content: { message: `Error: ${err.message}` },
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, errorMessage])
+      })
+      .finally(() => {
+        setIsLoading(false)
+        if (inputRef.current) {
+          autoResize(inputRef.current)
+          inputRef.current.focus()
+        }
+      })
+  }, 300)
 
   const scrollToBottom = () => {
     lastMessageRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -587,18 +594,26 @@ export default function ChatBox() {
             )}
 
             <div className="p-3 border-t bg-background relative">
-              <form onSubmit={handleSend} className="flex gap-2">
-                <Input
+              <form
+                onSubmit={(e) => debouncedHandleSend(e)}
+                className="flex gap-2"
+              >
+                <textarea
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    autoResize(e.target)
+                  }}
                   placeholder="Nhập tin nhắn hoặc tìm phim..."
-                  className="flex-1"
+                  className="flex-1 min-h-[40px] max-h-[120px] resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition duration-200 ease-in-out"
                   disabled={isLoading}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault()
-                      handleSend()
+                      if (input.trim() && !isLoading) {
+                        debouncedHandleSend()
+                      }
                     }
                   }}
                 />
