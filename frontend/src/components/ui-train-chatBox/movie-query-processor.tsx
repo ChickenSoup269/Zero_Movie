@@ -2,7 +2,6 @@
 import { MovieService } from "@/services/movieService"
 import { GenreService } from "@/services/genreService"
 
-// Phiên bản cải tiến của hàm validateMovieData
 const validateMovieData = (movie: any) => {
   const validatedMovie = { ...movie }
   if (
@@ -39,7 +38,12 @@ export class MovieQueryProcessor {
       return null // Chuyển sang Gemini API
     }
 
-    // Đặt vé phim (hỗ trợ biến thể "tôi muốn đặt vé" và "tôi muốn đặt vé phim")
+    // Help 2.0: Trả về danh sách nút
+    if (lowerQuery === "help 2.0") {
+      return this.getHelpButtons()
+    }
+
+    // Đặt vé phim
     const ticketBookingRegex =
       /(?:tôi muốn đặt vé|đặt vé phim)(?:\s*phim)?\s+(.+)/i
     const ticketMatch = lowerQuery.match(ticketBookingRegex)
@@ -212,14 +216,14 @@ export class MovieQueryProcessor {
       }
 
       const movie = movies[0]
-      if (!movie.tmdbId) {
+      const validatedMovie = validateMovieData(movie)
+      if (!validatedMovie) {
         return { message: `Phim "${movie.title}" không có tmdbId hợp lệ.` }
       }
 
       const posterUrl = movie.posterPath
         ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
         : "/placeholder-image.jpg"
-      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
       const message =
         `Thông tin phim "${movie.title}":\n\n` +
         `📅 Năm phát hành: ${
@@ -231,7 +235,10 @@ export class MovieQueryProcessor {
       return {
         message,
         imageUrl: posterUrl,
-        link: { url: detailsLink, text: "Xem chi tiết" },
+        button: {
+          url: `http://localhost:3000/details-movies/${movie.tmdbId}`,
+          label: "Xem chi tiết",
+        },
       }
     } catch (error: any) {
       return {
@@ -245,7 +252,6 @@ export class MovieQueryProcessor {
    */
   private static async processTicketBooking(movieTitle: string): Promise<any> {
     try {
-      // Kiểm tra tên phim hợp lệ
       if (!movieTitle || movieTitle.length < 2 || /^\W+$/.test(movieTitle)) {
         return { message: "Vui lòng cung cấp tên phim hợp lệ để đặt vé." }
       }
@@ -272,7 +278,6 @@ export class MovieQueryProcessor {
       const posterUrl = movie.posterPath
         ? `https://image.tmdb.org/t/p/w200${movie.posterPath}`
         : "/placeholder-image.jpg"
-      const detailsLink = `http://localhost:3000/details-movies/${movie.tmdbId}`
       const message =
         `Để đặt vé xem phim "${movie.title}":\n\n` +
         `📋 Quy trình đặt vé:\n` +
@@ -286,7 +291,10 @@ export class MovieQueryProcessor {
       return {
         message,
         imageUrl: posterUrl,
-        link: { url: detailsLink, text: "Xem chi tiết" },
+        button: {
+          url: `http://localhost:3000/details-movies/${movie.tmdbId}`,
+          label: "Xem chi tiết",
+        },
       }
     } catch (error: any) {
       return {
@@ -765,5 +773,21 @@ export class MovieQueryProcessor {
 13. Phim đang chiếu: "Phim đang chiếu"
 
 Ngoài ra, bạn có thể hỏi bất kỳ câu hỏi nào, từ âm nhạc, lịch sử, đến công nghệ!`
+  }
+  private static getHelpButtons(): any {
+    const buttons = [
+      { label: "Bao nhiêu phim", query: "bao nhiêu phim" },
+      { label: "Phim đang chiếu", query: "phim đang chiếu" },
+      { label: "Phim mới nhất", query: "phim mới nhất" },
+      { label: "Phim nổi bật", query: "phim nổi bật" },
+      { label: "Phim đánh giá cao", query: "phim đánh giá cao" },
+      { label: "Phim sắp chiếu", query: "phim sắp chiếu" },
+      { label: "Danh sách thể loại", query: "danh sách thể loại" },
+    ]
+
+    return {
+      message: "Chọn một câu hỏi để xem thông tin:",
+      buttons,
+    }
   }
 }

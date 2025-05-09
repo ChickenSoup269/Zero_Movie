@@ -32,7 +32,8 @@ interface Message {
   content: {
     message: string
     imageUrl?: string
-    link?: { url: string; text: string }
+    button?: { url: string; label: string }
+    buttons?: { label: string; query: string }[]
   }
   timestamp: Date
 }
@@ -293,59 +294,62 @@ export default function ChatBox() {
     return () => window.removeEventListener("keydown", handleEscKey)
   }, [isFullscreen])
 
-  const debouncedHandleSend = debounce((e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    const trimmedInput = input.trim()
-    if (!trimmedInput) return
+  const debouncedHandleSend = debounce(
+    (e?: React.FormEvent, query?: string) => {
+      if (e) e.preventDefault()
+      const trimmedInput = query || input.trim()
+      if (!trimmedInput) return
 
-    const userMessage: Message = {
-      role: "user",
-      content: { message: trimmedInput },
-      timestamp: new Date(),
-    }
+      const userMessage: Message = {
+        role: "user",
+        content: { message: trimmedInput },
+        timestamp: new Date(),
+      }
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setSearchText("")
-    setDebouncedSearchText("")
-    setSearchResults([])
-    setIsLoading(true)
-    setError(null)
+      setMessages((prev) => [...prev, userMessage])
+      setInput("")
+      setSearchText("")
+      setDebouncedSearchText("")
+      setSearchResults([])
+      setIsLoading(true)
+      setError(null)
 
-    getGeminiResponse(trimmedInput, userId)
-      .then((result) => {
-        const responseText =
-          result.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
-        let botContent
-        try {
-          botContent = JSON.parse(responseText)
-        } catch (e) {
-          botContent = { message: responseText || "Error: Empty response" }
-        }
-        const botMessage: Message = {
-          role: "bot",
-          content: botContent,
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, botMessage])
-      })
-      .catch((err: any) => {
-        setError(err.message)
-        const errorMessage: Message = {
-          role: "bot",
-          content: { message: `Error: ${err.message}` },
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, errorMessage])
-      })
-      .finally(() => {
-        setIsLoading(false)
-        if (inputRef.current) {
-          autoResize(inputRef.current)
-          inputRef.current.focus()
-        }
-      })
-  }, 300)
+      getGeminiResponse(trimmedInput, userId)
+        .then((result) => {
+          const responseText =
+            result.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
+          let botContent
+          try {
+            botContent = JSON.parse(responseText)
+          } catch (e) {
+            botContent = { message: responseText || "Error: Empty response" }
+          }
+          const botMessage: Message = {
+            role: "bot",
+            content: botContent,
+            timestamp: new Date(),
+          }
+          setMessages((prev) => [...prev, botMessage])
+        })
+        .catch((err: any) => {
+          setError(err.message)
+          const errorMessage: Message = {
+            role: "bot",
+            content: { message: `Error: ${err.message}` },
+            timestamp: new Date(),
+          }
+          setMessages((prev) => [...prev, errorMessage])
+        })
+        .finally(() => {
+          setIsLoading(false)
+          if (inputRef.current) {
+            autoResize(inputRef.current)
+            inputRef.current.focus()
+          }
+        })
+    },
+    300
+  )
 
   const scrollToBottom = () => {
     lastMessageRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -507,8 +511,8 @@ export default function ChatBox() {
             >
               {messages.length === 0 && (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
-                  Xin chào! Tôi là trợ lý AI của Zero Movies. Hãy nhập "help" để
-                  xem tôi có thể giúp gì cho bạn!
+                  Xin chào! Tôi là trợ lý AI của Zero Movies. Hãy nhập "help"
+                  hoặc "help 2.0" để xem tôi có thể giúp gì cho bạn!
                 </div>
               )}
 
@@ -547,15 +551,28 @@ export default function ChatBox() {
                           style={{ maxWidth: "150px" }}
                         />
                       )}
-                      {msg.content.link && (
-                        <a
-                          href={msg.content.link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline mt-2 block text-sm"
+                      {msg.content.button && (
+                        <Button
+                          onClick={() => router.push(msg.content.button!.url)}
+                          className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
                         >
-                          {msg.content.link.text}
-                        </a>
+                          {msg.content.button.label}
+                        </Button>
+                      )}
+                      {msg.content.buttons && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {msg.content.buttons.map((btn, idx) => (
+                            <Button
+                              key={idx}
+                              onClick={() =>
+                                debouncedHandleSend(undefined, btn.query)
+                              }
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
+                            >
+                              {btn.label}
+                            </Button>
+                          ))}
+                        </div>
                       )}
                       <span className="text-xs opacity-70 block text-right mt-1">
                         {formatTime(msg.timestamp)}
