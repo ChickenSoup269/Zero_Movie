@@ -281,7 +281,7 @@ const Movies = ({ slides }: MoviesProps) => {
                           variants={childVariants}
                           className="text-xs mb-1"
                         >
-                          Directed by {movie.director}
+                          {/* Directed by {movie.director} */}
                         </motion.p>
                         <motion.div
                           variants={childVariants}
