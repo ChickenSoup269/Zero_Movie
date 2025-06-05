@@ -255,4 +255,4 @@ Go to the project directory
 
 ## 10. Video demo & và full ảnh đồ án
 
-link:
+link: https://www.youtube.com/watch?v=Hv5FI1u5by8
