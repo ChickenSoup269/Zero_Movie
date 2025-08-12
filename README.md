@@ -187,7 +187,7 @@ Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng 
 npm run build
 ```
 
-## [BỔ SUNG] Nếu clone về máy
+## Nếu clone về máy
 
 Clone the project
 
