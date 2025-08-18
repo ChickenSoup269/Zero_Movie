@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/) 
 </p>
 
-Tiếng Việt | <a href="none">English</a>
+Tiếng Việt | <a href="https://github.com/ChickenSoup269/Zero_Movie/blob/main/README_en.md">English</a>
 
 ## Giới thiệu
 
