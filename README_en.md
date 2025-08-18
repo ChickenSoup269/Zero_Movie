@@ -153,11 +153,11 @@ Directory structure:
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
-**CHÚ Ý**:<p style="color: red">Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ</p>
+**NOTE**:<p style="color: red">The PayPal account is in sandbox mode. Please contact us if needed.</p>
 
 ### 7. Install frontend & backend dependencies
 
-Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
+Run the following command to install all required dependencies:
 
 ```bash
 npm install
@@ -165,7 +165,7 @@ npm install
 
 ### 8. Run project
 
-Khởi chạy server phát triển bằng lệnh:
+Start the development servers with the following commands:
 
 frontend
 
@@ -179,11 +179,11 @@ backend
 npm run start now
 ```
 
-Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng dụng.
+Then, from the frontend terminal, visit http://localhost:3000 to view the application.
 
 ### 9. Build project
 
-Để build dự án cho môi trường production, chạy lệnh:
+To build the project for production, run:
 
 ```bash
 npm run build
