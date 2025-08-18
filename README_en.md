@@ -15,7 +15,7 @@
 
 ## Key Features
 
-- **nline movie ticket booking:** Choose movies, showtimes, seats, and make payments easily.
+- **Online movie ticket booking:** Choose movies, showtimes, seats, and make payments easily.
 
 - **AI integration:** Suggest movies based on user preferences and viewing history.
 
