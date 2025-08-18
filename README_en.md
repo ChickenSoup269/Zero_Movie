@@ -7,27 +7,27 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/) 
 </p>
 
-Tiếng Việt | <a href="none">English</a>
+<a href="https://github.com/ChickenSoup269/Zero_Movie/blob/main/README.md"> Tiếng Việt</a> | English
 
-## Giới thiệu
+## Introduction
 
-**Zero Movie** là một nền tảng đặt vé xem phim trực tuyến, giúp cho người dùng dễ dàng tìm kiếm, đặt vé và trải nghiệm rạp chiếu phim theo cách hiện đại nhất. Với sự kết hợp giữa AI và công nghệ 3D View, người dùng không chỉ đặt vé mà còn có thể xem trước góc nhìn thực tế từ ghế mình chọn hướng về màn hình.
+**Zero Movie** Zero Movie is an online movie ticket booking platform that makes it easy for users to search, book tickets, and enjoy cinema in the most modern way. With the combination of AI and 3D View technology, users can not only book tickets but also preview the real perspective from their selected seat towards the screen.
 
-## Các tính năng chính
+## Key Features
 
-- **Đặt vé xem phim online:** Chọn phim, suất chiếu, ghế ngồi và thanh toán dễ dàng.
+- **nline movie ticket booking:** Choose movies, showtimes, seats, and make payments easily.
 
-- **Tích hợp AI:** Đề xuất phim dựa trên sở thích và lịch sử xem của người dùng.
+- **AI integration:** Suggest movies based on user preferences and viewing history.
 
-- **3D View từ ghế ngồi:** Trải nghiệm góc nhìn thực tế từ ghế đã chọn trước khi đặt vé.
+- **3D seat view:** Experience a realistic perspective from the chosen seat before booking.
 
-- **Quản lý tài khoản:** Lịch sử đặt vé, ưu đãi thành viên, ví điện tử.
+- **Account management:** Booking history, membership benefits, e-wallet.
 
-- **Tích hợp API rạp phim:** Cập nhật suất chiếu theo thời gian thực.
+- **Cinema API integration:** Real-time showtime updates.
 
-- **Tích hợp API Gemini để hỗ trợ user:** User có thể hỏi tất cả những gì liên quan đến phim
+- **Gemini API integration for user suppor:** Users can ask anything related to movies.
 
-## Công nghệ sử dụng
+## Technology Stack
 
 **Tech & version:**  
 [![Generic badge](https://img.shields.io/badge/nextjs-15.3.0-white.svg)](https://shields.io/)
@@ -40,36 +40,36 @@ Tiếng Việt | <a href="none">English</a>
 [![Generic badge](https://img.shields.io/badge/shadcn%2Fui-latest-black.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/emailjs-4.4.1-orange.svg)](https://shields.io/)
 
-- **Next.js:** Xây dựng giao diện web nhanh chóng và tối ưu.
+- **Next.js:** Build fast and optimized web interfaces.
 
-- **Tailwind CSS:** Tùy chỉnh giao diện đẹp mắt, hiện đại.
+- **Tailwind CSS:** Create modern and customizable UI.
 
-- **Three.js:** Hiển thị mô phỏng 3D View ghế ngồi.
+- **Three.js:** Render 3D seat view simulation.
 
-- **API AI Gemini:** Giải đáp thắc mắc cho người dùng
+- **API AI Gemini:** Answer user queries
 
-- **AI Recommendation System:** Gợi ý phim phù hợp với người dùng.
+- **AI Recommendation System:** Suggest personalized movies for users.
 
-- **MongoDB:** Lưu trữ dữ liệu người dùng, vé đặt, lịch chiếu.
+- **MongoDB:** Store user data, tickets, and showtimes.
 
-## Hướng dẫn cài đặt và chạy dự án
+## Installation & Setup Guide
 
-## 1. Cần tải thêm folder python này có hướng dẫn ở README.md [nằm cùng cấp với zeroMovies]
+## 1. Download the Python folder (instructions are in the README.md located at the same level as zeroMovies)
 
 https://github.com/ChickenSoup269/recommendationMovies
 
-### Nếu có lỗi do python thì copy đoạn này vào folder backend src/conntrollers/movieController.ts
+### If you encounter Python-related errors, copy this snippet into backend/src/controllers/movieController.ts:
 
 ```bash
- // Gọi script Python
-      const { stdout } = await execPromise(
-        `python3 ..\\..\\{tên của folder python bạn vừa tải về}\\models\\recommend.py ${userId}`
-      )
+// Run Python script
+const { stdout } = await execPromise(
+  `python3 ..\\..\\{name of the python folder you just downloaded}\\models\\recommend.py ${userId}`
+)
 ```
 
-## 2. Bổ sung file .env
+## 2. Add .env file
 
-Để chạy được đồ án bạn các bạn cần liên hệ với nhóm để lấy được key api
+To run the project, please contact the team to get the API key.
 
 ### file .env [frontend]
 
@@ -97,7 +97,7 @@ EMAIL_USER = 'your_email_user_here'
 EMAIL_PASS = 'your_email_pass_here'
 ```
 
-## 3. Tổng quan về thư mục đồ án
+## 3. Overview projects structure
 
 ```bash
 Directory structure:
@@ -139,7 +139,7 @@ Directory structure:
 
 <p align="center"> <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/chitietrap.png" alt="drawing" width="800"/> </p>
 
-## 5. Tổng số code
+## 5. Total of code
 
 [![Generic badge](https://img.shields.io/badge/frontend-19.7.0-blue.svg)](https://shields.io/)
 
@@ -149,13 +149,13 @@ Directory structure:
 
 <img src="https://github.com/ChickenSoup269/Zero_Movie/blob/main/frontend/public/screenshots/backend.png" alt="drawing" width="500">
                      
-## 6. Check dữ liệu tại đây
+## 6. Check data this repo here
 
 https://gitingest.com/ChickenSoup269/Zero_Movie
 
 **CHÚ Ý**:<p style="color: red">Tài khoản paypal ở môi trường sanbox nếu cần hãy liên hệ</p>
 
-### 7. Cài đặt dependencies của frontend & backend
+### 7. Install frontend & backend dependencies
 
 Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
 
@@ -163,7 +163,7 @@ Chạy lệnh sau để cài đặt tất cả dependencies cần thiết:
 npm install
 ```
 
-### 8. Chạy dự án
+### 8. Run project
 
 Khởi chạy server phát triển bằng lệnh:
 
@@ -181,7 +181,7 @@ npm run start now
 
 Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng dụng.
 
-### 9. Build dự án
+### 9. Build project
 
 Để build dự án cho môi trường production, chạy lệnh:
 
@@ -189,7 +189,7 @@ Sau đó tại frontend cmd, truy cập `http://localhost:3000` để xem ứng 
 npm run build
 ```
 
-## Nếu clone về máy
+## Clone repo
 
 Clone the project
 
@@ -203,6 +203,6 @@ Go to the project directory
   cd my-project
 ```
 
-## 10. Video demo & và full ảnh đồ án
+## 10. Video demo
 
 link: https://www.youtube.com/watch?v=Hv5FI1u5by8

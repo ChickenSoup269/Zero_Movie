@@ -291,7 +291,7 @@ export default function MovieAdmin() {
         ...prev,
         activePeriod: {
           ...prev.activePeriod,
-          [field]: value,
+          [field]: value || "",
         },
       }))
     } else {
