@@ -7,17 +7,38 @@ import {
   OrdersCaptureRequest,
 } from "@paypal/checkout-server-sdk/lib/orders/lib"
 import Booking from "../models/bookingModel"
+import { Movie } from '../models/movieModel';
 
 export class PaymentService {
   static async createPayment(bookingId: string, userId: string | null) {
     if (!mongoose.Types.ObjectId.isValid(bookingId))
       throw new Error("Booking ID không hợp lệ")
 
-    const booking = await Booking.findById(bookingId)
-    if (!booking || booking.status !== "pending")
-      throw new Error("Booking không hợp lệ")
-    const totalPrice = booking.totalPrice
-    if (!totalPrice || totalPrice <= 0) throw new Error("Tổng giá không hợp lệ")
+    // Truy vấn booking và populate showtimeId
+    const booking = await Booking.findById(bookingId).populate('showtimeId');
+    if (!booking || booking.status !== 'pending')
+      throw new Error('Booking không hợp lệ hoặc đã được xử lý');
+
+    // Kiểm tra thời hạn suất chiếu
+    const showtime = booking.showtimeId as any; 
+    if (!showtime)
+      throw new Error('Không tìm thấy suất chiếu liên quan đến booking');
+    const currentTime = new Date(); 
+    if (currentTime > showtime.startTime)
+      throw new Error('Suất chiếu đã qua thời hạn, không thể tạo thanh toán');
+
+    // Kiểm tra expiresAt của booking
+    if (booking.expiresAt && currentTime > booking.expiresAt)
+      throw new Error('Booking đã hết hạn, không thể tạo thanh toán');
+
+    // Kiểm tra trạng thái phim
+    const movie = await Movie.findOne({ tmdbId: booking.movieId });
+    if (!movie || movie.status !== 'nowPlaying')
+      throw new Error('Phim không còn được chiếu, không thể tạo thanh toán');
+
+    // Kiểm tra totalPrice
+    const totalPrice = booking.totalPrice;
+    if (!totalPrice || totalPrice <= 0) throw new Error('Tổng giá không hợp lệ');
 
     const payment = new Payment({
       bookingId,

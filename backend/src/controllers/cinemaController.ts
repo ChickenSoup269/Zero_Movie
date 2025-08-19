@@ -67,33 +67,34 @@ export const getShowtimesByCinemaId = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params
-    const { date, movieId } = req.query
+    const { id } = req.params;
+    const { date, movieId, includePast } = req.query;
     const result = await CinemaService.getShowtimesByCinemaId(
       id,
       date as string,
-      movieId as string
-    )
+      movieId as string,
+      includePast === 'true' 
+    );
     res.status(200).json({
-      message: "Lấy danh sách suất chiếu theo rạp thành công",
+      message: 'Lấy danh sách suất chiếu theo rạp thành công',
       cinema: result.cinema,
       showtimes: result.showtimes,
-    })
+    });
   } catch (error) {
-    const message = (error as Error).message
-    if (message === "ID rạp không hợp lệ") {
-      res.status(400).json({ message })
-    } else if (message === "Không tìm thấy rạp") {
-      res.status(404).json({ message })
-    } else if (message === "Định dạng ngày không hợp lệ (dùng YYYY-MM-DD)") {
-      res.status(400).json({ message })
+    const message = (error as Error).message;
+    if (message === 'ID rạp không hợp lệ') {
+      res.status(400).json({ message });
+    } else if (message === 'Không tìm thấy rạp') {
+      res.status(404).json({ message });
+    } else if (message === 'Định dạng ngày không hợp lệ (dùng YYYY-MM-DD)') {
+      res.status(400).json({ message });
     } else {
       res
         .status(500)
-        .json({ message: "Lỗi khi lấy danh sách suất chiếu", error: message })
+        .json({ message: 'Lỗi khi lấy danh sách suất chiếu', error: message });
     }
   }
-}
+};
 
 export const createCinema = async (
   req: Request,
