@@ -12,7 +12,7 @@ const router = Router();
 //routes
 router.get('/', getAllCinemas); 
 router.get('/:id', getCinemaById);
-router.get('/:id/showtimes', getShowtimesByCinemaId); // showtime by cinema
+router.get('/:id/showtimes', getShowtimesByCinemaId); 
 router.post('/',createCinema)
 router.put('/:id', updateCinema);
 router.delete('/:id', deleteCinema);

@@ -27,41 +27,54 @@ export class CinemaService {
   static async getShowtimesByCinemaId(
     id: string,
     date?: string,
-    movieId?: string
+    movieId?: string,
+    includePast: boolean = false //Optione: Admin
   ): Promise<any> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("ID rạp không hợp lệ")
+      throw new Error('ID rạp không hợp lệ');
     }
 
-    const cinema = await Cinema.findById(id)
+    const cinema = await Cinema.findById(id);
     if (!cinema) {
-      throw new Error("Không tìm thấy rạp")
+      throw new Error('Không tìm thấy rạp');
     }
 
-    const rooms = await Room.find({ cinemaId: id })
-    const roomIds = rooms.map((room) => room._id.toString())
+    const rooms = await Room.find({ cinemaId: id });
+    const roomIds = rooms.map((room) => room._id.toString());
 
-    const query: any = { roomId: { $in: roomIds } }
+    const query: any = { roomId: { $in: roomIds } };
+
+    // Lọc theo ngày nếu có
     if (date) {
-      const startOfDay = new Date(date)
+      const startOfDay = new Date(date);
       if (isNaN(startOfDay.getTime())) {
-        throw new Error("Định dạng ngày không hợp lệ (dùng YYYY-MM-DD)")
+        throw new Error('Định dạng ngày không hợp lệ (dùng YYYY-MM-DD)');
       }
-      const endOfDay = new Date(startOfDay)
-      endOfDay.setDate(endOfDay.getDate() + 1)
-      query.startTime = { $gte: startOfDay, $lt: endOfDay }
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      query.startTime = { $gte: startOfDay, $lt: endOfDay };
     }
     if (movieId) {
-      query.movieId = Number(movieId)
+      query.movieId = Number(movieId);
     }
 
-    const showtimes = await Showtime.find(query).populate("roomId")
+    // Lọc thời hạn suất chiếu: chỉ suất chưa qua (mặc định)
+    const currentTime = new Date();
+    if (!includePast) {
+      if (query.startTime) {
+        query.startTime.$gte = new Date(Math.max(query.startTime.$gte.getTime(), currentTime.getTime()));
+      } else {
+        query.startTime = { $gte: currentTime };
+      }
+    }
+
+    const showtimes = await Showtime.find(query).populate('roomId');
     const formattedShowtimes = await Promise.all(
       showtimes.map(async (showtime) => {
-        const room = showtime.roomId as any
+        const room = showtime.roomId as any;
         const movie = await mongoose
-          .model("Movie")
-          .findOne({ tmdbId: showtime.movieId })
+          .model('Movie')
+          .findOne({ tmdbId: showtime.movieId });
         return {
           _id: showtime._id.toString(),
           movieId: showtime.movieId,
@@ -70,10 +83,10 @@ export class CinemaService {
           roomNumber: room.roomNumber,
           startTime: showtime.startTime.toISOString(),
           endTime: showtime.endTime.toISOString(),
-          price: showtime.price, // Thêm price
-        }
+          price: showtime.price, 
+        };
       })
-    )
+    );
 
     return {
       cinema: {
@@ -84,7 +97,7 @@ export class CinemaService {
         updatedAt: cinema.updatedAt?.toISOString(),
       },
       showtimes: formattedShowtimes,
-    }
+    };
   }
 
   // CREATE

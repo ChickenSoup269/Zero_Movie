@@ -22,5 +22,5 @@ const showtimeSchema = new Schema<IShowtime>({
   timestamps: true,
 });
 
-showtimeSchema.index({ roomId: 1, startTime: 1 }); // Index để kiểm tra xung đột nhanh
+showtimeSchema.index({ roomId: 1, startTime: 1 }); 
 export default model<IShowtime>('Showtime', showtimeSchema);

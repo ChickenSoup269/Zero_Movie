@@ -112,7 +112,7 @@ export class MovieController {
       }
       // Gọi script Python [đã fix]
       const { stdout } = await execPromise(
-        `python3 ..\\..\\recommendationMovies-main\\models\\recommend.py ${userId}`
+        `python3 ..\\..\\recommendationMovies\\models\\recommend.py ${userId}`
       )
       const recommendations = JSON.parse(stdout)
       res
