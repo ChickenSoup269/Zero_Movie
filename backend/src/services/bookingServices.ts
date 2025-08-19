@@ -44,7 +44,11 @@ export class BookingService {
       "roomId"
     )
     if (!showtime) throw new Error("Suất chiếu không tồn tại")
-
+    // Kiểm tra thời hạn suất chiếu
+    const currentTime = new Date();
+    if (currentTime > showtime.startTime) {
+      throw new Error('Suất chiếu đã qua thời hạn, không thể đặt booking');
+    }
     // Lấy movieId từ showtime
     const movieId = showtime.movieId
     const movie = await Movie.findOne({ tmdbId: movieId })
