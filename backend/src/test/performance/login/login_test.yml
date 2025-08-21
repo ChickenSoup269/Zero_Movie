@@ -1,0 +1,23 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 50
+  processor: "./functions.js"   # <- BẮT BUỘC để nó hiểu getRandomUser
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Login test"
+    flow:
+      - function: "getRandomUser"
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          capture:
+            json: "$.accessToken"
+            as: "token"
+      - log: "Logged in with email: {{ email }}"

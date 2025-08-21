@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run clean && tsc && nodemon ./dist/server.js",
     "start-now": "nodemon --exec ts-node ./src/server.ts",
+    "run:perf": "ts-node",
     "test": "jest",
     "test-coverage": "jest --coverage",
     "clean": "rimraf dist"
