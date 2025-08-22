@@ -6,7 +6,7 @@ import {
   getAllUsers,
   searchUsers,
   uploadImage,
-} from "../controllers/userController" // Controller của bạn
+} from "../controllers/userController" 
 import { authMiddleware } from "../middlewares/auth"
 
 const router = express.Router()
@@ -16,6 +16,6 @@ router.put("/profile", authMiddleware, updateProfile)
 router.delete("/:id", authMiddleware, deleteUser)
 router.get("/", authMiddleware, getAllUsers)
 router.get("/search", authMiddleware, searchUsers)
-router.post("/upload", authMiddleware, uploadImage) // Endpoint upload
+router.post("/upload", authMiddleware, uploadImage) 
 
 export default router

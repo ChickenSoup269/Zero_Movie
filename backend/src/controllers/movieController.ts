@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import { MovieService } from "../services/movieServices"
 import { exec } from "child_process"
 import { promisify } from "util"
+import axios from "axios"
 
 const execPromise = promisify(exec)
 
@@ -105,23 +106,22 @@ export class MovieController {
 
   static async getRecommendations(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.params.userId
+      const userId = req.params.userId;
       if (!userId) {
-        res.status(400).json({ message: "Thiếu userId" })
-        return
+        res.status(400).json({ message: 'Thiếu userId' });
+        return;
       }
-      // Gọi script Python [đã fix]
-      const { stdout } = await execPromise(
-        `python3 ..\\..\\recommendationMovies\\models\\recommend.py ${userId}`
-      )
-      const recommendations = JSON.parse(stdout)
-      res
-        .status(200)
-        .json({ message: "Lấy gợi ý phim thành công", recommendations })
+      const response = await axios.get(
+        `${process.env.RECOMMENDATION_API_URL}/recommendations?userId=${userId}`,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      // Điều chỉnh theo cấu trúc thực tế
+      const recommendations = response.data.data || [];
+      res.status(200).json({ message: 'Lấy gợi ý phim thành công', recommendations });
     } catch (error) {
       res.status(500).json({
-        message: (error as Error).message || "Lỗi khi lấy gợi ý phim",
-      })
+        message: (error as Error).message || 'Lỗi khi lấy gợi ý phim',
+      });
     }
   }
 }

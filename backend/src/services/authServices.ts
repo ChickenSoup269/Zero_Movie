@@ -51,22 +51,20 @@ export class AuthService {
   }
 
   static async login({ email, password }: { email: string; password: string }) {
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email }).lean();
     if (!user) throw new Error("Email không đúng")
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) throw new Error("Mật khẩu không đúng")
 
-    const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "1h" }
-    )
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
-    )
+     const [accessToken, refreshToken] = await Promise.all([
+      jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, {
+        expiresIn: "1h",
+      }),
+      jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET!, {
+        expiresIn: "7d",
+      }),
+    ]);
 
     await Session.create({
       userId: user._id,
