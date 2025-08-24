@@ -42,11 +42,10 @@ async function verifySandboxConnection() {
   }
 }
 
-// Kiểm tra kết nối khi server khởi động (chỉ trong môi trường dev)
+// Kiểm tra kết nối khi server khởi động (enviroment dev)
 if (process.env.NODE_ENV !== 'production') {
   verifySandboxConnection().catch(err => {
     console.error('Lỗi khởi tạo PayPal:', err.message);
-    // Không thoát process để server vẫn chạy, nhưng báo lỗi rõ ràng
   });
 }
 

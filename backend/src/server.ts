@@ -13,8 +13,15 @@ const app = express()
 const PORT = 3001
 
 // Cấu hình CORS
-app.use(cors({ origin: "http://localhost:3000" }))
-app.use(express.json())
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", 
+      "https://zero-movie-fe-v2.onrender.com", 
+    ],
+    credentials: true, 
+  })
+);app.use(express.json())
 app.use(morgan("combined"))
 
 // Cấu hình phục vụ file tĩnh
