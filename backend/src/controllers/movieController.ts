@@ -113,7 +113,7 @@ export class MovieController {
       }
       const response = await axios.get(
         `${process.env.RECOMMENDATION_API_URL}/recommendations?userId=${userId}`,
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' },timeout: 15000 }
       );
       // Điều chỉnh theo cấu trúc thực tế
       const recommendations = response.data.data || [];
