@@ -187,7 +187,8 @@ export class MovieService {
   // Lấy gợi ý phim theo userId
   static async getRecommendations(userId: string): Promise<Movie[]> {
     try {
-      const response = await axios.get(`${API_URL}/movies/recommend/${userId}`)
+      console.log('Calling API:', `${API_URL}/movies/recommend/${userId}`);
+      const response = await axios.get(`${API_URL}/movies/recommend/${userId}`, { timeout: 20000 });
       return response.data.recommendations || []
     } catch (error: any) {
       console.error("Lỗi khi lấy gợi ý phim:", {
