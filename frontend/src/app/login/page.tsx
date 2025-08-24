@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Card } from "@/components/ui/card"
-import BackButton from "@/components/ui-login/back-button"
-import LoginForm from "@/components/ui-login/login-form"
-import RegisterForm from "@/components/ui-login/register-form"
-import "./login.css"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import BackButton from "@/components/ui-login/back-button";
+import LoginForm from "@/components/ui-login/login-form";
+import RegisterForm from "@/components/ui-login/register-form";
+import "./login.css";
 
 const containerVariants = {
   hidden: { opacity: 0, scale: 0.9 },
@@ -20,45 +20,54 @@ const containerVariants = {
     },
   },
   exit: { opacity: 0, scale: 0.95 },
-}
+};
 
 const LoginPage = () => {
-  const [loginData, setLoginData] = useState({ email: "", password: "" })
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
     email: "",
     username: "",
     password: "",
     confirmPassword: "",
-  })
-  const [showLoginPassword, setShowLoginPassword] = useState(false)
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [openDialog, setOpenDialog] = useState(false)
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem("activeTab") || "login"
-  })
+  });
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("login"); // Mặc định là "login"
 
   useEffect(() => {
-    localStorage.setItem("activeTab", activeTab)
-  }, [activeTab])
+    // Chỉ chạy trên client
+    if (typeof window !== "undefined") {
+      const savedTab = localStorage.getItem("activeTab") || "login";
+      setActiveTab(savedTab);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Chỉ chạy trên client
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeTab", activeTab);
+    }
+  }, [activeTab]);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLoginData({ ...loginData, [e.target.name]: e.target.value })
-  }
+    setLoginData({ ...loginData, [e.target.name]: e.target.value });
+  };
 
   const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRegisterData({ ...registerData, [e.target.name]: e.target.value })
-  }
+    setRegisterData({ ...registerData, [e.target.name]: e.target.value });
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Login data:", loginData)
-  }
+    e.preventDefault();
+    console.log("Login data:", loginData);
+  };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Register data:", registerData)
-  }
+    e.preventDefault();
+    console.log("Register data:", registerData);
+  };
 
   return (
     <div className="login-page min-h-screen flex items-center justify-center relative duration-300">
@@ -76,16 +85,16 @@ const LoginPage = () => {
             onValueChange={(value) => setActiveTab(value)}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-200 ">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-200">
               <TabsTrigger
                 value="login"
-                className="text-black  data-[state=active]:bg-white  data-[state=active]:text-black dark:data-[state=active]:text-white   dark:data-[state=active]:bg-black"
+                className="text-black data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:text-white dark:data-[state=active]:bg-black"
               >
                 Sign In
               </TabsTrigger>
               <TabsTrigger
                 value="register"
-                className="text-black   data-[state=active]:bg-white  data-[state=active]:text-black  dark:data-[state=active]:text-white dark:data-[state=active]:bg-black"
+                className="text-black data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:text-white dark:data-[state=active]:bg-black"
               >
                 Sign Up
               </TabsTrigger>
@@ -97,7 +106,7 @@ const LoginPage = () => {
                 handleLoginSubmit={handleLoginSubmit}
                 showLoginPassword={showLoginPassword}
                 setShowLoginPassword={setShowLoginPassword}
-                openDialog={openDialog} // Truyền openDialog
+                openDialog={openDialog}
                 setOpenDialog={setOpenDialog}
               />
             </TabsContent>
@@ -116,7 +125,7 @@ const LoginPage = () => {
         </motion.div>
       </Card>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;
