@@ -206,3 +206,5 @@ Go to the project directory
 ## 10. Video demo & và full ảnh đồ án
 
 link: https://www.youtube.com/watch?v=Hv5FI1u5by8
+
+## 11: Link deploy free sẽ hơi lag: https://zero-movie-fe-v2.onrender.com/
